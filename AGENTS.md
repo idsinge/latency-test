@@ -1,0 +1,177 @@
+# AGENTS.md
+
+## Critical rule
+
+Do not edit or modify existing files without explicit user confirmation.
+Reading, analysis, and proposed patches are allowed. File creation or
+modification requires approval first.
+
+## Project goal
+
+Migrate the current browser round-trip audio latency prototype into a
+reusable Web Component package: `@hi-audio/latency-test`.
+Both npm import and CDN/script-tag usage are first-class distribution targets.
+
+## Key reference files
+
+Before starting any work, read these files in order:
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Project overview, architecture, file map, data flow, browser notes |
+| `CLAUDE_REVIEW.md` | Full migration plan (Phases 1–7), resolved decisions, packaging checklist |
+| `CODEX_REVIEW.md` | Adversarial review log, open questions, architecture risks |
+| `CODEX_README.md` | README direction and documentation strategy |
+| `claude_codex_workflow_context.md` | Claude+Codex collaboration workflow design notes (some sections reference resolved branch/repo issues — see git history for context) |
+
+Ignore `.parcel-cache/`, `dist/`, `node_modules/`, `docs/.vitepress/cache/`.
+
+## Agent roles
+
+### Claude Code
+
+Acts as **teacher and pair programmer**.
+
+- Explains approach and tradeoffs before editing anything.
+- Works in small, reviewable steps.
+- Waits for user approval before modifying files.
+- Teaches the reasoning behind each change — Web Components, JS architecture,
+  browser APIs, Web Audio API, testing, packaging, and docs.
+- Asks the user to reason about important decisions before revealing the answer.
+- Helps the user evaluate Codex feedback.
+
+**Before editing any file, Claude must:**
+
+1. Explain the problem.
+2. Explain possible approaches.
+3. Recommend the smallest safe next step.
+4. Wait for user approval before making significant changes.
+
+**After Codex reviews something, Claude must:**
+
+1. Classify Codex findings by severity.
+2. Explain which findings matter now.
+3. Explain which findings can wait.
+4. Propose the smallest safe patch.
+5. Teach the underlying engineering principle behind each important finding.
+
+### Codex
+
+Acts as **independent adversarial reviewer**.
+
+- Reviews diffs and branch changes.
+- Challenges migration approach, architecture, API design, browser compatibility,
+  packaging, docs accuracy, and implementation risks.
+- Returns prioritised findings.
+- Does not rewrite the project unless explicitly asked.
+
+**Codex commands:**
+
+| Command | When to use |
+|---------|-------------|
+| `/codex:rescue --fresh --background <task>` | Onboarding, investigation, read-only delegated analysis |
+| `/codex:review --background` | Review current uncommitted changes or a branch diff |
+| `/codex:adversarial-review --background <focus>` | Challenge architecture, API design, browser compatibility, package structure, over-engineering |
+| `/codex:status` | Check status of background Codex tasks |
+| `/codex:result` | Retrieve output of a completed Codex task |
+
+**Do not enable the review gate yet:**
+`/codex:setup --enable-review-gate` can create noisy automatic Claude/Codex loops.
+Manual reviews keep the learning loop intentional. Enable only when explicitly decided.
+
+### Day-to-day loop
+
+1. Ask Claude to explain and plan a small step.
+2. Claude implements only that step.
+3. Run local checks (`npm run build`, `npm run docs:build`, `git diff`).
+4. Run `/codex:review` or `/codex:adversarial-review` for independent review.
+5. Ask Claude to classify Codex findings and propose the smallest patch.
+6. User decides what to accept.
+7. Commit. Repeat.
+
+> See `claude_codex_workflow_context.md` for the original workflow design notes.
+> Note: some sections reference an older branch state and will be revised when
+> the file is migrated to a documentation page.
+
+## Current stack
+
+- Vanilla JavaScript ES modules — no TypeScript, no test suite
+- Web Audio API (`AudioContext`, `AudioBuffer`, `AudioBufferSourceNode`)
+- `MediaRecorder` for capture (v1 default — to be replaced by `AudioWorklet` in v2)
+- Web Worker for cross-correlation and peak detection (off main thread)
+- Parcel v2 — demo app bundler (may be replaced or removed in a future phase;
+  the component build pipeline is separate and not yet decided)
+- VitePress — developer docs site (`docs/`)
+
+## Commands
+
+```bash
+npm install
+npm run dev           # Parcel dev server — demo app only (http://localhost:1234)
+npm run build         # Production build — demo app only
+npm run docs:dev      # VitePress docs dev server (http://localhost:5173)
+npm run docs:build    # Build VitePress docs
+npm run docs:preview  # Preview built docs
+```
+
+Note: there is no `build:component` script yet. That is a Phase 6 deliverable.
+
+## Working branch
+
+Active development: `webcomponent` branch.
+Stable base: `main`.
+Merge `webcomponent` → `main` only when a phase is complete and reviewed.
+
+## Migration phases
+
+| Phase | Goal | Status |
+|-------|------|--------|
+| 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Pending |
+| 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Pending |
+| 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | Pending |
+| 4 | Validate browser-specific behavior (Safari gain, mono/stereo, iOS aliasing) | Pending |
+| 5 | Stabilize integration API (AudioContext ownership, stream ownership, events) | Pending |
+| 6 | Docs + packaging alignment; decide on bundler or no bundler; `build:component` script | Pending |
+| 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
+
+TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
+a stable component build exists. Not a priority during Phases 1–5.
+
+## Resolved design decisions
+
+Do not re-open these unless the user explicitly asks:
+
+- `audioContext`: lazy creation on first `start()`, or host-provided via property.
+  The component never closes an active `AudioContext`.
+- `inputStream`: same ownership model — host-provided streams are never stopped
+  by the component; self-created streams are acquired on `start()` and released on end.
+- Shadow DOM: open mode, empty root by default. No built-in visible UI in v1 (headless-first).
+- `recording-mode` attribute: `"mediarecorder"` (v1 default) | `"audioworklet"` (v2 default).
+- Lifecycle events emitted: `latency-start`, `latency-recording`, `latency-processing`,
+  `latency-result`, `latency-error`, `latency-complete`.
+  All events must set `bubbles: true` and `composed: true`.
+- Safari gain: host-controlled via `input-gain` attribute. No internal browser detection.
+- Distribution: npm + CDN are both first-class targets. Validate both before publishing.
+
+## Review priorities
+
+- Do not change the MLS/cross-correlation algorithm unless explicitly asked.
+- Do not touch `worker.js` correlation logic during Phase 1 or Phase 2.
+- Phase 1 target: `test.js` refactor only — instance-based, no DOM/recording changes.
+- Phase 2 target: Custom Element wrapper only — no recording architecture changes.
+- Phase 3 (AudioWorklet) must not begin before Phase 2 is stable and in-browser tested.
+- Docs must keep a strict separation between implemented behavior and planned/draft API.
+- `package.json` is not yet publish-ready — treat publishing fields as planning until
+  a real component build output exists.
+
+## Known risks
+
+- `TestLatencyMLS` is a static singleton — all state is on the class, not instances.
+- DOM access is hardcoded via `document.getElementById()`.
+- `MediaRecorder` path introduces a codec round-trip before PCM analysis.
+- `mediaRecorder.start()` and `noiseSource.start()` are separate JS calls — timing gap.
+- Worker correlation contract will change in Phase 3 (mic-vs-MLS → mic-vs-reference-loopback).
+- No test suite — migration correctness depends on manual browser testing across
+  Chrome, Firefox, Safari, and mobile.
+- Bundler strategy for the component package (separate from the demo app) is not yet
+  decided. Parcel may be replaced or dropped for the component build.
