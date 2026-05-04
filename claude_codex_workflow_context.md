@@ -36,25 +36,18 @@ Make sure the following are installed before continuing:
 
 ### 1. Install the Codex plugin for Claude Code
 
-In VS Code:
-- Open the Extensions panel (`Cmd+Shift+X`)
-- Search for **OpenAI Codex** and install the plugin
-- Reload VS Code after installation
+Inside the Claude Code VS Code extension:
+- Type `/plugins` to open the plugin manager
+- Paste the plugin URL: `https://github.com/openai/codex-plugin-cc`
+- Click **Install**
+
+No separate VS Code Codex extension is needed. Everything runs through
+Claude Code and the npm package below.
 
 ### 2. Install the Codex CLI globally
 
 ```bash
 sudo npm install -g @openai/codex
-```
-
-If you prefer to avoid `sudo`, use a user-writable npm prefix:
-
-```bash
-mkdir -p ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
-source ~/.zshrc
-npm install -g @openai/codex
 ```
 
 ### 3. Authenticate
@@ -65,9 +58,20 @@ Open Claude Code in VS Code and run:
 /codex:setup
 ```
 
-If not yet logged in, authenticate with your ChatGPT account (the same
-account used on other machines). Authentication is stored locally per
-machine — it does not travel with the repo.
+A successful setup shows `ready: true` with your email confirmed under `auth`.
+If `loggedIn` is false, run `codex login` in a terminal and re-run `/codex:setup`.
+
+Authentication is stored locally per machine — it does not travel with the repo.
+
+> **⚠ Bash permission wall:** Background Codex subagents need Bash tool access to
+> call the companion script. In some Claude Code permission modes, Bash calls from
+> background subagents are auto-denied without prompting the user — Codex fails
+> silently and Claude falls back to answering directly.
+>
+> Fix: the repo includes `.claude/settings.json` with a glob allowlist that
+> pre-approves the companion script on any machine. This file travels with git
+> and applies automatically on clone. See
+> [Project-level Claude Code settings](#project-level-claude-code-settings).
 
 ### 4. Clone the repo and install dependencies
 
@@ -126,7 +130,7 @@ This re-orients Codex to the current repo state on the new machine.
 | Thing | Where it lives |
 |-------|---------------|
 | Codex CLI (`@openai/codex`) | Global npm — reinstall per machine |
-| Codex plugin for VS Code | VS Code extensions — reinstall per machine |
+| Codex plugin for Claude Code | Install via `/plugins` in Claude Code — reinstall per machine |
 | Codex / Claude authentication | Local account credentials — re-authenticate per machine |
 | Claude Code memory files (`~/.claude/projects/...`) | Local only — never in git |
 
@@ -180,6 +184,22 @@ transplanted to any repo. Replace the project-specific parts and keep the rest.
 A `.claude/settings.json` file in the repo root configures Claude Code
 consistently across machines (permission allowlists, hooks, etc.).
 This file travels with git and applies automatically on any machine.
+
+This repo's `.claude/settings.json` pre-approves the Codex companion script
+for Bash access using a glob pattern that works on any machine:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *codex-companion.mjs*)"
+    ]
+  }
+}
+```
+
+Without this entry, background Codex subagents fail silently — see
+[step 3 above](#3-authenticate) for the full explanation.
 
 ---
 
