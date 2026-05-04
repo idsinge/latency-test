@@ -1,12 +1,16 @@
 import { generateMLS } from './mls'
 
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-                
 export class TestLatencyMLS {
 
     noiseBuffer = null   
     
     audioContext = null
+
+    startbutton = null
+
+    content = null
+
+    correlation = null
 
     worker = null
 
@@ -16,159 +20,132 @@ export class TestLatencyMLS {
 
     inputStream = null
 
-    recordGainNode = null   
+    recordGainNode = null
 
-    static getCorrectStreamForSafari(stream){
-        const safariVersionIndex = navigator.userAgent.indexOf('Version/')
-        const versionString =  navigator.userAgent.substring(safariVersionIndex + 8)
-        const safariVersion = parseFloat(versionString)        
-        if(isSafari && safariVersion > 16){
-            const micsource = TestLatencyMLS.audioContext.createMediaStreamSource(stream)
-            TestLatencyMLS.recordGainNode = TestLatencyMLS.audioContext.createGain()
-            micsource.connect(TestLatencyMLS.recordGainNode)
-            // If echocancellation is set to false in constraints the input gain from mic is very low, 
-            // that's why we need to increase it to 50
-            const defaultGain = 50
-            TestLatencyMLS.recordGainNode.gain.value = defaultGain
-            const dest = TestLatencyMLS.audioContext.createMediaStreamDestination()
-            // If echocancellation is set to false in constraints the input when using wired earpods (with mic) 
-            // is stereo but one single channel (left) so we need to force channelCount to be 1
-            dest.channelCount = 1
-            TestLatencyMLS.recordGainNode.connect(dest)
-            return dest.stream
-        } else {
-            return stream
-        }
-    }
+    async initialize(ac, stream, btnId, numTests) {
 
-    static async initialize(ac, stream, btnId, numTests) {
+        this.btnId = btnId        
 
-        TestLatencyMLS.btnId = btnId        
-
-        TestLatencyMLS.worker = new Worker(
+        this.worker = new Worker(
             new URL('worker.js', import.meta.url),
             {type: 'module'}
         )
-        TestLatencyMLS.worker.addEventListener('message', (message) => {
-            TestLatencyMLS.workerMessageHanlder(message)
+        this.worker.addEventListener('message', (message) => {
+            this.workerMessageHanlder(message)
         })
             
-        TestLatencyMLS.audioContext = ac
-        TestLatencyMLS.onAudioPermissionGranted(stream)
+        this.audioContext = ac
+        this.onAudioPermissionGranted(stream)
     }
 
-    static onAudioPermissionGranted(inputStream) {
-        
+    onAudioPermissionGranted(inputStream) {
         const noisemls = generateMLS(15)
-        TestLatencyMLS.noiseBuffer = TestLatencyMLS.generateAudio(noisemls, TestLatencyMLS.audioContext.sampleRate)
-        const userMediaStream =  TestLatencyMLS.getCorrectStreamForSafari(inputStream)
-        
-        TestLatencyMLS.inputStream = userMediaStream
-        TestLatencyMLS.displayStart()
+        this.noiseBuffer = this.generateAudio(noisemls, this.audioContext.sampleRate)
+        this.inputStream = inputStream
+        this.displayStart()
     }
 
+    displayStart() {
 
-    static displayStart() {
-
-        TestLatencyMLS.content = document.getElementById(TestLatencyMLS.btnId)
-        TestLatencyMLS.content.innerHTML = ''        
-        TestLatencyMLS.startbutton = document.createElement('a')
-        TestLatencyMLS.startbutton.innerText = 'TEST LATENCY'
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.onAudioSetupFinished
-        TestLatencyMLS.content.appendChild(TestLatencyMLS.startbutton)
+        this.content = document.getElementById(this.btnId)
+        this.content.innerHTML = ''        
+        this.startbutton = document.createElement('a')
+        this.startbutton.innerText = 'TEST LATENCY'
+        this.startbutton.onclick = () => this.onAudioSetupFinished()
+        this.content.appendChild(this.startbutton)
     
     }
 
-    static async onAudioSetupFinished() {
-        TestLatencyMLS.startbutton.innerText = 'STOP'       
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.displayStart
-        TestLatencyMLS.prepareAudioToPlayAndrecord()
+    async onAudioSetupFinished() {
+        this.startbutton.innerText = 'STOP'       
+        this.startbutton.onclick = () => this.displayStart()
+        this.prepareAudioToPlayAndrecord()
     }
 
-    static prepareAudioToPlayAndrecord() {
+    prepareAudioToPlayAndrecord() {
 
-        TestLatencyMLS.signalrecorded = null
+        this.signalrecorded = null
 
         /* @cwilso:  https://github.com/cwilso/metronome/blob/28a6e49d9dd75985d67d94fa9f45327d7310d62f/js/metronome.js#L74 */
-        const silenceBuffer = TestLatencyMLS.audioContext.createBuffer(1, 2*TestLatencyMLS.audioContext.sampleRate, TestLatencyMLS.audioContext.sampleRate)
-        const silenceNode = TestLatencyMLS.audioContext.createBufferSource()
+        const silenceBuffer = this.audioContext.createBuffer(1, 2*this.audioContext.sampleRate, this.audioContext.sampleRate)
+        const silenceNode = this.audioContext.createBufferSource()
         silenceNode.buffer = silenceBuffer
        
         const doTheTest = () => {
 
-            const noiseSource = TestLatencyMLS.audioContext.createBufferSource()
-            noiseSource.buffer = TestLatencyMLS.noiseBuffer
+            const noiseSource = this.audioContext.createBufferSource()
+            noiseSource.buffer = this.noiseBuffer
 
-            noiseSource.connect(TestLatencyMLS.audioContext.destination)
+            noiseSource.connect(this.audioContext.destination)
 
             let chunks = []
 
-            const mediaRecorder = new MediaRecorder(TestLatencyMLS.inputStream)
+            const mediaRecorder = new MediaRecorder(this.inputStream)
 
             mediaRecorder.ondataavailable = async (event) => {
                 chunks.push(event.data)
             }
             mediaRecorder.onstop = async () => {
-                noiseSource.disconnect(TestLatencyMLS.audioContext.destination)
-                TestLatencyMLS.displayAudioTagElem(chunks, mediaRecorder.mimeType)
+                noiseSource.disconnect(this.audioContext.destination)
+                this.displayAudioTagElem(chunks, mediaRecorder.mimeType)
             }
 
             mediaRecorder.start()
 
             noiseSource.start()
-            noiseSource.onended = function () {
+            noiseSource.onended = () => {
                 mediaRecorder.stop()
-                TestLatencyMLS.finishTest()
+                this.finishTest()
             }
         }
         silenceNode.start(0)
         doTheTest()
     }
 
-    static finishTest() {
-        TestLatencyMLS.startbutton.innerText = 'PROCESSING... '
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.displayStart        
+    finishTest() {
+        this.startbutton.innerText = 'PROCESSING... '
+        this.startbutton.onclick = () => this.displayStart()
     }
 
-    static async blobToAudioBuffer(audioContext, blob) {
+    async blobToAudioBuffer(audioContext, blob) {
         const arrayBuffer = await blob.arrayBuffer()
         return await audioContext.decodeAudioData(arrayBuffer)
     }
 
-    static workerMessageHanlder(message){
+    workerMessageHanlder(message){
         if(message.data.correlation){
-            TestLatencyMLS.correlation = message.data.correlation
-            TestLatencyMLS.worker.postMessage({
+            this.correlation = message.data.correlation
+            this.worker.postMessage({
                 command: 'findpeak',
-                array: TestLatencyMLS.correlation,
+                array: this.correlation,
                 channel: message.data.channel
             })
         }
         if(message.data.peakValuePow){                 
-            TestLatencyMLS.displayresults(message.data, TestLatencyMLS.signalrecorded, TestLatencyMLS.noiseBuffer, TestLatencyMLS.correlation)                      
+            this.displayresults(message.data, this.signalrecorded, this.noiseBuffer, this.correlation)                      
         }
     }  
 
-    static async displayAudioTagElem(chunks, mimeType) {
+    async displayAudioTagElem(chunks, mimeType) {
         
         const recordedAudio = new Blob(chunks, { type: mimeType })
         
-        TestLatencyMLS.signalrecorded = await TestLatencyMLS.blobToAudioBuffer(TestLatencyMLS.audioContext, recordedAudio)       
+        this.signalrecorded = await this.blobToAudioBuffer(this.audioContext, recordedAudio)       
         
-        TestLatencyMLS.correlation = null
-        TestLatencyMLS.worker.postMessage({
+        this.correlation = null
+        this.worker.postMessage({
             command: 'correlation',
-            data1: TestLatencyMLS.signalrecorded.getChannelData(0), 
-            data2: TestLatencyMLS.noiseBuffer.getChannelData(0), 
-            maxLag: (0.600 * TestLatencyMLS.audioContext.sampleRate),
+            data1: this.signalrecorded.getChannelData(0), 
+            data2: this.noiseBuffer.getChannelData(0), 
+            maxLag: (0.600 * this.audioContext.sampleRate),
             channel: 0
         })
         URL.revokeObjectURL(recordedAudio)
     }
 
-    static generateAudio(mlsSequence, frequency) {        
+    generateAudio(mlsSequence, frequency) {        
 
-        const audioBuffer = TestLatencyMLS.audioContext.createBuffer(1, mlsSequence.length, frequency)
+        const audioBuffer = this.audioContext.createBuffer(1, mlsSequence.length, frequency)
         let bufferData = audioBuffer.getChannelData(0)
         for (let i = 0; i < mlsSequence.length; i++) {
             // Convert binary sequence to audio signal
@@ -177,7 +154,7 @@ export class TestLatencyMLS {
         return audioBuffer
     }
 
-    static displayresults(peak, signalrecorded, mlssignal, correlation) {
+    displayresults(peak, signalrecorded, mlssignal, correlation) {
        
         if(peak.channel === 0){
             const roundtriplatency = Number(peak.peakIndex / mlssignal.sampleRate * 1000).toFixed(2)
@@ -185,9 +162,9 @@ export class TestLatencyMLS {
             if(ratioIs <= 18){
                 console.error('The Latency Test did not go well, there could be an issue with the audio settings')
             }
-            TestLatencyMLS.startbutton.innerText = 'TEST AGAIN '
-            TestLatencyMLS.startbutton.innerHTML += `<span class='badge badge-info'>lat: ${roundtriplatency} ms.</span><br>`
-            TestLatencyMLS.startbutton.innerHTML += `<span class='badge badge-light'>ratio: ${ratioIs.toFixed(2)} dB</span>`
+            this.startbutton.innerText = 'TEST AGAIN '
+            this.startbutton.innerHTML += `<span class='badge badge-info'>lat: ${roundtriplatency} ms.</span><br>`
+            this.startbutton.innerHTML += `<span class='badge badge-light'>ratio: ${ratioIs.toFixed(2)} dB</span>`
         } else{
             console.log('Channel', peak.channel )
             const roundtriplatency = peak.peakIndex / mlssignal.sampleRate * 1000
