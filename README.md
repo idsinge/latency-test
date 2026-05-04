@@ -8,6 +8,8 @@ A Web Component for measuring browser round-trip audio latency in Web Audio appl
 
 ## What it does
 
+<img src="./assets/MLS_Test.png" alt="MLS round-trip latency measurement diagram" width="700"/>
+
 - Measures round-trip browser audio latency using an [MLS (Maximum Length Sequence)](https://en.wikipedia.org/wiki/Maximum_length_sequence) signal and cross-correlation
 - Designed for integration into Web Audio and DAW-like web applications
 - Headless-first API: `start()` / `stop()` methods and custom events — no built-in UI
@@ -109,7 +111,7 @@ This project originates from research on browser round-trip audio latency presen
 
 ## More info about Hi-Audio
 
-1. Journal article: https://hal.science/hal-05153739v1
+1. Article at EURASIP Journal on Audio, Speech, and Music Processing: [https://link.springer.com/article/10.1186/s13636-026-00459-0](https://link.springer.com/article/10.1186/s13636-026-00459-0)
 2. Hi-Audio online platform: https://hiaudio.fr
 3. News: https://hiaudio.fr/static/news.html
 4. Hi-Audio web-app repository: https://github.com/idsinge/hiaudio_webapp
