@@ -91,8 +91,8 @@ el.start()
 ## Running the demo locally
 
 ```bash
-git clone https://github.com/idsinge/rountriplatencytest-webcomponent.git
-cd rountriplatencytest-webcomponent
+git clone https://github.com/idsinge/latency-test.git
+cd latency-test
 npm install
 npm run dev
 # open http://localhost:1234

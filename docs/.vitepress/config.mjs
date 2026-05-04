@@ -3,10 +3,10 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: '@hi-audio/latency-test',
   description: 'Web Component for measuring browser round-trip audio latency using MLS, chirp, or Golay signals.',
-  base: '/rountriplatencytest-webcomponent/',
+  base: '/latency-test/',
 
   head: [
-    ['link', { rel: 'icon', href: '/rountriplatencytest-webcomponent/favicon.ico' }]
+    ['link', { rel: 'icon', href: '/latency-test/favicon.ico' }]
   ],
 
   themeConfig: {
@@ -19,7 +19,7 @@ export default defineConfig({
       { text: 'Examples', link: '/examples/vanilla-js' },
       {
         text: 'GitHub',
-        link: 'https://github.com/idsinge/rountriplatencytest-webcomponent'
+        link: 'https://github.com/idsinge/latency-test'
       }
     ],
 
@@ -40,7 +40,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/idsinge/rountriplatencytest-webcomponent' }
+      { icon: 'github', link: 'https://github.com/idsinge/latency-test' }
     ],
 
     footer: {
