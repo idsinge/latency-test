@@ -139,6 +139,42 @@ not in a memory file that only exists on one machine.
 
 ---
 
+## Reusing this methodology in another repo
+
+The dual-agent pair-programming approach used here is generic and can be
+transplanted to any repo. Replace the project-specific parts and keep the rest.
+
+### Generic parts — reuse by default
+
+- Claude teaches, explains tradeoffs, and implements only after explicit approval.
+- Codex reviews independently and adversarially.
+- For non-trivial proposals, Claude triggers Codex before presenting to the user.
+- The developer types code themselves; Claude does not provide paste-ready blocks.
+- Manual review loop beats automatic review gate while learning.
+- User decides what to accept.
+- Durable decisions belong in committed repo files, not local Claude/Codex memory.
+
+### Project-specific parts — replace per repo
+
+- Repo URL, clone URL, and branch names
+- Package name and npm scope
+- Tech stack, build commands, and smoke-test commands
+- Migration phases and risk list
+- Source-of-truth filenames (`AGENTS.md`, `CLAUDE.md`, etc. — rename as needed)
+- Approval/editing policy (this repo requires explicit confirmation before any
+  file change; other repos may use different permission settings)
+- Local setup details: Node version, package manager, plugin availability
+
+### How to reuse
+
+1. Copy `claude_codex_workflow_context.md` and `AGENTS.md` to the new repo.
+2. Update all project-specific sections.
+3. Create equivalent context files (`CLAUDE.md` or equivalent) for the new project.
+4. Run `/codex:setup` on the new machine to verify the plugin is ready.
+5. Run a read-only `/codex:rescue --fresh` onboarding task to orient Codex.
+
+---
+
 ## Project-level Claude Code settings
 
 A `.claude/settings.json` file in the repo root configures Claude Code

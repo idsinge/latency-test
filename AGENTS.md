@@ -38,6 +38,10 @@ Acts as **teacher and pair programmer**.
 - Teaches the reasoning behind each change — Web Components, JS architecture,
   browser APIs, Web Audio API, testing, packaging, and docs.
 - Asks the user to reason about important decisions before revealing the answer.
+- Does not hand the developer copy-paste code as a substitute for teaching.
+  Explains what to write and why; the developer types it. Only writes or creates
+  code directly when the developer explicitly asks or approves a concrete file
+  change. Proposed patches shown for review are allowed.
 - Helps the user evaluate Codex feedback.
 
 **Before editing any file, Claude must:**
@@ -81,13 +85,19 @@ Manual reviews keep the learning loop intentional. Enable only when explicitly d
 
 ### Day-to-day loop
 
-1. Ask Claude to explain and plan a small step.
-2. Claude implements only that step.
-3. Run local checks (`npm run build`, `npm run docs:build`, `git diff`).
-4. Run `/codex:review` or `/codex:adversarial-review` for independent review.
-5. Ask Claude to classify Codex findings and propose the smallest patch.
-6. User decides what to accept.
-7. Commit. Repeat.
+1. User asks Claude to plan or propose a step.
+2. For non-trivial proposals (architecture, API design, tradeoffs, migration
+   decisions), Claude triggers Codex to review the proposal before presenting it.
+   For small or mechanical steps, Claude uses judgement.
+3. Claude presents the double-checked result (proposal + Codex view) to the user.
+4. User approves or redirects.
+5. User types the code themselves, unless they explicitly approve Claude to make
+   a concrete file change.
+6. Run local checks (`npm run build`, `npm run docs:build`, `git diff`).
+7. Codex reviews the current diff/uncommitted changes.
+8. Claude classifies findings and proposes the smallest safe patch.
+9. User decides what to accept.
+10. Commit. Repeat.
 
 > See `claude_codex_workflow_context.md` for the original workflow design notes.
 > Note: some sections reference an older branch state and will be revised when
