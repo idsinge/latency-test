@@ -103,6 +103,54 @@ Manual reviews keep the learning loop intentional. Enable only when explicitly d
 > Note: some sections reference an older branch state and will be revised when
 > the file is migrated to a documentation page.
 
+---
+
+## Refined Workflow (Active Session)
+
+This section documents the agreed collaboration approach for Jose's ongoing work on the latency-test Web Component migration.
+
+### Pair Programming Pattern
+
+1. **Claude proposes** the architectural/technical approach (explain problem → options → recommend next step)
+2. **User types** the code (Claude provides guidance, shows diffs for reference)
+3. **Claude reviews** the code and tests (spot issues, explain tradeoffs)
+4. **User tests in UI** (runs `npm run dev`, validates behavior)
+5. **Codex review** (Claude writes a focused prompt, user approves it, then Claude invokes `/codex:review --background` with metaprompted focus areas)
+
+### Aggressive Codex Review
+
+- Codex reviews **every completed block** after UI testing (not per-commit, but per logical milestone)
+- Claude **writes the Codex prompt** (metaprompting) with specific focus areas
+- **User reviews the prompt first** before Claude invokes Codex
+- Review frequency: ~5–7 strategic reviews per phase (token-efficient, high-value)
+
+### Error Handling & Permissions
+
+- **User always decides** on error handling (how to fail, what to retry, what to expose)
+- **Claude always asks permission** before any file edit (standard VS Code plugin workflow — no surprises)
+- **Only user commits**. Claude/Codex can *propose* commits, but the user explicitly asks for them
+- Commits are never automatic; they are intentional milestones
+
+### Session Resumption
+
+When context-switching back after days/weeks away:
+- Claude auto-summarizes: `session_state` → last 5 commits → current uncommitted diff
+- Claude explains the plan and asks: "Ready to continue Phase X?"
+- Maintains continuity without user re-briefing
+
+### Session Artifacts
+
+Stored in session folder (`~/.copilot/session-state/<id>/files/`):
+- **Architecture diagrams** (decision sketches, data flow diagrams)
+- **Decision logs** (what was tried, why rejected, what's next)
+- **plan.md** (updated end-of-session or on direction changes)
+
+### Commit Policy
+
+- **User-driven commits only** — Claude never commits without explicit user request
+- **Propose before committing** — "Ready to commit Phase 1? Here's the summary..." → User decides
+- Updates to AGENTS.md, plan.md, docs: same policy — user reviews and commits
+
 ## Current stack
 
 - Vanilla JavaScript ES modules — no TypeScript, no test suite
