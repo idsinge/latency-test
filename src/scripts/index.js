@@ -4,11 +4,20 @@ const TEST_LAT_MLS_BTN_ID = 'testlatencymlsbtn'
 
 const constraints = { audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false, latency: 0, channelCount: 1 }}
 
+const onResult = (latency, ratio, reliable) => {
+    console.log(latency)
+    console.log(ratio)
+    console.log(reliable)    
+}
+const onError = (message) => {
+    console.log(message)
+}
+
 const main = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
         const ac = new AudioContext({latencyHint:0})
-        new TestLatencyMLS().initialize(ac, stream, TEST_LAT_MLS_BTN_ID)
+        new TestLatencyMLS().initialize(ac, stream, TEST_LAT_MLS_BTN_ID, onResult, onError)
     } catch (error) {
         console.error('Error accessing audio stream:', error)
     }

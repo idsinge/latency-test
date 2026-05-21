@@ -22,7 +22,15 @@ export class TestLatencyMLS {
 
     recordGainNode = null
 
-    async initialize(ac, stream, btnId, numTests) {
+    onResult = null
+
+    onError = null
+
+    async initialize(ac, stream, btnId, { onResult, onError } = {}) {
+
+        this.onResult = onResult
+
+        this.onError = onError
 
         this.btnId = btnId        
 
@@ -157,14 +165,14 @@ export class TestLatencyMLS {
     displayresults(peak, signalrecorded, mlssignal, correlation) {
        
         if(peak.channel === 0){
-            const roundtriplatency = Number(peak.peakIndex / mlssignal.sampleRate * 1000).toFixed(2)
-            const ratioIs = 10 * Math.log10(peak.peakValuePow / peak.mean)
-            if(ratioIs <= 18){
-                console.error('The Latency Test did not go well, there could be an issue with the audio settings')
+            const latency = peak.peakIndex / mlssignal.sampleRate * 1000
+            const ratio = 10 * Math.log10(peak.peakValuePow / peak.mean)
+            const reliable = ratio > 18
+            if(!reliable){
+                this.onError && this.onError('The Latency Test did not go well, there could be an issue with the audio settings')
             }
             this.startbutton.innerText = 'TEST AGAIN '
-            this.startbutton.innerHTML += `<span class='badge badge-info'>lat: ${roundtriplatency} ms.</span><br>`
-            this.startbutton.innerHTML += `<span class='badge badge-light'>ratio: ${ratioIs.toFixed(2)} dB</span>`
+            this.onResult && this.onResult({latency, ratio, reliable})
         } else{
             console.log('Channel', peak.channel )
             const roundtriplatency = peak.peakIndex / mlssignal.sampleRate * 1000
