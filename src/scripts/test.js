@@ -2,30 +2,27 @@ import { generateMLS } from './mls'
 
 export class TestLatencyMLS {
 
-    noiseBuffer = null   
-    
+    noiseBuffer = null
     audioContext = null
-
-    startbutton = null
-
-    content = null
-
     correlation = null
-
     worker = null
-
     signalrecorded = null
-    
-    btnId = null
-
     inputStream = null
-
     recordGainNode = null
+    onResult = null
+    onError = null
+    onReady = null
+    onRecording = null
+    onProcessing = null
 
-    async initialize(ac, stream, btnId, numTests) {
-
-        this.btnId = btnId        
-
+    async initialize(ac, stream, { onResult, onError, onReady, onRecording, onProcessing } = {}) {
+        
+        this.onResult = onResult
+        this.onError = onError
+        this.onReady = onReady
+        this.onRecording = onRecording
+        this.onProcessing = onProcessing
+        
         this.worker = new Worker(
             new URL('worker.js', import.meta.url),
             {type: 'module'}
@@ -46,19 +43,10 @@ export class TestLatencyMLS {
     }
 
     displayStart() {
-
-        this.content = document.getElementById(this.btnId)
-        this.content.innerHTML = ''        
-        this.startbutton = document.createElement('a')
-        this.startbutton.innerText = 'TEST LATENCY'
-        this.startbutton.onclick = () => this.onAudioSetupFinished()
-        this.content.appendChild(this.startbutton)
-    
+        this.onReady?.()
     }
 
     async onAudioSetupFinished() {
-        this.startbutton.innerText = 'STOP'       
-        this.startbutton.onclick = () => this.displayStart()
         this.prepareAudioToPlayAndrecord()
     }
 
@@ -91,8 +79,8 @@ export class TestLatencyMLS {
             }
 
             mediaRecorder.start()
-
             noiseSource.start()
+            this.onRecording?.()
             noiseSource.onended = () => {
                 mediaRecorder.stop()
                 this.finishTest()
@@ -103,8 +91,7 @@ export class TestLatencyMLS {
     }
 
     finishTest() {
-        this.startbutton.innerText = 'PROCESSING... '
-        this.startbutton.onclick = () => this.displayStart()
+        this.onProcessing?.()
     }
 
     async blobToAudioBuffer(audioContext, blob) {
@@ -155,16 +142,11 @@ export class TestLatencyMLS {
     }
 
     displayresults(peak, signalrecorded, mlssignal, correlation) {
-       
         if(peak.channel === 0){
-            const roundtriplatency = Number(peak.peakIndex / mlssignal.sampleRate * 1000).toFixed(2)
-            const ratioIs = 10 * Math.log10(peak.peakValuePow / peak.mean)
-            if(ratioIs <= 18){
-                console.error('The Latency Test did not go well, there could be an issue with the audio settings')
-            }
-            this.startbutton.innerText = 'TEST AGAIN '
-            this.startbutton.innerHTML += `<span class='badge badge-info'>lat: ${roundtriplatency} ms.</span><br>`
-            this.startbutton.innerHTML += `<span class='badge badge-light'>ratio: ${ratioIs.toFixed(2)} dB</span>`
+            const latency = peak.peakIndex / mlssignal.sampleRate * 1000
+            const ratio = 10 * Math.log10(peak.peakValuePow / peak.mean)
+            const reliable = ratio > 18
+            this.onResult?.({latency, ratio, reliable})
         } else{
             console.log('Channel', peak.channel )
             const roundtriplatency = peak.peakIndex / mlssignal.sampleRate * 1000
