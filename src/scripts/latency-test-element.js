@@ -4,11 +4,12 @@ export class LatencyTest extends HTMLElement {
     #controller = null
     #audioContext = null
     #inputStream = null
+    #hostProvidedStream = false
 
     constructor() {
         super()
         this.attachShadow({ mode: 'open' })
-    }
+    }  
 
     connectedCallback() {
         // Element inserted into DOM — ready to accept start() calls
@@ -16,9 +17,6 @@ export class LatencyTest extends HTMLElement {
     
     disconnectedCallback() {
         this.stop()
-        if (this.#inputStream) {
-            this.#inputStream.getTracks().forEach(t => t.stop())
-        }
     }
 
     // Property: audioContext (read-write)
@@ -30,20 +28,31 @@ export class LatencyTest extends HTMLElement {
         this.#audioContext = context
     }
 
+    get inputStream() {
+        return this.#inputStream
+    }
+
+    set inputStream(stream) {
+        this.#inputStream = stream
+        this.#hostProvidedStream = true
+    }
+
     // Method: start the test
     async start() {
         try {
             // Step 1: Request microphone
-            const constraints = {
-                audio: {
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false,
-                    latency: 0,
-                    channelCount: 1
+            if (!this.#inputStream) {
+                const constraints = {
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
+                        latency: 0,
+                        channelCount: 1
+                    }
                 }
+                this.#inputStream = await navigator.mediaDevices.getUserMedia(constraints)
             }
-            this.#inputStream = await navigator.mediaDevices.getUserMedia(constraints)
 
             // Step 2: Create or use provided AudioContext
             if (!this.#audioContext) {
@@ -78,6 +87,10 @@ export class LatencyTest extends HTMLElement {
 
     stop() {
         this.#controller?.stop()
+        if (!this.#hostProvidedStream && this.#inputStream) {
+            this.#inputStream.getTracks().forEach(t => t.stop())
+            this.#inputStream = null
+        }
     }
 
     // Helper: emit event with bubbles + composed
