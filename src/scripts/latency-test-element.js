@@ -72,7 +72,16 @@ export class LatencyTest extends HTMLElement {
                 onReady: () => {},
                 onRecording: () => this.#emitEvent('latency-recording', {}),
                 onProcessing: () => this.#emitEvent('latency-processing', {}),
-                onResult: (data) => this.#emitEvent('latency-result', data),
+                onResult: (data) => {
+                    this.#emitEvent('latency-result', data)
+                    this.#emitEvent('latency-complete', {
+                        results: [{ ...data, timestamp: Date.now() }],
+                        mean: data.latency,
+                        std: 0,
+                        min: data.latency,
+                        max: data.latency
+                    })
+                },
                 onError: (message) => this.#emitEvent('latency-error', { message })
             })
 
