@@ -11,12 +11,11 @@
 </head>
 
 <body>
-    <main id="page-header">
-        <a class='nav-link' href='#' id='testlatencymlsbtn' data-toggle='modal' data-toggle='popover'
-            data-placement='bottom' title='Click to Test' data-content='No input detected'
-            onclick="event.preventDefault();"></a>
+    <main id="app">
+        <latency-test id="tester"></latency-test>
+        <button id="start-btn">TEST LATENCY</button>
+        <div id="results"></div>
     </main>
-    </div>
     <script type="module" src="scripts/index.js"></script>
 </body>
 

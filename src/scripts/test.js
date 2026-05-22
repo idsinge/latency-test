@@ -1,6 +1,6 @@
 import { generateMLS } from './mls'
 
-export class TestLatencyMLS {
+export class LatencyTestController {
 
     noiseBuffer = null
     audioContext = null
@@ -16,9 +16,15 @@ export class TestLatencyMLS {
     onReady = null
     onRecording = null
     onProcessing = null
+    mlsBits = 15
+    maxLagMs = 600
+    inputGain = 0
 
-    async initialize(ac, stream, { onResult, onError, onReady, onRecording, onProcessing } = {}) {
+    async initialize(ac, stream, {  mlsBits = 15, maxLagMs = 600, inputGain = 0, onResult, onError, onReady, onRecording, onProcessing } = {}) {
         
+        this.mlsBits = mlsBits
+        this.maxLagMs = maxLagMs
+        this.inputGain = inputGain
         this.onResult = onResult
         this.onError = onError
         this.onReady = onReady
@@ -38,7 +44,7 @@ export class TestLatencyMLS {
     }
 
     onAudioPermissionGranted(inputStream) {
-        const noisemls = generateMLS(15)
+        const noisemls = generateMLS(this.mlsBits)
         this.noiseBuffer = this.generateAudio(noisemls, this.audioContext.sampleRate)
         this.inputStream = inputStream
         this.displayStart()
@@ -49,10 +55,10 @@ export class TestLatencyMLS {
     }
 
     async onAudioSetupFinished() {
-        this.prepareAudioToPlayAndrecord()
+        this.prepareAudioToPlayAndRecord()
     }
 
-    prepareAudioToPlayAndrecord() {
+    prepareAudioToPlayAndRecord() {
 
         this.signalrecorded = null
 
@@ -140,7 +146,7 @@ export class TestLatencyMLS {
             command: 'correlation',
             data1: this.signalrecorded.getChannelData(0), 
             data2: this.noiseBuffer.getChannelData(0), 
-            maxLag: (0.600 * this.audioContext.sampleRate),
+            maxLag: (this.maxLagMs / 1000) * this.audioContext.sampleRate,
             channel: 0
         })
         URL.revokeObjectURL(recordedAudio)

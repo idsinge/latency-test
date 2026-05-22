@@ -1,4 +1,14 @@
-import { TestLatencyMLS } from './test.js'
+import { LatencyTestController } from './test.js'
+
+const MIC_CONSTRAINTS = {
+    audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        latency: 0,
+        channelCount: 1
+    }
+}
 
 export class LatencyTest extends HTMLElement {
     #controller = null
@@ -9,14 +19,23 @@ export class LatencyTest extends HTMLElement {
     constructor() {
         super()
         this.attachShadow({ mode: 'open' })
-    }  
+    }
 
     connectedCallback() {
         // Element inserted into DOM — ready to accept start() calls
     }
-    
+
     disconnectedCallback() {
         this.stop()
+    }
+
+    static get observedAttributes() {
+        return ['mls-bits', 'max-lag-ms', 'input-gain']
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        const prop = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        this[prop] = newValue
     }
 
     // Property: audioContext (read-write)
@@ -40,58 +59,50 @@ export class LatencyTest extends HTMLElement {
     // Method: start the test
     async start() {
         try {
-            // Step 1: Request microphone
-            if (!this.#inputStream) {
-                const constraints = {
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false,
-                        latency: 0,
-                        channelCount: 1
-                    }
-                }
-                this.#inputStream = await navigator.mediaDevices.getUserMedia(constraints)
-            }
-
-            // Step 2: Create or use provided AudioContext
-            if (!this.#audioContext) {
-                this.#audioContext = new AudioContext({ latencyHint: 0 })
-            }
-
-            // Step 3: Emit latency-start event
-            this.dispatchEvent(new CustomEvent('latency-start', {
-                bubbles: true,
-                composed: true,
-                detail: {}
-            }))
-
-            // Step 4: Create controller and wire callbacks to events
-            this.#controller = new TestLatencyMLS()
-            this.#controller.initialize(this.#audioContext, this.#inputStream, {
-                onReady: () => {},
-                onRecording: () => this.#emitEvent('latency-recording', {}),
-                onProcessing: () => this.#emitEvent('latency-processing', {}),
-                onResult: (data) => {
-                    this.#emitEvent('latency-result', data)
-                    this.#emitEvent('latency-complete', {
-                        results: [{ ...data, timestamp: Date.now() }],
-                        mean: data.latency,
-                        std: 0,
-                        min: data.latency,
-                        max: data.latency
-                    })
-                },
-                onError: (message) => this.#emitEvent('latency-error', { message })
-            })
-
+            if (!await this.#acquireMic()) return
+            this.#setupAudioContext()
+            await this.#runTest()
         } catch (error) {
-            this.dispatchEvent(new CustomEvent('latency-error', {
-                bubbles: true,
-                composed: true,
-                detail: { message: error.message }
-            }))
+            this.#emitEvent('latency-error', { message: error.message })
         }
+    }
+
+    async #acquireMic() {
+        if (this.#hostProvidedStream) return true
+        if (this.#inputStream) return true
+        this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+        this.#emitEvent('latency-start', {})
+        return false  // needs second click
+    }
+
+    #setupAudioContext() {
+        if (!this.#audioContext) {
+            this.#audioContext = new AudioContext({ latencyHint: 0 })
+        }
+    }
+
+    async #runTest() {
+        this.#controller = new LatencyTestController()
+        this.#controller.initialize(this.#audioContext, this.#inputStream, {
+            mlsBits: this.mlsBits || 15,
+            maxLagMs: this.maxLagMs || 600,
+            inputGain: this.inputGain || 0,
+            onReady: () => { },
+            onRecording: () => this.#emitEvent('latency-recording', {}),
+            onProcessing: () => this.#emitEvent('latency-processing', {}),
+            onResult: (data) => {
+                this.#emitEvent('latency-result', data)
+                this.#emitEvent('latency-complete', {
+                    results: [{ ...data, timestamp: Date.now() }],
+                    mean: data.latency,
+                    std: 0,
+                    min: data.latency,
+                    max: data.latency
+                })
+            },
+            onError: (message) => this.#emitEvent('latency-error', { message })
+        })
+        this.#controller.onAudioSetupFinished()
     }
 
     stop() {

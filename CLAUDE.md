@@ -91,7 +91,7 @@ index.js
         └─ displayStart() — renders "TEST LATENCY" button in #testlatencymlsbtn
 
   [User clicks button]
-  └─ prepareAudioToPlayAndrecord()
+  └─ prepareAudioToPlayAndRecord()
         └─ creates silence buffer (keeps AudioContext alive — cwilso trick)
         └─ creates noiseSource (MLS AudioBuffer)
         └─ creates MediaRecorder on inputStream

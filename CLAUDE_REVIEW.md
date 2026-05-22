@@ -233,7 +233,7 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [ ] Implement `process()` to buffer both input channels simultaneously and post `{ mic, ref }` chunks via MessagePort
 - [ ] Implement chosen data-return strategy (MessagePort chunks or SharedArrayBuffer — Q1)
 - [ ] Update `worker.js` to accept `{ mic, ref }` buffers and cross-correlate them against each other instead of correlating mic against the pre-known MLS sequence
-- [ ] Wire the worklet into the latency test flow, replacing the `MediaRecorder` block in `prepareAudioToPlayAndrecord()`
+- [ ] Wire the worklet into the latency test flow, replacing the `MediaRecorder` block in `prepareAudioToPlayAndRecord()`
 - [ ] Verify that the `input-gain` GainNode is inserted correctly before the worklet's input 0 in the audio graph (replaces the removed `getCorrectStreamForSafari()` — host sets the value, component applies it)
 - [ ] For `signal-type="chirp"`: bandlimit the signal to 1500–8000 Hz to avoid iOS aliasing above 12 kHz
 - [ ] Validate that measurement results are stable across multiple runs (variability should now reflect true system audio buffer size, not JS scheduler jitter)

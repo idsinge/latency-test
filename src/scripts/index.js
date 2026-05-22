@@ -1,65 +1,32 @@
-import { TestLatencyMLS } from './test.js'
+import './latency-test-element.js'
 
-const TEST_LAT_MLS_BTN_ID = 'testlatencymlsbtn'
+const tester = document.getElementById('tester')
+const btn = document.getElementById('start-btn')
+const results = document.getElementById('results')
 
-const constraints = {
-    audio: {
-        echoCancellation: false,
-        noiseSuppression: false, 
-        autoGainControl: false, 
-        latency: 0, 
-        channelCount: 1
-    }
+tester.addEventListener('latency-start', () => { 
+    btn.textContent = 'TAP TO START'
+    btn.disabled = false 
+})
+tester.addEventListener('latency-recording', () => { btn.textContent = 'RECORDING...' })
+tester.addEventListener('latency-processing', () => { btn.textContent = 'PROCESSING...' })
+
+tester.addEventListener('latency-result', (e) => {
+    const { latency, ratio, reliable } = e.detail
+    results.innerHTML = `Latency: ${latency.toFixed(2)} ms | Ratio: ${ratio.toFixed(2)} dB | ${reliable ? '✅' : '⚠️ Unreliable'}`
+})
+
+tester.addEventListener('latency-complete', () => {
+    btn.textContent = 'TEST AGAIN'
+    btn.disabled = false
+})
+
+tester.addEventListener('latency-error', (e) => {
+    results.textContent = `Error: ${e.detail.message}`
+    btn.textContent = 'TEST LATENCY'
+    btn.disabled = false
+})
+btn.onclick = () => {
+    btn.disabled = true
+    tester.start()
 }
-
-let button = null
-
-const onReady = () => {
-    button.innerText = 'TEST LATENCY'
-    button.disabled = false
-    button.onclick = () => controller.onAudioSetupFinished()
-}
-
-const onRecording = () => {
-    button.innerText = 'RECORDING...'
-    button.disabled = true
-}
-
-const onProcessing = () => {
-    button.innerText = 'PROCESSING...'
-    button.disabled = true
-}
-
-const onResult = ({latency, ratio, reliable}) => {
-    button.innerText = 'TEST AGAIN'
-    button.disabled = false
-    button.onclick = () => controller.displayStart()
-    button.innerHTML += `<span class='badge badge-info'>lat: ${latency.toFixed(2)} ms.</span><br>`
-    button.innerHTML += `<span class='badge badge-light'>ratio: ${ratio.toFixed(2)} dB</span>`
-}
-
-const onError = (message) => {
-    console.error(message)
-}
-
-let controller = null
-
-const main = async () => {
-    try {
-        button = document.getElementById(TEST_LAT_MLS_BTN_ID)
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        const ac = new AudioContext({ latencyHint: 0 })
-        controller = new TestLatencyMLS()
-        controller.initialize(ac, stream, {
-            onReady,
-            onRecording,
-            onProcessing,
-            onResult,
-            onError
-        })
-    } catch (error) {
-        console.error('Error accessing audio stream:', error)
-    }
-}
-
-main()
