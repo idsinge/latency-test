@@ -77,6 +77,10 @@ export class LatencyTest extends HTMLElement {
         return false
     }
 
+    // Start silent audio immediately after mic grant to warm up the audio
+    // pipeline. Prevents Chrome from producing a higher latency value on the
+    // first test run. Based on Chris Wilson's metronome technique:
+    // https://github.com/cwilso/metronome/blob/28a6e49d9dd75985d67d94fa9f45327d7310d62f/js/metronome.js#L74
     #startSilence() {
         const buffer = this.#audioContext.createBuffer(1, 2 * this.#audioContext.sampleRate, this.#audioContext.sampleRate)
         const source = this.#audioContext.createBufferSource()

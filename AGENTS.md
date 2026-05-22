@@ -184,8 +184,8 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Pending |
-| 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Pending |
+| 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Complete |
+| 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Complete |
 | 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | Pending |
 | 4 | Validate browser-specific behavior (Safari gain, mono/stereo, iOS aliasing) | Pending |
 | 5 | Stabilize integration API (AudioContext ownership, stream ownership, events) | Pending |

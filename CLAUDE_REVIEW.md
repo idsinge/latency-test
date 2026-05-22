@@ -201,21 +201,22 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - ~~Distribution format (Q7)~~ — deferred to Phase 5
 
 ### Phase 1 — Refactor `TestLatencyMLS` to instance-based class
-- [ ] Convert all `static` methods and properties to instance methods and fields
-- [ ] Strip all DOM manipulation out of the class: remove `displayStart()`, `finishTest()`, and the `innerHTML` writes in `displayresults()` — these move to the demo page
-- [ ] Replace DOM side-effects in `displayresults()` with a callback or event emission
-- [ ] Remove `getCorrectStreamForSafari()` — browser detection and gain selection moves to the host/demo page; the component applies whatever `input-gain` value it receives via its property
-- [ ] Keep `mls.js` and `worker.js` untouched
+- [x] Convert all `static` methods and properties to instance methods and fields
+- [x] Strip all DOM manipulation out of the class: remove `displayStart()`, `finishTest()`, and the `innerHTML` writes in `displayresults()` — these move to the demo page
+- [x] Replace DOM side-effects in `displayresults()` with a callback or event emission
+- [x] Remove `getCorrectStreamForSafari()` — browser detection and gain selection moves to the host/demo page; the component applies whatever `input-gain` value it receives via its property
+- [x] Keep `mls.js` and `worker.js` untouched
 
 ### Phase 2 — Create the Custom Element shell
-- [ ] Create `src/scripts/latency-test-element.js` — the Custom Element class extending `HTMLElement`
-- [ ] Attach shadow root (open mode) in constructor — leave it empty for now
-- [ ] Expose `start()` and `stop()` as public methods
-- [ ] Expose `audioContext` as a read-write JS property (Decision #8): setter accepts a host-provided context; getter always returns the active context (creating one lazily on first `start()` if needed); component never calls `.close()` on it
-- [ ] Wire observed attributes (`number-of-tests`, `mls-bits`, `max-lag-ms`, `recording-mode`, `signal-type`, `input-gain`)
-- [ ] Dispatch all six lifecycle + result events (Decision #10): `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
-- [ ] Microphone permission (`getUserMedia`) is requested lazily on the first `start()` call — never on `connectedCallback`. This is the correct model for embedded use in host apps that may not want immediate permission prompts.
-- [ ] Handle `connectedCallback` and `disconnectedCallback`: on disconnect, stop any in-progress test, terminate the worker, and disconnect audio nodes — do not close the AudioContext (host always owns cleanup per Decision #8)
+- [x] Create `src/scripts/latency-test-element.js` — the Custom Element class extending `HTMLElement`
+- [x] Attach shadow root (open mode) in constructor — leave it empty for now
+- [x] Expose `start()` and `stop()` as public methods
+- [x] Expose `audioContext` as a read-write JS property (Decision #8): setter accepts a host-provided context; getter always returns the active context (creating one lazily on first `start()` if needed); component never calls `.close()` on it
+- [x] Wire observed attributes (`number-of-tests`, `mls-bits`, `max-lag-ms`, `recording-mode`, `signal-type`, `input-gain`)
+- [x] Dispatch all six lifecycle + result events (Decision #10): `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
+- [x] Microphone permission (`getUserMedia`) is requested lazily on the first `start()` call — never on `connectedCallback`. This is the correct model for embedded use in host apps that may not want immediate permission prompts.
+- [x] Handle `connectedCallback` and `disconnectedCallback`: on disconnect, stop any in-progress test, terminate the worker, and disconnect audio nodes — do not close the AudioContext (host always owns cleanup per Decision #8)
+- [x] Chrome first-run latency: mitigated by `#startSilence()` — starts a silent AudioBuffer immediately after mic grant to warm up the audio pipeline. Based on Chris Wilson's metronome technique.
 
 ### Phase 3 — AudioWorklet processor (replaces MediaRecorder)
 

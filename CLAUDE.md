@@ -190,7 +190,7 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 
 ## Browser Compatibility Notes
 
-- Chrome/Chromium/Edge: Standard behavior, higher latency variability
+- Chrome/Chromium/Edge: Standard behavior, higher latency variability. First-run latency is often higher than subsequent runs — mitigated by starting a silent AudioBuffer immediately after mic grant (warm-up technique, see `latency-test-element.js:#startSilence()`).
 - Firefox: Most stable results (std dev often 0), higher absolute latency on Windows
 - Safari: The 50× gain boost is now host-controlled — set `input-gain="50"` if microphone levels are too low (common on Safari > v16 with `echoCancellation: false`). Wired earpods force stereo input (only left channel used).
 - iOS: Some devices exhibit aliasing above 12 kHz on audio input, degrading MLS quality. The chirp signal is bandlimited to 1500–8000 Hz to avoid this. Use `signal-type="chirp"` or `"golay"` if MLS gives unreliable results on iOS.
