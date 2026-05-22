@@ -4,12 +4,16 @@ const tester = document.getElementById('tester')
 const btn = document.getElementById('start-btn')
 const results = document.getElementById('results')
 
-tester.addEventListener('latency-start', () => { 
+tester.addEventListener('latency-start', () => {
     btn.textContent = 'TAP TO START'
-    btn.disabled = false 
+    btn.disabled = false
 })
-tester.addEventListener('latency-recording', () => { btn.textContent = 'RECORDING...' })
-tester.addEventListener('latency-processing', () => { btn.textContent = 'PROCESSING...' })
+tester.addEventListener('latency-recording', () => {
+    btn.textContent = 'RECORDING...'
+    btn.disabled = true
+})
+tester.addEventListener('latency-processing', () => { 
+    btn.textContent = 'PROCESSING...' })
 
 tester.addEventListener('latency-result', (e) => {
     const { latency, ratio, reliable } = e.detail

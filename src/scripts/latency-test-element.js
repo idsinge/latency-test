@@ -62,6 +62,9 @@ export class LatencyTest extends HTMLElement {
         try {
             this.#setupAudioContext()         // was after #acquireMic
             if (!await this.#acquireMic()) return
+            if (this.#hostProvidedStream) {
+                this.#emitEvent('latency-start', {})
+            }
             await this.#runTest()
         } catch (error) {
             this.#emitEvent('latency-error', { message: error.message })
@@ -73,7 +76,6 @@ export class LatencyTest extends HTMLElement {
         if (this.#inputStream) return true
         this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
         this.#emitEvent('latency-start', {})
-        this.#startSilence()       // warm up audio pipeline
         return false
     }
 
