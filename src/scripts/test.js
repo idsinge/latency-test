@@ -36,7 +36,7 @@ export class LatencyTestController {
             {type: 'module'}
         )
         this.worker.addEventListener('message', (message) => {
-            this.workerMessageHanlder(message)
+            this.workerMessageHandlder(message)
         })
             
         this.audioContext = ac
@@ -108,6 +108,7 @@ export class LatencyTestController {
             try { this.noiseSource.stop() } catch (e) {}
         }
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.onstop = null  // prevent stale handler after worker terminated
             this.mediaRecorder.stop()
         }
         if (this.worker) {
@@ -121,7 +122,7 @@ export class LatencyTestController {
         return await audioContext.decodeAudioData(arrayBuffer)
     }
 
-    workerMessageHanlder(message){
+    workerMessageHandlder(message){
         if(message.data.correlation){
             this.correlation = message.data.correlation
             this.worker.postMessage({
@@ -149,7 +150,6 @@ export class LatencyTestController {
             maxLag: (this.maxLagMs / 1000) * this.audioContext.sampleRate,
             channel: 0
         })
-        URL.revokeObjectURL(recordedAudio)
     }
 
     generateAudio(mlsSequence, frequency) {        
@@ -168,7 +168,7 @@ export class LatencyTestController {
             const latency = peak.peakIndex / mlssignal.sampleRate * 1000
             const ratio = 10 * Math.log10(peak.peakValuePow / peak.mean)
             const reliable = ratio > 18
-            this.onResult?.({latency, ratio, reliable})
+            this.onResult?.({latency, ratio, reliable, timestamp: Date.now()})
         } else{
             console.log('Channel', peak.channel )
             const roundtriplatency = peak.peakIndex / mlssignal.sampleRate * 1000

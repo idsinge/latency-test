@@ -30,7 +30,7 @@ export class LatencyTest extends HTMLElement {
     }
 
     static get observedAttributes() {
-        return ['mls-bits', 'max-lag-ms', 'input-gain']
+        return ['mls-bits', 'max-lag-ms', 'input-gain', 'number-of-tests', 'recording-mode', 'signal-type']
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -53,15 +53,15 @@ export class LatencyTest extends HTMLElement {
 
     set inputStream(stream) {
         this.#inputStream = stream
-        this.#hostProvidedStream = true
+        this.#hostProvidedStream = !!stream
     }
 
     // Method: start the test
     async start() {
+        if (this.#controller) this.stop()  // cancel any in-progress test
         try {
             this.#setupAudioContext()         // was after #acquireMic
             if (!await this.#acquireMic()) return
-            // this.#setupAudioContext()      // moved up
             await this.#runTest()
         } catch (error) {
             this.#emitEvent('latency-error', { message: error.message })
@@ -98,10 +98,10 @@ export class LatencyTest extends HTMLElement {
 
     async #runTest() {
         this.#controller = new LatencyTestController()
-        this.#controller.initialize(this.#audioContext, this.#inputStream, {
-            mlsBits: this.mlsBits || 15,
-            maxLagMs: this.maxLagMs || 600,
-            inputGain: this.inputGain || 0,
+        await this.#controller.initialize(this.#audioContext, this.#inputStream, {
+            mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
+            maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
+            inputGain: Number.parseFloat(this.inputGain) || 0,
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),
             onProcessing: () => this.#emitEvent('latency-processing', {}),
@@ -114,6 +114,11 @@ export class LatencyTest extends HTMLElement {
                     min: data.latency,
                     max: data.latency
                 })
+                // Release self-created mic after test completes
+                if (!this.#hostProvidedStream && this.#inputStream) {
+                    this.#inputStream.getTracks().forEach(t => t.stop())
+                    this.#inputStream = null
+                }
             },
             onError: (message) => this.#emitEvent('latency-error', { message })
         })
