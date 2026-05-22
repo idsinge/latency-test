@@ -13,6 +13,13 @@ export class LatencyTest extends HTMLElement {
     connectedCallback() {
         // Element inserted into DOM — ready to accept start() calls
     }
+    
+    disconnectedCallback() {
+        this.stop()
+        if (this.#inputStream) {
+            this.#inputStream.getTracks().forEach(t => t.stop())
+        }
+    }
 
     // Property: audioContext (read-write)
     get audioContext() {
@@ -53,7 +60,7 @@ export class LatencyTest extends HTMLElement {
             // Step 4: Create controller and wire callbacks to events
             this.#controller = new TestLatencyMLS()
             this.#controller.initialize(this.#audioContext, this.#inputStream, {
-                onReady: () => this.#emitEvent('latency-ready', {}),
+                onReady: () => {},
                 onRecording: () => this.#emitEvent('latency-recording', {}),
                 onProcessing: () => this.#emitEvent('latency-processing', {}),
                 onResult: (data) => this.#emitEvent('latency-result', data),
@@ -67,6 +74,10 @@ export class LatencyTest extends HTMLElement {
                 detail: { message: error.message }
             }))
         }
+    }
+
+    stop() {
+        this.#controller?.stop()
     }
 
     // Helper: emit event with bubbles + composed

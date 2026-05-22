@@ -9,6 +9,8 @@ export class TestLatencyMLS {
     signalrecorded = null
     inputStream = null
     recordGainNode = null
+    mediaRecorder = null
+    noiseSource = null
     onResult = null
     onError = null
     onReady = null
@@ -61,28 +63,28 @@ export class TestLatencyMLS {
        
         const doTheTest = () => {
 
-            const noiseSource = this.audioContext.createBufferSource()
-            noiseSource.buffer = this.noiseBuffer
+            this.noiseSource = this.audioContext.createBufferSource()
+            this.noiseSource.buffer = this.noiseBuffer
 
-            noiseSource.connect(this.audioContext.destination)
+            this.noiseSource.connect(this.audioContext.destination)
 
             let chunks = []
 
-            const mediaRecorder = new MediaRecorder(this.inputStream)
+            this.mediaRecorder = new MediaRecorder(this.inputStream)
 
-            mediaRecorder.ondataavailable = async (event) => {
+            this.mediaRecorder.ondataavailable = async (event) => {
                 chunks.push(event.data)
             }
-            mediaRecorder.onstop = async () => {
-                noiseSource.disconnect(this.audioContext.destination)
-                this.displayAudioTagElem(chunks, mediaRecorder.mimeType)
+            this.mediaRecorder.onstop = async () => {
+                this.noiseSource.disconnect(this.audioContext.destination)
+                this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
             }
 
-            mediaRecorder.start()
-            noiseSource.start()
+            this.mediaRecorder.start()
+            this.noiseSource.start()
             this.onRecording?.()
-            noiseSource.onended = () => {
-                mediaRecorder.stop()
+            this.noiseSource.onended = () => {
+                this.mediaRecorder.stop()
                 this.finishTest()
             }
         }
@@ -92,6 +94,20 @@ export class TestLatencyMLS {
 
     finishTest() {
         this.onProcessing?.()
+    }
+
+    stop() {
+        if (this.noiseSource) {
+            this.noiseSource.onended = null
+            try { this.noiseSource.stop() } catch (e) {}
+        }
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop()
+        }
+        if (this.worker) {
+            this.worker.terminate()
+            this.worker = null
+        }
     }
 
     async blobToAudioBuffer(audioContext, blob) {
