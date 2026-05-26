@@ -231,6 +231,7 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [ ] Create `src/scripts/recorder-processor.js` — `AudioWorkletProcessor` with `numberOfInputs: 2`
   - Input 0: mic stream (via `MediaStreamSourceNode` → GainNode → worklet)
   - Input 1: MLS/chirp reference signal loopback (same `AudioBufferSourceNode` connected to both `AudioContext.destination` and the worklet)
+  - Accept optional `buffer-size` attribute (default 128). DAWs embedding the component can tune this to match their configured audio buffer. The worklet's `process()` accumulates frames until the configured size is reached before posting the chunk, keeping transfer granularity predictable.
 - [ ] Implement `process()` to buffer both input channels simultaneously and post `{ mic, ref }` chunks via MessagePort
 - [ ] Implement chosen data-return strategy (MessagePort chunks or SharedArrayBuffer — Q1)
 - [ ] Update `worker.js` to accept `{ mic, ref }` buffers and cross-correlate them against each other instead of correlating mic against the pre-known MLS sequence

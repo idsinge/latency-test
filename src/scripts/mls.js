@@ -44,6 +44,6 @@ function mls(n, seed = null) {
 export function generateMLS(nbits) {
     nbits = parseInt(nbits);
     let m = mls(nbits);
-    // nbits = 65535
+    // sequence length = 2^nbits - 1 = 32767 for nbits=15
     return m
 }

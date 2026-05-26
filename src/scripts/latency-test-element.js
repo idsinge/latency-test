@@ -75,6 +75,7 @@ export class LatencyTest extends HTMLElement {
         if (this.#hostProvidedStream) return true
         if (this.#inputStream) return true
         this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+        this.#startSilence()
         this.#emitEvent('latency-start', {})
         return false
     }
@@ -103,7 +104,7 @@ export class LatencyTest extends HTMLElement {
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
-            inputGain: Number.parseFloat(this.inputGain) || 0,
+            //inputGain: Number.parseFloat(this.inputGain) || 0,
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),
             onProcessing: () => this.#emitEvent('latency-processing', {}),
@@ -116,11 +117,7 @@ export class LatencyTest extends HTMLElement {
                     min: data.latency,
                     max: data.latency
                 })
-                // Release self-created mic after test completes
-                if (!this.#hostProvidedStream && this.#inputStream) {
-                    this.#inputStream.getTracks().forEach(t => t.stop())
-                    this.#inputStream = null
-                }
+                this.#controller = null
             },
             onError: (message) => this.#emitEvent('latency-error', { message })
         })
@@ -129,11 +126,11 @@ export class LatencyTest extends HTMLElement {
 
     stop() {
         this.#controller?.stop()
+        this.#controller = null
         if (!this.#hostProvidedStream && this.#inputStream) {
             this.#inputStream.getTracks().forEach(t => t.stop())
             this.#inputStream = null
         }
-        this.#controller = null
     }
 
     // Helper: emit event with bubbles + composed

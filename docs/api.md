@@ -1,6 +1,8 @@
 # API Reference — `@hi-audio/latency-test`
 
-> **Draft.** This document describes the planned API for the `<latency-test>` web component. The component is not yet published.
+> **Draft.** This document describes the API for `<latency-test>`.
+> Items marked `(implemented)` are active in the current version.
+> Items marked `(planned)` are reserved for future versions.
 
 ---
 
@@ -22,14 +24,14 @@ import '@hi-audio/latency-test'
 
 Attributes are reflected as properties and can be set either in HTML or via JavaScript.
 
-| Attribute | Property | Type | Default | Description |
-|---|---|---|---|---|
-| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. |
-| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. **v1 default: `"mediarecorder"`** — uses `MediaRecorder` + Blob decode (implemented). **v2 default: `"audioworklet"`** — raw Float32 PCM directly from the audio graph (planned). Both values are accepted in both versions. See ScriptProcessor note below. |
-| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. See signal types table below. |
-| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Use `50` to replicate the automatic Safari microphone compensation if needed. |
-| `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. |
-| `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. |
+| Attribute | Property | Type | Default | Description | Status |
+|---|---|---|---|---|---|---|
+| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | planned (v2) |
+| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. **v1 default: `"mediarecorder"`** — uses `MediaRecorder` + Blob decode (implemented). **v2 default: `"audioworklet"`** — raw Float32 PCM directly from the audio graph (planned). Both values are accepted in both versions. See ScriptProcessor note below. | implemented (mediarecorder) |
+| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. See signal types table below. | planned (v2) |
+| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Use `50` to replicate the automatic Safari microphone compensation if needed. | planned (v2) |
+| `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
+| `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
 
 ### Example
 
@@ -119,7 +121,7 @@ element.addEventListener('latency-result', (e) => {
 
 ### `latency-complete`
 
-Fired after all runs finish when `number-of-tests` > 1. Contains aggregate statistics over the full set.
+Fired after each completed run. Contains the run result and aggregate statistics (mean, std, min, max are set to the single run's value in v1; multi-run statistics land with `number-of-tests` in v2).
 
 ```js
 element.addEventListener('latency-complete', (e) => {

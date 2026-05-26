@@ -8,7 +8,6 @@ export class LatencyTestController {
     worker = null
     signalrecorded = null
     inputStream = null
-    recordGainNode = null
     mediaRecorder = null
     noiseSource = null
     onResult = null
@@ -18,13 +17,11 @@ export class LatencyTestController {
     onProcessing = null
     mlsBits = 15
     maxLagMs = 600
-    inputGain = 0
 
-    async initialize(ac, stream, {  mlsBits = 15, maxLagMs = 600, inputGain = 0, onResult, onError, onReady, onRecording, onProcessing } = {}) {
+    async initialize(ac, stream, {  mlsBits = 15, maxLagMs = 600, onResult, onError, onReady, onRecording, onProcessing } = {}) {
         
         this.mlsBits = mlsBits
         this.maxLagMs = maxLagMs
-        this.inputGain = inputGain
         this.onResult = onResult
         this.onError = onError
         this.onReady = onReady
@@ -61,41 +58,26 @@ export class LatencyTestController {
     prepareAudioToPlayAndRecord() {
 
         this.signalrecorded = null
+        this.noiseSource = this.audioContext.createBufferSource()
+        this.noiseSource.buffer = this.noiseBuffer
+        this.noiseSource.connect(this.audioContext.destination)
 
-        /* @cwilso:  https://github.com/cwilso/metronome/blob/28a6e49d9dd75985d67d94fa9f45327d7310d62f/js/metronome.js#L74 */
-        const silenceBuffer = this.audioContext.createBuffer(1, 2*this.audioContext.sampleRate, this.audioContext.sampleRate)
-        const silenceNode = this.audioContext.createBufferSource()
-        silenceNode.buffer = silenceBuffer
-       
-        const doTheTest = () => {
-
-            this.noiseSource = this.audioContext.createBufferSource()
-            this.noiseSource.buffer = this.noiseBuffer
-
-            this.noiseSource.connect(this.audioContext.destination)
-
-            let chunks = []
-
-            this.mediaRecorder = new MediaRecorder(this.inputStream)
-
-            this.mediaRecorder.ondataavailable = async (event) => {
-                chunks.push(event.data)
-            }
-            this.mediaRecorder.onstop = async () => {
-                this.noiseSource.disconnect(this.audioContext.destination)
-                this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
-            }
-
-            this.mediaRecorder.start()
-            this.noiseSource.start()
-            this.onRecording?.()
-            this.noiseSource.onended = () => {
-                this.mediaRecorder.stop()
-                this.finishTest()
-            }
+        let chunks = []
+        this.mediaRecorder = new MediaRecorder(this.inputStream)
+        this.mediaRecorder.ondataavailable = async (event) => {
+            chunks.push(event.data)
         }
-        silenceNode.start(0)
-        doTheTest()
+        this.mediaRecorder.onstop = async () => {
+            this.noiseSource.disconnect(this.audioContext.destination)
+            this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
+        }
+        this.mediaRecorder.start()
+        this.noiseSource.start()
+        this.onRecording?.()
+        this.noiseSource.onended = () => {
+            this.mediaRecorder.stop()
+            this.finishTest()
+        }
     }
 
     finishTest() {
@@ -131,7 +113,7 @@ export class LatencyTestController {
                 channel: message.data.channel
             })
         }
-        if(message.data.peakValuePow){                 
+        if('peakValuePow' in message.data){
             this.displayresults(message.data, this.signalrecorded, this.noiseBuffer, this.correlation)                      
         }
     }  
