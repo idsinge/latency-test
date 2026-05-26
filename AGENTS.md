@@ -194,9 +194,9 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Complete |
 | 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Complete |
 | 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | In review (code complete) |
-| 4 | Validate browser-specific behavior (Safari gain, mono/stereo, iOS aliasing) | Pending |
-| 5 | Stabilize integration API (AudioContext ownership, stream ownership, events) | Pending |
-| 6 | Docs + packaging alignment; decide on bundler or no bundler; `build:component` script | Pending |
+| 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Pending |
+| 5 | Build & distribution (build:component script, bundle format, CDN, cross-browser test) | Pending |
+| 6 | Documentation & demo (API docs, README, live demo page) | Pending |
 | 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after

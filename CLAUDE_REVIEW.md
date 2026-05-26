@@ -257,6 +257,9 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 ### Phase 5 — Build & distribution
 - [ ] Configure bundler output for a single component file (`build:component` script, separate from `npm run build`)
 - [ ] Handle AudioWorklet processor file URL (Blob inlining or separate asset)
+  - Phase 3 uses `new URL()` + `fetch()` at runtime, which works in Parcel/Vite bundler contexts
+    but is not truly self-contained. For a single-file CDN bundle, the processor source must be
+    embedded as a string literal at build time. This is a Phase 5 concern, not a Phase 3 blocker.
 - [ ] Verify the bundle works as an npm import in a bundler-based project (CDN/script-tag and npm are both first-class targets — Decision #6)
 - [ ] Verify the bundle works as a `<script type="module">` drop-in with no build step
 - [ ] Test in Chrome, Firefox, Edge, and Safari
