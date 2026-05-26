@@ -258,24 +258,32 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 
 ### Phase 5 — Build & distribution
 
-**Approach:** esbuild + inlining via JS API `define`. ESM for npm, IIFE for CDN. Worker and AudioWorklet processor sources inlined as string constants at build time using `JSON.stringify()`. Parcel removed — demo served directly from `src/` via static file server.
+**Approach:** esbuild + stdin-based inlining (build script string-substitutes worker/processor source before esbuild sees the code, avoiding esbuild's Worker auto-bundling heuristic). ESM for npm, IIFE for CDN. Parcel removed — demo served directly from `src/` via static file server.
 
+#### Decisions (confirmed by review)
 - [x] Tool chosen: esbuild (JS API, not CLI). One devDependency, ESM + IIFE output, built-in minification + source maps.
-- [x] Inlining strategy: read `worker.js` + `recorder-processor.js` as text → `JSON.stringify()` → esbuild `define` with `typeof` guard in source code. Both dev (URL fallback) and build (Blob URL) paths work from the same code.
-- [x] Output format: `dist/latency-test.esm.js` (npm ESM) + `dist/latency-test.iife.js` (CDN script-tag).
 - [x] Source maps: enabled (one esbuild flag).
-- [x] Registration guard: `if (!customElements.get('latency-test'))` before `define()` — prevents double-registration errors.
 - [x] `sideEffects: true` in `package.json` — prevents bundler tree-shaking of the registration side effect.
 - [x] `files: ["dist/"]` in `package.json` — whitelist-only npm package contents.
 - [x] CSP documented: `blob:` URLs for workers + AudioWorklet require `worker-src 'self' blob:` / `script-src 'self' blob:`.
-- [ ] Implement `scripts/build-component.mjs` — esbuild JS API with inline sources.
-- [ ] Modify `src/scripts/test.js` — add `typeof __WORKER_SOURCE__` / `__PROCESSOR_SOURCE__` conditionals.
-- [ ] Modify `src/scripts/latency-test-element.js` — add registration guard.
-- [ ] Update `package.json` — remove Parcel, add esbuild, add distribution fields (`exports`, `module`, `main`, `files`, `sideEffects`, `unpkg`, `jsdelivr`).
-- [ ] Verify: `npm run build:component` produces both bundles + source maps.
+
+#### Open decisions (to resolve during implementation)
+- [ ] Inlining strategy: `define` + `typeof` guard blocked by esbuild's Worker auto-bundling heuristic (emits spurious `worker-HASH.js`). **Replace with stdin approach:** build script reads `test.js` source, string-substitutes worker/processor URL patterns with inlined Blob URL code, passes result to esbuild via `stdin`. No URL patterns reach esbuild.
+- [ ] Output filename convention: Phase 5 currently uses `.esm.js` / `.iife.js`. Phase 7 template references `.cjs` (should be removed — Web Components are browser-only). **Decide one convention before implementing.**
+
+#### Implementation (to do)
+- [ ] Fix `src/scripts/test.js` — add `.js` extension to `./mls` import (native ESM requirement for `serve src/`).
+- [ ] Fix `src/scripts/latency-test-element.js` — reorder stream release *before* `latency-complete` event dispatch in `#emitComplete()` (prevents re-entrant `start()` from grabbing stale stream). Add SSR guard to registration: `if (typeof customElements !== 'undefined' && !customElements.get(...))`.
+- [ ] Fix `src/scripts/test.js` — add `typeof __WORKER_SOURCE__` / `__PROCESSOR_SOURCE__` conditionals (will be substituted at build time, no URL patterns reach esbuild).
+- [ ] Create `scripts/build-component.mjs` — esbuild JS API with stdin-based inlining.
+- [ ] Update `package.json` — remove Parcel devDependency + scripts, add esbuild, add `build:component` script, add distribution fields.
+- [ ] Update `.gitignore` — add `dist/` if not present.
+- [ ] Verify: `npm run build:component` produces both bundles + source maps (no spurious worker-HASH.js).
 - [ ] Verify: `npx serve src/` serves demo with no build step.
 - [ ] Verify: `npm pack --dry-run` lists only `dist/`, `README.md`, `LICENSE`.
 - [ ] The component bundle is a prerequisite for the live demo page (Phase 6).
+
+### Phase 6 — Documentation & demo
 
 ### Phase 6 — Documentation & demo
 - [ ] Update README.md to stay short and repo-oriented once the docs site is live (Decision #7)
@@ -304,28 +312,36 @@ The package name `@hi-audio/latency-test` requires an `hi-audio` org on npmjs.co
 
 **2. Update `package.json` for publishing**
 
-Before the first publish, add the following fields to `package.json`:
+Before the first publish, verify the following fields are present in `package.json` (these should already be set in Phase 5):
 
 ```json
 {
   "name": "@hi-audio/latency-test",
   "version": "1.0.0",
   "description": "...",
-  "main": "dist/latency-test.cjs",
-  "module": "dist/latency-test.js",
+  "type": "module",
+  "main": "dist/latency-test.iife.js",
+  "module": "dist/latency-test.esm.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/latency-test.js",
-      "require": "./dist/latency-test.cjs",
+      "import": "./dist/latency-test.esm.js",
+      "default": "./dist/latency-test.iife.js",
       "types": "./dist/index.d.ts"
     }
   },
+  "unpkg": "dist/latency-test.iife.js",
+  "jsdelivr": "dist/latency-test.iife.js",
   "files": [
     "dist/",
     "README.md",
     "LICENSE"
   ],
+  "sideEffects": true,
+  "scripts": {
+    "build:component": "node scripts/build-component.mjs",
+    "prepublishOnly": "npm run build:component"
+  },
   "publishConfig": {
     "access": "public"
   }
@@ -333,10 +349,13 @@ Before the first publish, add the following fields to `package.json`:
 ```
 
 Key points:
+- No CJS exports — Web Components are browser-only APIs. `require('@hi-audio/latency-test')` would have no meaningful use. The `main` field points to the IIFE (for CDM) and `module` points to ESM (for bundlers).
 - `types` / `exports["types"]` points to the TypeScript declaration file — consumers get full IntelliSense with no manual setup.
+- `unpkg` / `jsdelivr` fields point to the IIFE bundle — so `unpkg.com/@hi-audio/latency-test` serves the script-tag-compatible version.
 - `files` controls what gets included in the published package — only the built output, README, and LICENSE. Everything else (`src/`, `docs/`, `assets/`, config files) is excluded automatically.
+- `sideEffects: true` prevents bundler tree-shaking from removing the `customElements.define()` side effect.
+- `prepublishOnly` ensures the build runs before every publish, preventing a stale `dist/` from being published.
 - `publishConfig.access: "public"` is **required** for scoped packages (`@scope/name`) — without it npm defaults to private and the publish will either fail or charge for a private package.
-- `main` / `module` / `exports` point to the built component file, not the Parcel dev build. The bundler output for npm should be a separate build script (e.g. `npm run build:component`), distinct from the current `npm run build` which builds the demo app.
 
 **3a. Create `src/index.d.ts` — TypeScript declaration file**
 
