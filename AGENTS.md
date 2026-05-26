@@ -200,7 +200,7 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
-a stable component build exists. Not a priority during Phases 1–5.
+a stable component build exists. Not a priority during Phases 1–6.
 
 ## Resolved design decisions
 
