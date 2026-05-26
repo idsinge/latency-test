@@ -217,6 +217,13 @@ Do not re-open these unless the user explicitly asks:
   All events must set `bubbles: true` and `composed: true`.
 - Safari gain: host-controlled via `input-gain` attribute. No internal browser detection.
 - Distribution: npm + CDN are both first-class targets. Validate both before publishing.
+- Measurement inherits the host's audio environment: the component does not create an
+  idealized setup. The host's `AudioContext`, stream constraints, and capture backend
+  define the measurement context. System buffers (e.g. Safari's ~30ms `MediaStreamSource`
+  bridge) are correctly included in the result — they're part of the host's real pipeline.
+- Mic constraints are the host's responsibility when using host-provided streams.
+  Self-created streams use conservative defaults (`echoCancellation: false`,
+  `channelCount: 1`). Hosts with specific needs pass their own stream.
 
 ## Review priorities
 

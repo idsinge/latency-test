@@ -10,7 +10,13 @@
 
 <body>
     <main id="app">
-        <latency-test id="tester" recording-mode="audioworklet"></latency-test>
+        <label>Capture mode:
+            <select id="mode-select">
+                <option value="mediarecorder" selected>MediaRecorder</option>
+                <option value="audioworklet">AudioWorklet</option>
+            </select>
+        </label>
+        <latency-test id="tester"></latency-test>
         <button id="start-btn">TEST LATENCY</button>
         <div id="results"></div>
     </main>

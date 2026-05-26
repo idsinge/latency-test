@@ -1,5 +1,10 @@
 import './latency-test-element.js'
 
+const modeSelect = document.getElementById('mode-select')
+modeSelect.addEventListener('change', () => {
+    tester.recordingMode = modeSelect.value
+})
+
 const tester = document.getElementById('tester')
 const btn = document.getElementById('start-btn')
 const results = document.getElementById('results')
