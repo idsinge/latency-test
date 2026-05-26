@@ -133,6 +133,7 @@ export class LatencyTest extends HTMLElement {
             this.#inputStream.getTracks().forEach(t => t.stop())
             this.#inputStream = null
         }
+        this.#controller = null
     }
 
     // Helper: emit event with bubbles + composed

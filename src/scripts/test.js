@@ -36,7 +36,7 @@ export class LatencyTestController {
             {type: 'module'}
         )
         this.worker.addEventListener('message', (message) => {
-            this.workerMessageHandlder(message)
+            this.workerMessageHandler(message)
         })
             
         this.audioContext = ac
@@ -122,7 +122,7 @@ export class LatencyTestController {
         return await audioContext.decodeAudioData(arrayBuffer)
     }
 
-    workerMessageHandlder(message){
+    workerMessageHandler(message){
         if(message.data.correlation){
             this.correlation = message.data.correlation
             this.worker.postMessage({
