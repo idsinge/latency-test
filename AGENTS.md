@@ -198,6 +198,7 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 5 | Build & distribution (build:component script, bundle format, CDN, cross-browser test) | Pending |
 | 6 | Documentation & demo (API docs, README, live demo page) | Pending |
 | 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
+| 8 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
 a stable component build exists. Not a priority during Phases 1–6.

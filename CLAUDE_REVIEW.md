@@ -484,6 +484,20 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 
 ---
 
+### Phase 8 — Experimentation toolkit (optional visualization layer)
+
+> **Non-blocking:** This phase is a separate project that consumes the published component.
+> It does not modify the core element and is not a prerequisite for any other phase.
+
+- [ ] Create a standalone HTML page (or mini-app) that imports `@hi-audio/latency-test` and adds rich visualizations:
+  - Autocorrelation graph: render the correlation array as a chart (canvas or SVG)
+  - Audio waveform: display captured mic + reference signals as waveform graphs
+  - Latency histogram: aggregate results across multiple runs and render a distribution chart
+  - Side-by-side comparison panel: run tests with different params and compare results visually
+- [ ] Config export: snapshot of all test parameters + results as downloadable JSON
+- [ ] Platform comparison: save/load result sets to compare across browsers, OS versions, or hardware
+- [ ] The toolkit consumes the component's event API only — no internal access to the element
+
 ## Notes for LLMs
 
 - Read `CLAUDE.md` first for full architectural context before touching any file.
