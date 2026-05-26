@@ -15,6 +15,8 @@ export class LatencyTest extends HTMLElement {
     #audioContext = null
     #inputStream = null
     #hostProvidedStream = false
+    #pendingRuns = 0
+    #allResults = []
 
     constructor() {
         super()
@@ -58,14 +60,16 @@ export class LatencyTest extends HTMLElement {
 
     // Method: start the test
     async start() {
-        if (this.#controller) this.stop()  // cancel any in-progress test
+        if (this.#controller) this.stop()
         try {
-            this.#setupAudioContext()         // was after #acquireMic
+            this.#setupAudioContext()
             if (!await this.#acquireMic()) return
             if (this.#hostProvidedStream) {
                 this.#emitEvent('latency-start', {})
             }
-            await this.#runTest()
+            this.#pendingRuns = Number.parseInt(this.numberOfTests, 10) || 1
+            this.#allResults = []
+            await this.#runNextTest()
         } catch (error) {
             this.#emitEvent('latency-error', { message: error.message })
         }
@@ -99,26 +103,33 @@ export class LatencyTest extends HTMLElement {
         }
     }
 
-    async #runTest() {
+    async #runNextTest() {
         this.#controller = new LatencyTestController()
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
             recordingMode: this.recordingMode || 'mediarecorder',
-            //inputGain: Number.parseFloat(this.inputGain) || 0,
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),
             onProcessing: () => this.#emitEvent('latency-processing', {}),
             onResult: (data) => {
                 this.#emitEvent('latency-result', data)
-                this.#emitEvent('latency-complete', {
-                    results: [{ ...data, timestamp: Date.now() }],
-                    mean: data.latency,
-                    std: 0,
-                    min: data.latency,
-                    max: data.latency
-                })
+                this.#allResults.push({ ...data, timestamp: Date.now() })
                 this.#controller = null
+                this.#pendingRuns--
+                if (this.#pendingRuns > 0) {
+                    this.#runNextTest()
+                } else {
+                    const l = this.#allResults.map(r => r.latency)
+                    const mean = l.reduce((a, b) => a + b, 0) / l.length
+                    this.#emitEvent('latency-complete', {
+                        results: this.#allResults,
+                        mean,
+                        std: Math.sqrt(l.reduce((s, v) => s + (v - mean) ** 2, 0) / l.length),
+                        min: Math.min(...l),
+                        max: Math.max(...l)
+                    })
+                }
             },
             onError: (message) => this.#emitEvent('latency-error', { message })
         })
