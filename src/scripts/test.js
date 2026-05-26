@@ -109,8 +109,8 @@ export class LatencyTestController {
             outputChannelCount: [1]
         })
 
-        const micSource = this.audioContext.createMediaStreamSource(this.inputStream)
-        micSource.connect(this.workletNode, 0, 0)
+        this.micSource = this.audioContext.createMediaStreamSource(this.inputStream)
+        this.micSource.connect(this.workletNode, 0, 0)
         this.noiseSource.connect(this.workletNode, 0, 1)
         this.noiseSource.connect(this.audioContext.destination)
 
@@ -129,6 +129,11 @@ export class LatencyTestController {
                 maxLag: (this.maxLagMs / 1000) * this.audioContext.sampleRate,
                 channel: 0
             })
+            this.workletNode.port.onmessage = null
+            this.workletNode.disconnect()
+            this.workletNode = null
+            this.micSource?.disconnect()
+            this.micSource = null
         }
 
         this.noiseSource.onended = () => {
@@ -138,6 +143,8 @@ export class LatencyTestController {
     }
 
     async loadRecorderProcessor(ac) {
+        if (this._processorLoaded) return
+        this._processorLoaded = true
         const url = new URL('./recorder-processor.js', import.meta.url)
         const resp = await fetch(url)
         const source = await resp.text()
@@ -155,19 +162,25 @@ export class LatencyTestController {
         if (this.noiseSource) {
             this.noiseSource.onended = null
             try { this.noiseSource.stop() } catch (e) {}
+            this.noiseSource.disconnect()
         }
         if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-            this.mediaRecorder.onstop = null  // prevent stale handler after worker terminated
+            this.mediaRecorder.onstop = null
             this.mediaRecorder.stop()
+        }
+        if (this.workletNode) {
+            this.workletNode.port.onmessage = null
+            this.workletNode.port.postMessage({ command: 'stop' })
+            this.workletNode.disconnect()
+            this.workletNode = null
+        }
+        if (this.micSource) {
+            this.micSource.disconnect()
+            this.micSource = null
         }
         if (this.worker) {
             this.worker.terminate()
             this.worker = null
-        }
-        if (this.workletNode) {
-            this.workletNode.port.postMessage({ command: 'stop' })
-            this.workletNode.disconnect()
-            this.workletNode = null
         }
     }
 

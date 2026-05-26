@@ -234,17 +234,18 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
   - Input 1: MLS reference signal loopback (same `AudioBufferSourceNode` connected to both `AudioContext.destination` and the worklet)
   - `buffer-size` attribute deferred (verdict: unnecessary for MLS-length captures)
 - [x] Implement `process()` to buffer both channels and post `{ mic, ref }` as a single transferable on stop
-- [x] Implement data-return strategy: MessagePort accumulation, single post on stop (SharedArrayBuffer deferred — Q1 still open)
-- [ ] Worker.js contract unchanged — both paths use `{ command: 'correlation', data1, data2, maxLag }`
+- [x] Implement data-return strategy: MessagePort accumulation, single post on stop (no transferables
+     needed for MLS-length captures; SharedArrayBuffer deferred — Q1 still open)
+- [x] Worker.js contract unchanged — both paths use `{ command: 'correlation', data1, data2, maxLag }`
 - [x] Wire the worklet into the latency test flow alongside the existing MediaRecorder path, selected via `recording-mode` attribute
 - [ ] `input-gain` GainNode deferred to v2
 - [ ] `signal-type="chirp"` bandlimit deferred
 - [x] Validate measurement stability across multiple runs (Chrome + Firefox — numbers match MediaRecorder path)
 
-> **Firefox volume note:** The worklet reference loopback (input 1) is a direct graph connection from
-> `AudioBufferSourceNode` to the worklet — full-scale ±1.0 with no acoustic loss. This produces a
-> higher reference amplitude than the MediaRecorder path (which goes through DAC → speaker → mic → ADC).
-> This is expected behavior. Correlation results remain valid and comparable.
+> **Firefox volume note:** The worklet captures both channels from the same audio graph — mic
+> (input 0) and reference loopback (input 1). Both reflect the same acoustic environment, so
+> `peakValuePow / mean` is unaffected. The real improvement over MediaRecorder is the shared
+> start time between the two captured channels, eliminating the uncontrolled timing offset.
 
 ### Phase 4 — Demo page & integration
 - [ ] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
