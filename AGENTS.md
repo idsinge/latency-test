@@ -26,6 +26,13 @@ Before starting any work, read these files in order:
 
 Ignore `.parcel-cache/`, `dist/`, `node_modules/`, `docs/.vitepress/cache/`.
 
+## Current agent setup
+
+- **openCode (DeepSeek V4 Flash Free)** — primary coding agent (this session).
+  Fills the "Claude Code" role described below.
+- **Claude (VS Code extension)** — secondary reviewer for cross-validation.
+- **Codex (VS Code extension)** — independent adversarial reviewer.
+
 ## Agent roles
 
 ### Claude Code
@@ -155,7 +162,7 @@ Stored in session folder (`~/.copilot/session-state/<id>/files/`):
 
 - Vanilla JavaScript ES modules — no TypeScript, no test suite
 - Web Audio API (`AudioContext`, `AudioBuffer`, `AudioBufferSourceNode`)
-- `MediaRecorder` for capture (v1 default — to be replaced by `AudioWorklet` in v2)
+- Dual capture backend: `AudioWorklet` (v2 default) + `MediaRecorder` (v1 default, fallback)
 - Web Worker for cross-correlation and peak detection (off main thread)
 - Parcel v2 — demo app bundler (may be replaced or removed in a future phase;
   the component build pipeline is separate and not yet decided)
@@ -186,7 +193,7 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 |-------|------|--------|
 | 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Complete |
 | 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Complete |
-| 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | Pending |
+| 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | In review (code complete) |
 | 4 | Validate browser-specific behavior (Safari gain, mono/stereo, iOS aliasing) | Pending |
 | 5 | Stabilize integration API (AudioContext ownership, stream ownership, events) | Pending |
 | 6 | Docs + packaging alignment; decide on bundler or no bundler; `build:component` script | Pending |
@@ -228,7 +235,7 @@ Do not re-open these unless the user explicitly asks:
 - DOM access is hardcoded via `document.getElementById()`.
 - `MediaRecorder` path introduces a codec round-trip before PCM analysis.
 - `mediaRecorder.start()` and `noiseSource.start()` are separate JS calls — timing gap.
-- Worker correlation contract will change in Phase 3 (mic-vs-MLS → mic-vs-reference-loopback).
+- Worker correlation contract unchanged — both capture paths converge on the same `{ data1, data2 }` API.
 - No test suite — migration correctness depends on manual browser testing across
   Chrome, Firefox, Safari, and mobile.
 - Bundler strategy for the component package (separate from the demo app) is not yet

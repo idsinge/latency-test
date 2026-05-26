@@ -1,5 +1,14 @@
 import { generateMLS } from './mls'
 
+function concatFloat32(arrays) {
+    let len = 0
+    for (const a of arrays) len += a.length
+    const result = new Float32Array(len)
+    let offset = 0
+    for (const a of arrays) { result.set(a, offset); offset += a.length }
+    return result
+}
+
 export class LatencyTestController {
 
     noiseBuffer = null
@@ -17,9 +26,12 @@ export class LatencyTestController {
     onProcessing = null
     mlsBits = 15
     maxLagMs = 600
+    recordingMode = 'mediarecorder'
+    workletNode = null
 
-    async initialize(ac, stream, {  mlsBits = 15, maxLagMs = 600, onResult, onError, onReady, onRecording, onProcessing } = {}) {
+    async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, onResult, onError, onReady, onRecording, onProcessing } = {}) {
         
+        this.recordingMode = recordingMode
         this.mlsBits = mlsBits
         this.maxLagMs = maxLagMs
         this.onResult = onResult
@@ -55,11 +67,19 @@ export class LatencyTestController {
         this.prepareAudioToPlayAndRecord()
     }
 
-    prepareAudioToPlayAndRecord() {
-
+    async prepareAudioToPlayAndRecord() {
         this.signalrecorded = null
         this.noiseSource = this.audioContext.createBufferSource()
         this.noiseSource.buffer = this.noiseBuffer
+
+        if (this.recordingMode === 'audioworklet') {
+            await this.startWorkletCapture()
+        } else {
+            this.startMediaRecorderCapture()
+        }
+    }
+
+    startMediaRecorderCapture() {
         this.noiseSource.connect(this.audioContext.destination)
 
         let chunks = []
@@ -80,6 +100,53 @@ export class LatencyTestController {
         }
     }
 
+    async startWorkletCapture() {
+        await this.loadRecorderProcessor(this.audioContext)
+
+        this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor', {
+            numberOfInputs: 2,
+            numberOfOutputs: 1,
+            outputChannelCount: [1]
+        })
+
+        const micSource = this.audioContext.createMediaStreamSource(this.inputStream)
+        micSource.connect(this.workletNode, 0, 0)
+        this.noiseSource.connect(this.workletNode, 0, 1)
+        this.noiseSource.connect(this.audioContext.destination)
+
+        this.workletNode.port.postMessage({ command: 'start' })
+        this.noiseSource.start()
+        this.onRecording?.()
+
+        this.workletNode.port.onmessage = (e) => {
+            const mic = concatFloat32(e.data.mic)
+            const ref = concatFloat32(e.data.ref)
+            this.correlation = null
+            this.worker.postMessage({
+                command: 'correlation',
+                data1: mic,
+                data2: ref,
+                maxLag: (this.maxLagMs / 1000) * this.audioContext.sampleRate,
+                channel: 0
+            })
+        }
+
+        this.noiseSource.onended = () => {
+            this.workletNode.port.postMessage({ command: 'stop' })
+            this.finishTest()
+        }
+    }
+
+    async loadRecorderProcessor(ac) {
+        const url = new URL('./recorder-processor.js', import.meta.url)
+        const resp = await fetch(url)
+        const source = await resp.text()
+        const blob = new Blob([source], { type: 'application/javascript' })
+        const blobUrl = URL.createObjectURL(blob)
+        await ac.audioWorklet.addModule(blobUrl)
+        URL.revokeObjectURL(blobUrl)
+    }
+
     finishTest() {
         this.onProcessing?.()
     }
@@ -96,6 +163,11 @@ export class LatencyTestController {
         if (this.worker) {
             this.worker.terminate()
             this.worker = null
+        }
+        if (this.workletNode) {
+            this.workletNode.port.postMessage({ command: 'stop' })
+            this.workletNode.disconnect()
+            this.workletNode = null
         }
     }
 

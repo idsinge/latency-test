@@ -104,6 +104,7 @@ export class LatencyTest extends HTMLElement {
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
+            recordingMode: this.recordingMode || 'mediarecorder',
             //inputGain: Number.parseFloat(this.inputGain) || 0,
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),
@@ -121,7 +122,7 @@ export class LatencyTest extends HTMLElement {
             },
             onError: (message) => this.#emitEvent('latency-error', { message })
         })
-        this.#controller.onAudioSetupFinished()
+        this.#controller?.onAudioSetupFinished()
     }
 
     stop() {

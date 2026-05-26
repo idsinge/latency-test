@@ -18,6 +18,7 @@ This file tracks open questions and the planned action plan for converting `webl
 | 8 | **AudioContext ownership: read-write property, component never closes it** | `element.audioContext` is a read-write JS property. Setter: host provides an existing context — component uses it and never closes it. Getter: always returns the active context, whether host-provided or internally created. If no context was set, the component creates one lazily on the first `start()` call and exposes it via the getter so the host can grab it for other audio work. The component never calls `.close()` on the AudioContext in either case — the host owns cleanup. This solves the edge case where the component is the first thing to touch audio: the host calls `start()`, then reads `element.audioContext` to get the context and continue building their audio graph. |
 | 9 | **Shadow DOM (open mode), empty root by default** | A shadow root is attached in the constructor but nothing is rendered into it initially (headless). This is the standard custom element pattern, is future-proof if optional UI is added later, and ensures event retargeting works correctly. Open mode is used so host apps can inspect internals when debugging; no CSS custom properties are exposed in v1 since there is no visible UI. |
 | 10 | **Lifecycle events: fire `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, `latency-complete`** | Host apps need state transitions to update their own UI (disable buttons, show spinners). Events are low-cost to emit and high-value for consumers. `latency-start` fires after permission is granted; `latency-recording` when MLS playback and capture begin; `latency-processing` when recording ends and the worker starts; `latency-result` with `{ latency, ratio, timestamp }`; `latency-error` with `{ message }`; `latency-complete` when all N tests finish (immediately after the single result in v1). |
+| 11 | **AudioWorklet: `numberOfOutputs: 1`, Blob URL, no `buffer-size`** | Zero-output node risks input starvation — `numberOfOutputs: 1` with unconnected output is the known workaround. Blob URL inlining makes the processor self-contained for npm/CDN. `buffer-size` deferred — for ~1 second MLS captures, accumulating and posting once on stop is simpler. |
 
 ---
 
@@ -228,17 +229,22 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 >
 > For the chirp signal type, bandlimit to **1500–8000 Hz** (matching the naomiaro reference). This implicitly avoids the aliasing distortion above 12 kHz present on some iOS devices without needing platform detection.
 
-- [ ] Create `src/scripts/recorder-processor.js` — `AudioWorkletProcessor` with `numberOfInputs: 2`
-  - Input 0: mic stream (via `MediaStreamSourceNode` → GainNode → worklet)
-  - Input 1: MLS/chirp reference signal loopback (same `AudioBufferSourceNode` connected to both `AudioContext.destination` and the worklet)
-  - Accept optional `buffer-size` attribute (default 128). DAWs embedding the component can tune this to match their configured audio buffer. The worklet's `process()` accumulates frames until the configured size is reached before posting the chunk, keeping transfer granularity predictable.
-- [ ] Implement `process()` to buffer both input channels simultaneously and post `{ mic, ref }` chunks via MessagePort
-- [ ] Implement chosen data-return strategy (MessagePort chunks or SharedArrayBuffer — Q1)
-- [ ] Update `worker.js` to accept `{ mic, ref }` buffers and cross-correlate them against each other instead of correlating mic against the pre-known MLS sequence
-- [ ] Wire the worklet into the latency test flow, replacing the `MediaRecorder` block in `prepareAudioToPlayAndRecord()`
-- [ ] Verify that the `input-gain` GainNode is inserted correctly before the worklet's input 0 in the audio graph (replaces the removed `getCorrectStreamForSafari()` — host sets the value, component applies it)
-- [ ] For `signal-type="chirp"`: bandlimit the signal to 1500–8000 Hz to avoid iOS aliasing above 12 kHz
-- [ ] Validate that measurement results are stable across multiple runs (variability should now reflect true system audio buffer size, not JS scheduler jitter)
+- [x] Create `src/scripts/recorder-processor.js` — `AudioWorkletProcessor` with `numberOfInputs: 2`
+  - Input 0: mic stream (via `MediaStreamAudioSourceNode` → worklet)
+  - Input 1: MLS reference signal loopback (same `AudioBufferSourceNode` connected to both `AudioContext.destination` and the worklet)
+  - `buffer-size` attribute deferred (verdict: unnecessary for MLS-length captures)
+- [x] Implement `process()` to buffer both channels and post `{ mic, ref }` as a single transferable on stop
+- [x] Implement data-return strategy: MessagePort accumulation, single post on stop (SharedArrayBuffer deferred — Q1 still open)
+- [ ] Worker.js contract unchanged — both paths use `{ command: 'correlation', data1, data2, maxLag }`
+- [x] Wire the worklet into the latency test flow alongside the existing MediaRecorder path, selected via `recording-mode` attribute
+- [ ] `input-gain` GainNode deferred to v2
+- [ ] `signal-type="chirp"` bandlimit deferred
+- [x] Validate measurement stability across multiple runs (Chrome + Firefox — numbers match MediaRecorder path)
+
+> **Firefox volume note:** The worklet reference loopback (input 1) is a direct graph connection from
+> `AudioBufferSourceNode` to the worklet — full-scale ±1.0 with no acoustic loss. This produces a
+> higher reference amplitude than the MediaRecorder path (which goes through DAC → speaker → mic → ADC).
+> This is expected behavior. Correlation results remain valid and comparable.
 
 ### Phase 4 — Demo page & integration
 - [ ] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
