@@ -17,6 +17,8 @@ export class LatencyTest extends HTMLElement {
     #hostProvidedStream = false
     #pendingRuns = 0
     #allResults = []
+    #stopped = false
+    #warmupDone = false
 
     constructor() {
         super()
@@ -61,6 +63,7 @@ export class LatencyTest extends HTMLElement {
     // Method: start the test
     async start() {
         if (this.#controller) this.stop()
+        this.#stopped = false
         try {
             this.#setupAudioContext()
             if (!await this.#acquireMic()) return
@@ -79,9 +82,14 @@ export class LatencyTest extends HTMLElement {
         if (this.#hostProvidedStream) return true
         if (this.#inputStream) return true
         this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-        this.#startSilence()
+        if (!this.#warmupDone) {
+            this.#startSilence()
+            this.#warmupDone = true
+            this.#emitEvent('latency-start', {})
+            return false
+        }
         this.#emitEvent('latency-start', {})
-        return false
+        return true
     }
 
     // Start silent audio immediately after mic grant to warm up the audio
@@ -114,31 +122,62 @@ export class LatencyTest extends HTMLElement {
             onProcessing: () => this.#emitEvent('latency-processing', {}),
             onResult: (data) => {
                 this.#emitEvent('latency-result', data)
+                if (this.#stopped) return
                 this.#allResults.push({ ...data, timestamp: Date.now() })
+                this.#controller?.stop()
                 this.#controller = null
                 this.#pendingRuns--
                 if (this.#pendingRuns > 0) {
-                    this.#runNextTest()
+                    this.#runNextTest().catch(e => this.#handleError(e.message))
                 } else {
-                    const l = this.#allResults.map(r => r.latency)
-                    const mean = l.reduce((a, b) => a + b, 0) / l.length
-                    this.#emitEvent('latency-complete', {
-                        results: this.#allResults,
-                        mean,
-                        std: Math.sqrt(l.reduce((s, v) => s + (v - mean) ** 2, 0) / l.length),
-                        min: Math.min(...l),
-                        max: Math.max(...l)
-                    })
+                    this.#emitComplete()
                 }
             },
-            onError: (message) => this.#emitEvent('latency-error', { message })
+            onError: (message) => this.#handleError(message)
         })
-        this.#controller?.onAudioSetupFinished()
+        await this.#controller?.onAudioSetupFinished()
+    }
+
+    #emitComplete(aborted) {
+        const results = [...this.#allResults]
+        const l = results.map(r => r.latency)
+        const mean = l.length > 0 ? l.reduce((a, b) => a + b, 0) / l.length : 0
+        this.#emitEvent('latency-complete', {
+            results,
+            mean,
+            std: l.length > 1 ? Math.sqrt(l.reduce((s, v) => s + (v - mean) ** 2, 0) / l.length) : 0,
+            min: l.length > 0 ? Math.min(...l) : 0,
+            max: l.length > 0 ? Math.max(...l) : 0,
+            ...(aborted ? { aborted: true } : {})
+        })
+        if (!this.#hostProvidedStream && this.#inputStream) {
+            this.#inputStream.getTracks().forEach(t => t.stop())
+            this.#inputStream = null
+        }
+    }
+
+    #handleError(message) {
+        this.#emitEvent('latency-error', { message })
+        this.#controller?.stop()
+        this.#controller = null
+        const hadPending = this.#pendingRuns
+        this.#pendingRuns = 0
+        this.#stopped = true
+        if (hadPending > 0) {
+            this.#emitComplete(true)
+        }
     }
 
     stop() {
+        if (this.#stopped) return
+        this.#stopped = true
         this.#controller?.stop()
         this.#controller = null
+        const hadPending = this.#pendingRuns
+        this.#pendingRuns = 0
+        if (hadPending > 0) {
+            this.#emitComplete(true)
+        }
         if (!this.#hostProvidedStream && this.#inputStream) {
             this.#inputStream.getTracks().forEach(t => t.stop())
             this.#inputStream = null

@@ -164,22 +164,19 @@ Stored in session folder (`~/.copilot/session-state/<id>/files/`):
 - Web Audio API (`AudioContext`, `AudioBuffer`, `AudioBufferSourceNode`)
 - Dual capture backend: `AudioWorklet` (v2 default) + `MediaRecorder` (v1 default, fallback)
 - Web Worker for cross-correlation and peak detection (off main thread)
-- Parcel v2 — demo app bundler (may be replaced or removed in a future phase;
-  the component build pipeline is separate and not yet decided)
+- esbuild — component bundle (ESM + IIFE outputs)
 - VitePress — developer docs site (`docs/`)
 
 ## Commands
 
 ```bash
 npm install
-npm run dev           # Parcel dev server — demo app only (http://localhost:1234)
-npm run build         # Production build — demo app only
-npm run docs:dev      # VitePress docs dev server (http://localhost:5173)
-npm run docs:build    # Build VitePress docs
-npm run docs:preview  # Preview built docs
+npm run dev              # static file server — serves src/ natively
+npm run build:component  # produces dist/latency-test.esm.js + .iife.js
+npm run docs:dev         # VitePress docs dev server (http://localhost:5173)
+npm run docs:build       # Build VitePress docs
+npm run docs:preview     # Preview built docs
 ```
-
-Note: there is no `build:component` script yet. That is a Phase 6 deliverable.
 
 ## Working branch
 
@@ -194,14 +191,14 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 1 | Refactor `TestLatencyMLS` from static singleton to instance-based controller | Complete |
 | 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Complete |
 | 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | Complete |
-| 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Pending |
-| 5 | Build & distribution (build:component script, bundle format, CDN, cross-browser test) | Pending |
+| 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Complete |
+| 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | In progress |
 | 6 | Documentation & demo (API docs, README, live demo page) | Pending |
 | 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
 | 8 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
-a stable component build exists. Not a priority during Phases 1–6.
+a stable component build exists. Phase 7 item.
 
 ## Resolved design decisions
 
@@ -234,17 +231,14 @@ Do not re-open these unless the user explicitly asks:
 - Phase 2 target: Custom Element wrapper only — no recording architecture changes.
 - Phase 3 (AudioWorklet) must not begin before Phase 2 is stable and in-browser tested.
 - Docs must keep a strict separation between implemented behavior and planned/draft API.
-- `package.json` is not yet publish-ready — treat publishing fields as planning until
-  a real component build output exists.
+- `package.json` distribution fields (`exports`, `module`, `main`, `files`) are set in Phase 5. Publishing to npm is Phase 7.
 
 ## Known risks
 
-- `TestLatencyMLS` is a static singleton — all state is on the class, not instances.
-- DOM access is hardcoded via `document.getElementById()`.
-- `MediaRecorder` path introduces a codec round-trip before PCM analysis.
-- `mediaRecorder.start()` and `noiseSource.start()` are separate JS calls — timing gap.
-- Worker correlation contract unchanged — both capture paths converge on the same `{ data1, data2 }` API.
 - No test suite — migration correctness depends on manual browser testing across
   Chrome, Firefox, Safari, and mobile.
-- Bundler strategy for the component package (separate from the demo app) is not yet
-  decided. Parcel may be replaced or dropped for the component build.
+- CSP with `blob:` URLs: workers and AudioWorklet processors loaded via Blob require
+  `worker-src 'self' blob:` and `script-src 'self' blob:` in the Content-Security-Policy header.
+- AudioContext autoplay policy: `start()` must be called from a user gesture (click, touchstart).
+- Custom element registration: loading the bundle twice can cause `customElements.define()` to
+  throw if the registration guard (`customElements.get()`) is somehow bypassed.

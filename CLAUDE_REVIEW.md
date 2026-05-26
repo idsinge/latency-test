@@ -257,15 +257,25 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [ ] Test `number-of-tests` > 1 loop driven by the component
 
 ### Phase 5 — Build & distribution
-- [ ] Configure bundler output for a single component file (`build:component` script, separate from `npm run build`)
-- [ ] Handle AudioWorklet processor file URL (Blob inlining or separate asset)
-  - Phase 3 uses `new URL()` + `fetch()` at runtime, which works in Parcel/Vite bundler contexts
-    but is not truly self-contained. For a single-file CDN bundle, the processor source must be
-    embedded as a string literal at build time. This is a Phase 5 concern, not a Phase 3 blocker.
-- [ ] Verify the bundle works as an npm import in a bundler-based project (CDN/script-tag and npm are both first-class targets — Decision #6)
-- [ ] Verify the bundle works as a `<script type="module">` drop-in with no build step
-- [ ] Test in Chrome, Firefox, Edge, and Safari
-- [ ] **The component bundle is a prerequisite for the live demo page (Phase 6)**
+
+**Approach:** esbuild + inlining via JS API `define`. ESM for npm, IIFE for CDN. Worker and AudioWorklet processor sources inlined as string constants at build time using `JSON.stringify()`. Parcel removed — demo served directly from `src/` via static file server.
+
+- [x] Tool chosen: esbuild (JS API, not CLI). One devDependency, ESM + IIFE output, built-in minification + source maps.
+- [x] Inlining strategy: read `worker.js` + `recorder-processor.js` as text → `JSON.stringify()` → esbuild `define` with `typeof` guard in source code. Both dev (URL fallback) and build (Blob URL) paths work from the same code.
+- [x] Output format: `dist/latency-test.esm.js` (npm ESM) + `dist/latency-test.iife.js` (CDN script-tag).
+- [x] Source maps: enabled (one esbuild flag).
+- [x] Registration guard: `if (!customElements.get('latency-test'))` before `define()` — prevents double-registration errors.
+- [x] `sideEffects: true` in `package.json` — prevents bundler tree-shaking of the registration side effect.
+- [x] `files: ["dist/"]` in `package.json` — whitelist-only npm package contents.
+- [x] CSP documented: `blob:` URLs for workers + AudioWorklet require `worker-src 'self' blob:` / `script-src 'self' blob:`.
+- [ ] Implement `scripts/build-component.mjs` — esbuild JS API with inline sources.
+- [ ] Modify `src/scripts/test.js` — add `typeof __WORKER_SOURCE__` / `__PROCESSOR_SOURCE__` conditionals.
+- [ ] Modify `src/scripts/latency-test-element.js` — add registration guard.
+- [ ] Update `package.json` — remove Parcel, add esbuild, add distribution fields (`exports`, `module`, `main`, `files`, `sideEffects`, `unpkg`, `jsdelivr`).
+- [ ] Verify: `npm run build:component` produces both bundles + source maps.
+- [ ] Verify: `npx serve src/` serves demo with no build step.
+- [ ] Verify: `npm pack --dry-run` lists only `dist/`, `README.md`, `LICENSE`.
+- [ ] The component bundle is a prerequisite for the live demo page (Phase 6).
 
 ### Phase 6 — Documentation & demo
 - [ ] Update README.md to stay short and repo-oriented once the docs site is live (Decision #7)

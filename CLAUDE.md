@@ -20,20 +20,19 @@
 - Web Audio API (`AudioContext`, `AudioBuffer`, `BufferSource`)
 - `MediaRecorder` API (current recording mechanism, default in v1 — to be replaced by `AudioWorklet` default in v2)
 - Web Workers (off-main-thread cross-correlation computation)
-- Parcel v2 (bundler, dev + build)
+- esbuild (component bundle, ESM + IIFE outputs)
 - No TypeScript, no test suite
 
 **Dev commands:**
 ```
-npm run dev           # parcel dev server at http://localhost:1234
-npm run build         # production build (demo app, not the npm package)
-npm run deploy        # deploy demo app to gh-pages
-npm run docs:dev      # VitePress docs dev server
-npm run docs:build    # build VitePress docs
-npm run docs:preview  # preview built docs locally
+npm run dev              # static file server — serves src/ natively
+npm run build:component  # produces dist/latency-test.esm.js + .iife.js
+npm run docs:dev         # VitePress docs dev server (http://localhost:5173)
+npm run docs:build       # build VitePress docs
+npm run docs:preview     # preview built docs locally
 ```
 
-**npm package publishing:** The component will be published as `@hi-audio/latency-test`. Before the first publish, `package.json` needs `main`, `module`, `exports`, `files`, and `publishConfig.access: "public"` fields added, and a separate `build:component` script is needed distinct from `npm run build`. Full publishing checklist is in CLAUDE_REVIEW.md — Phase 7.
+**npm package publishing:** Published as `@hi-audio/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in CLAUDE_REVIEW.md — Phase 7.
 
 ---
 

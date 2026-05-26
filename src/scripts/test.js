@@ -9,6 +9,8 @@ function concatFloat32(arrays) {
     return result
 }
 
+const loadedProcessors = new WeakMap()
+
 export class LatencyTestController {
 
     noiseBuffer = null
@@ -64,7 +66,7 @@ export class LatencyTestController {
     }
 
     async onAudioSetupFinished() {
-        this.prepareAudioToPlayAndRecord()
+        return this.prepareAudioToPlayAndRecord()
     }
 
     async prepareAudioToPlayAndRecord() {
@@ -142,16 +144,26 @@ export class LatencyTestController {
         }
     }
 
-    async loadRecorderProcessor(ac) {
-        if (this._processorLoaded) return
-        this._processorLoaded = true
-        const url = new URL('./recorder-processor.js', import.meta.url)
-        const resp = await fetch(url)
-        const source = await resp.text()
-        const blob = new Blob([source], { type: 'application/javascript' })
-        const blobUrl = URL.createObjectURL(blob)
-        await ac.audioWorklet.addModule(blobUrl)
-        URL.revokeObjectURL(blobUrl)
+   async loadRecorderProcessor(ac) {
+        const pending = loadedProcessors.get(ac)
+        if (pending) {
+            await pending
+            return
+        }
+        const p = (async () => {
+            const url = new URL('./recorder-processor.js', import.meta.url)
+            const resp = await fetch(url)
+            const source = await resp.text()
+            const blob = new Blob([source], { type: 'application/javascript' })
+            const blobUrl = URL.createObjectURL(blob)
+            await ac.audioWorklet.addModule(blobUrl)
+            URL.revokeObjectURL(blobUrl)
+        })()
+        loadedProcessors.set(ac, p.catch(e => {
+            loadedProcessors.delete(ac)
+            throw e
+        }))
+        await loadedProcessors.get(ac)
     }
 
     finishTest() {
