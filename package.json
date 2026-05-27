@@ -6,6 +6,7 @@
     "dev": "echo 'use: npx serve src/'",
     "demo": "npx serve .",
     "build:component": "node scripts/build-component.mjs",
+"build:component:dev": "node scripts/build-component.mjs --dev",
     "deploy": "gh-pages -d src",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

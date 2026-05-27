@@ -1,6 +1,12 @@
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync, rmSync } from 'fs'
 import { resolve } from 'path'
 import * as esbuild from 'esbuild'
+
+// Usage: node scripts/build-component.mjs [--dev]
+//   Default (no flag): minified ESM + IIFE (production)
+//   --dev:             unminified ESM + IIFE (debugging)
+
+const devMode = process.argv.includes('--dev')
 
 const workerSource = readFileSync('src/scripts/worker.js', 'utf-8')
 const processorSource = readFileSync('src/scripts/recorder-processor.js', 'utf-8')
@@ -30,21 +36,43 @@ const inlinePlugin = {
     }
 }
 
-await esbuild.build({
+function cleanDist() {
+    const files = readdirSync('dist/')
+    const keep = new Set([
+        'latency-test.esm.js', 'latency-test.esm.js.map',
+        'latency-test.iife.js', 'latency-test.iife.js.map',
+    ])
+    for (const f of files) {
+        if (!keep.has(f)) {
+            rmSync(`dist/${f}`, { force: true })
+            console.log(`  clean: dist/${f}`)
+        }
+    }
+}
+
+console.log(`Build mode: ${devMode ? 'development (unminified)' : 'production (minified)'}`)
+cleanDist()
+
+const esmConfig = {
     entryPoints: ['src/scripts/latency-test-element.js'],
     bundle: true,
     format: 'esm',
     outfile: 'dist/latency-test.esm.js',
     sourcemap: true,
+    minify: !devMode,
     plugins: [inlinePlugin],
-})
+}
 
-await esbuild.build({
+const iifeConfig = {
     entryPoints: ['src/scripts/iife-entry.js'],
     bundle: true,
     format: 'iife',
     outfile: 'dist/latency-test.iife.js',
     sourcemap: true,
-    minify: true,
+    minify: !devMode,
     plugins: [inlinePlugin],
-})
+}
+
+await esbuild.build(esmConfig)
+await esbuild.build(iifeConfig)
+console.log('Build complete.')
