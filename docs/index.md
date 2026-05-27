@@ -18,9 +18,9 @@ hero:
 
 features:
   - title: Multiple Signal Types
-    details: MLS (Maximum Length Sequence), logarithmic chirp sweep, and Golay complementary sequence pairs — choose the signal that fits your measurement environment.
+    details: MLS (Maximum Length Sequence) — the current default. Chirp and Golay are planned for a future release.
   - title: Dual Capture Backends
-    details: MediaRecorder (v1 default, implemented) and AudioWorklet (v2 default, planned) — both available via the recording-mode attribute. Enables a non-breaking migration path.
+    details: MediaRecorder and AudioWorklet — both implemented and selectable via the recording-mode attribute.
   - title: Headless by Default
     details: Exposes start() / stop() methods and fires CustomEvents. No built-in UI — drop it into any host application or DAW without styling conflicts.
   - title: Framework Ready

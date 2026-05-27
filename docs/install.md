@@ -52,7 +52,7 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <latency-test></latency-test>
@@ -68,8 +68,8 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
       console.error('Test failed:', e.detail.message)
     })
 
-    // Start the test programmatically, or wire to your own button:
-    document.querySelector('#myButton').addEventListener('click', () => el.start())
+    // Start the test programmatically:
+    el.start()
   </script>
 </body>
 </html>

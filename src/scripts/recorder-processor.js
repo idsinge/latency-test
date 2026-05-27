@@ -1,9 +1,10 @@
 class RecorderProcessor extends AudioWorkletProcessor {
-    constructor() {
+    constructor(options) {
         super()
         this.mic = []
         this.ref = []
         this.recording = false
+        this.bufferSize = options?.processorOptions?.bufferSize || 0
         this.port.onmessage = (e) => {
             if (e.data.command === 'start') {
                 this.mic = []

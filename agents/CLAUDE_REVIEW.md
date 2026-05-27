@@ -430,7 +430,6 @@ src/
 docs/
 assets/
 .github/
-.parcel-cache/
 *.config.*
 CLAUDE*.md
 CODEX_REVIEW.md

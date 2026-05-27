@@ -34,7 +34,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     static get observedAttributes() {
-        return ['mls-bits', 'max-lag-ms', 'input-gain', 'number-of-tests', 'recording-mode', 'signal-type']
+        return ['mls-bits', 'max-lag-ms', 'input-gain', 'number-of-tests', 'recording-mode', 'signal-type', 'buffer-size']
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -67,9 +67,6 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         try {
             this.#setupAudioContext()
             if (!await this.#acquireMic()) return
-            if (this.#hostProvidedStream) {
-                this.#emitEvent('latency-start', {})
-            }
             this.#pendingRuns = Number.parseInt(this.numberOfTests, 10) || 1
             this.#allResults = []
             await this.#runNextTest()
@@ -79,8 +76,8 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     async #acquireMic() {
-        if (this.#hostProvidedStream) return true
-        if (this.#inputStream) return true
+        if (this.#hostProvidedStream) { this.#emitEvent('latency-start', {}); return true }
+        if (this.#inputStream) { this.#emitEvent('latency-start', {}); return true }
         this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
         if (!this.#warmupDone) {
             this.#startSilence()
@@ -116,6 +113,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
+            bufferSize: Number.parseInt(this.bufferSize, 10) || 0,
             recordingMode: this.recordingMode || 'mediarecorder',
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),

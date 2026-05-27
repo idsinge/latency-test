@@ -143,6 +143,7 @@ declare namespace JSX {
       'recording-mode'?: 'mediarecorder' | 'audioworklet'
       'signal-type'?: 'mls' | 'chirp' | 'golay'
       'input-gain'?: number
+      'buffer-size'?: number
     }
   }
 }

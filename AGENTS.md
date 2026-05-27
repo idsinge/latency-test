@@ -192,10 +192,11 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 2 | Wrap controller in `<latency-test>` Custom Element with Shadow DOM | Complete |
 | 3 | Replace `MediaRecorder` with `AudioWorklet` for dual-channel raw PCM capture | Complete |
 | 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Complete |
-| 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | In progress |
-| 6 | Documentation & demo (API docs, README, live demo page) | Pending |
+| 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | Complete |
+| 6 | Documentation & demo (+ `buffer-size` attribute for AudioWorklet) | In progress |
 | 7 | npm publishing (`@hi-audio/latency-test`) — see `agents/CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
-| 8 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
+| 8 | Signal types (chirp logarithmic sweep, Golay complementary sequences) | Pending |
+| 9 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
 a stable component build exists. Phase 7 item.

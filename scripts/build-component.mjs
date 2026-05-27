@@ -8,7 +8,7 @@ const processorSource = readFileSync('src/scripts/recorder-processor.js', 'utf-8
 const inlinePlugin = {
     name: 'inline',
     setup(build) {
-        build.onLoad({ filter: /\/test\.js$/ }, (args) => {
+        build.onLoad({ filter: /[/\\]test\.js$/ }, (args) => {
             if (args.path !== resolve('src/scripts/test.js')) return
             let source = readFileSync(args.path, 'utf-8')
             source = source.replace(

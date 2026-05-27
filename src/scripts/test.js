@@ -30,12 +30,13 @@ export class LatencyTestController {
     maxLagMs = 600
     recordingMode = 'mediarecorder'
     workletNode = null
-
-    async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, onResult, onError, onReady, onRecording, onProcessing } = {}) {
+    
+    async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, bufferSize = 0, onResult, onError, onReady, onRecording, onProcessing } = {}) {
         
         this.recordingMode = recordingMode
         this.mlsBits = mlsBits
         this.maxLagMs = maxLagMs
+        this.bufferSize = bufferSize
         this.onResult = onResult
         this.onError = onError
         this.onReady = onReady
@@ -74,6 +75,20 @@ export class LatencyTestController {
         this.noiseSource = this.audioContext.createBufferSource()
         this.noiseSource.buffer = this.noiseBuffer
 
+        // Keep the audio thread scheduled during every test run (cwilso keepalive).
+        // Without this, Firefox's audio scheduler may relax between runs and
+        // introduce timing jitter. The element's one-time #startSilence() warmup
+        // handles Chrome's first-run cold-start; this covers all runs.
+        const silenceBuffer = this.audioContext.createBuffer(
+            1,
+            2 * this.audioContext.sampleRate,
+            this.audioContext.sampleRate
+        )
+        const silenceNode = this.audioContext.createBufferSource()
+        silenceNode.buffer = silenceBuffer
+        silenceNode.connect(this.audioContext.destination)
+        silenceNode.start()
+
         if (this.recordingMode === 'audioworklet') {
             await this.startWorkletCapture()
         } else {
@@ -108,7 +123,8 @@ export class LatencyTestController {
         this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor', {
             numberOfInputs: 2,
             numberOfOutputs: 1,
-            outputChannelCount: [1]
+            outputChannelCount: [1],
+            processorOptions: { bufferSize: this.bufferSize }
         })
 
         this.micSource = this.audioContext.createMediaStreamSource(this.inputStream)

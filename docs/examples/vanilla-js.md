@@ -100,7 +100,8 @@ document.getElementById('stopBtn').addEventListener('click', () => {
 
 ## TypeScript
 
-Types are bundled with the package. No manual declarations needed — `querySelector` returns the correct type automatically:
+Types are planned for a future release (Phase 7 — pre-publish).  
+Once available, `querySelector` returns the correct type automatically:
 
 ```ts
 import '@hi-audio/latency-test'

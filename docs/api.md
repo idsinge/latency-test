@@ -26,12 +26,13 @@ Attributes are reflected as properties and can be set either in HTML or via Java
 
 | Attribute | Property | Type | Default | Description | Status |
 |---|---|---|---|---|---|---|
-| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | planned (v2) |
-| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. **v1 default: `"mediarecorder"`** — uses `MediaRecorder` + Blob decode (implemented). **v2 default: `"audioworklet"`** — raw Float32 PCM directly from the audio graph (planned). Both values are accepted in both versions. See ScriptProcessor note below. | implemented (mediarecorder) |
-| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. See signal types table below. | planned (v2) |
-| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Use `50` to replicate the automatic Safari microphone compensation if needed. | planned (v2) |
+| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | implemented |
+| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` uses `MediaRecorder` + Blob decode. `"audioworklet"` captures raw Float32 PCM directly from the audio graph. Both values are available. | implemented |
+| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. Only `"mls"` is implemented. See signal types table below. | planned (v2) |
+| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Attribute observed but gain node not yet wired. | planned (v2) |
 | `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
 | `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
+| `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
 
 ### Example
 
@@ -94,7 +95,7 @@ element.start()
 
 ### `stop()`
 
-Aborts an in-progress measurement. The component returns to its idle state. No `latency-result` or `latency-complete` events are fired for the aborted run.
+Aborts an in-progress measurement. The component returns to its idle state. If runs were pending, a `latency-complete` event fires with `{ aborted: true }` and partial results. No `latency-result` fires for the aborted run.
 
 ```js
 element.stop()
@@ -112,25 +113,27 @@ Fired once per completed test run with the measurement result.
 
 ```js
 element.addEventListener('latency-result', (e) => {
-  const { latency, ratio, timestamp } = e.detail
+  const { latency, ratio, reliable, timestamp } = e.detail
   // latency   — round-trip latency in milliseconds (number)
   // ratio     — correlation reliability in dB (number); values > 18 dB are considered reliable
+  // reliable  — boolean, true when ratio > 18 dB
   // timestamp — Unix timestamp of the measurement (number)
 })
 ```
 
 ### `latency-complete`
 
-Fired after each completed run. Contains the run result and aggregate statistics (mean, std, min, max are set to the single run's value in v1; multi-run statistics land with `number-of-tests` in v2).
+Fired when all runs complete (or when `stop()` aborts mid-sequence). Contains all results and aggregate statistics. When aborted, `e.detail.aborted` is `true`.
 
 ```js
 element.addEventListener('latency-complete', (e) => {
-  const { results, mean, std, min, max } = e.detail
-  // results — array of { latency, ratio, timestamp } objects
+  const { results, mean, std, min, max, aborted } = e.detail
+  // results — array of { latency, ratio, reliable, timestamp } objects
   // mean    — mean latency in ms
   // std     — standard deviation of latency in ms
   // min     — minimum latency in ms
   // max     — maximum latency in ms
+  // aborted — true when stop() was called mid-sequence (undefined otherwise)
 })
 ```
 
@@ -147,13 +150,13 @@ element.addEventListener('latency-error', (e) => {
 
 ### Lifecycle events
 
-These fire with no payload (`e.detail` is `null`). Use them to update host UI state — disable buttons, show spinners, etc.
+These fire with no meaningful payload (`e.detail` is an empty object `{}`). Use them to update host UI state — disable buttons, show spinners, etc.
 
-| Event | When fired |
-|---|---|
-| `latency-start` | Permission granted; test is about to begin |
-| `latency-recording` | Signal playback started; capture is running |
-| `latency-processing` | Recording stopped; cross-correlation worker is running |
+| Event | When fired | Notes |
+|---|---|---|
+| `latency-start` | Permission granted; test is about to begin | Fires on the first `start()` call (warmup). On consecutive runs that reuse an already-acquired mic stream, this event does not fire again — use `latency-recording` as the reliable "test began" signal. |
+| `latency-recording` | Signal playback started; capture is running | |
+| `latency-processing` | Recording stopped; cross-correlation worker is running | |
 
 ---
 
