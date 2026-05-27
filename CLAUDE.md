@@ -32,7 +32,7 @@ npm run docs:build       # build VitePress docs
 npm run docs:preview     # preview built docs locally
 ```
 
-**npm package publishing:** Published as `@hi-audio/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in CLAUDE_REVIEW.md — Phase 7.
+**npm package publishing:** Published as `@hi-audio/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in agents/CLAUDE_REVIEW.md — Phase 7.
 
 ---
 
@@ -169,13 +169,13 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 - Headless-first: primary API is `start()` / `stop()` methods + custom events; no built-in UI in v1
 - Events dispatched: `latency-result`, `latency-error` (and optionally `latency-complete` for multi-test runs)
 - `worker.js` correlation logic is preserved but updated in Phase 3: it will receive `{ mic, ref }` Float32 buffers (two-channel capture) and cross-correlate them against each other, not correlate mic against the pre-known MLS sequence
-- The AudioWorklet processor uses `numberOfInputs: 2` — input 0 = mic, input 1 = reference signal loopback — and returns `{ mic, ref }` PCM chunks to the main thread via MessagePort or SharedArrayBuffer (see CLAUDE_REVIEW.md Phase 3 for architecture rationale)
+- The AudioWorklet processor uses `numberOfInputs: 2` — input 0 = mic, input 1 = reference signal loopback — and returns `{ mic, ref }` PCM chunks to the main thread via MessagePort or SharedArrayBuffer (see agents/CLAUDE_REVIEW.md Phase 3 for architecture rationale)
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 
 | Attribute | Values | Description |
 |---|---|---|
-| `recording-mode` | `"mediarecorder"` \| `"audioworklet"` | Selects the capture backend. **v1 default: `"mediarecorder"`** (already implemented). **v2 default: `"audioworklet"`** (sample-accurate raw PCM, to be implemented). `ScriptProcessor` is deprecated but documented as an older-browser reference (see CLAUDE_REVIEW.md). |
+| `recording-mode` | `"mediarecorder"` \| `"audioworklet"` | Selects the capture backend. **v1 default: `"mediarecorder"`** (already implemented). **v2 default: `"audioworklet"`** (sample-accurate raw PCM, to be implemented). `ScriptProcessor` is deprecated but documented as an older-browser reference (see agents/CLAUDE_REVIEW.md). |
 | `signal-type` | `"mls"` \| `"chirp"` \| `"golay"` | Selects the test signal. `"mls"` is default. `"chirp"` is a logarithmic sine sweep. `"golay"` uses Golay complementary sequence pairs for high-SNR impulse response measurement. |
 | `input-gain` | number \| `0` | Applies a gain multiplier to the input stream before capture. `0` (default) means no gain. Replaces the hardcoded Safari-only 50× workaround with a general user-configurable parameter. |
 
@@ -202,5 +202,5 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 ```bash
 npm install
 npm run dev
-# open http://localhost:1234
+# open http://localhost:3000
 ```

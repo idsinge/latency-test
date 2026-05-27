@@ -10,7 +10,7 @@ const MIC_CONSTRAINTS = {
     }
 }
 
-export class LatencyTest extends HTMLElement {
+class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : class {}) {
     #controller = null
     #audioContext = null
     #inputStream = null
@@ -142,6 +142,10 @@ export class LatencyTest extends HTMLElement {
         const results = [...this.#allResults]
         const l = results.map(r => r.latency)
         const mean = l.length > 0 ? l.reduce((a, b) => a + b, 0) / l.length : 0
+        if (!this.#hostProvidedStream && this.#inputStream) {
+            this.#inputStream.getTracks().forEach(t => t.stop())
+            this.#inputStream = null
+        }
         this.#emitEvent('latency-complete', {
             results,
             mean,
@@ -150,10 +154,6 @@ export class LatencyTest extends HTMLElement {
             max: l.length > 0 ? Math.max(...l) : 0,
             ...(aborted ? { aborted: true } : {})
         })
-        if (!this.#hostProvidedStream && this.#inputStream) {
-            this.#inputStream.getTracks().forEach(t => t.stop())
-            this.#inputStream = null
-        }
     }
 
     #handleError(message) {
@@ -195,4 +195,8 @@ export class LatencyTest extends HTMLElement {
 }
 
 // Register custom element
-customElements.define('latency-test', LatencyTest)
+if (typeof customElements !== 'undefined' && !customElements.get('latency-test')) {
+    customElements.define('latency-test', LatencyTest)
+}
+export { LatencyTest }
+export default LatencyTest

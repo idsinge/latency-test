@@ -159,7 +159,7 @@ The repository story is now substantially clearer:
 
 - `package.json` names the future package
 - `CLAUDE.md` describes docs and packaging direction
-- `CLAUDE_REVIEW.md` describes migration and publishing decisions
+- `agents/CLAUDE_REVIEW.md` describes migration and publishing decisions
 - `docs/` provides the developer-facing integration site
 
 This is a real improvement. The repo now reads like a project that is transitioning from research prototype to reusable developer-facing package.
@@ -336,7 +336,7 @@ Additional current delta:
 
 - the repository is no longer only about code migration; it now includes public-facing developer documentation and package-distribution planning
 - this increases the importance of maintaining alignment between implementation state, docs claims, and package metadata
-- `CLAUDE_REVIEW.md` is now ahead of `CODEX_REVIEW.md` in several architecture decisions, so convergence work should now mostly flow from `CLAUDE_REVIEW.md` into this file until both can be merged cleanly
+- `agents/CLAUDE_REVIEW.md` is now ahead of `CODEX_REVIEW.md` in several architecture decisions, so convergence work should now mostly flow from `agents/CLAUDE_REVIEW.md` into this file until both can be merged cleanly
 
 Practical consequence of the latest decisions:
 
@@ -362,7 +362,7 @@ Remaining comment:
 - The headless-first and versioned-backend framing is useful.
 - The package-publishing notes are appropriate, but they should continue to be treated as planning until a real component build output exists.
 
-### `CLAUDE_REVIEW.md`
+### `agents/CLAUDE_REVIEW.md`
 
 Opinion:
 
@@ -403,13 +403,13 @@ Remaining comments:
 
 Recent review feedback that should not be lost:
 
-- `CLAUDE_REVIEW.md` is materially better now because the decisions section reduces ambiguity and improves continuity across sessions.
-- The remaining cleanup need in `CLAUDE_REVIEW.md` is consistency: resolved decisions should stop reappearing as if they are still unresolved.
+- `agents/CLAUDE_REVIEW.md` is materially better now because the decisions section reduces ambiguity and improves continuity across sessions.
+- The remaining cleanup need in `agents/CLAUDE_REVIEW.md` is consistency: resolved decisions should stop reappearing as if they are still unresolved.
 - `docs/index.md` is coherent and well structured, but the homepage should manage expectations clearly because it presents install/use snippets for a package that is still planned.
 - The docs site should keep a strict distinction between target-state reference documentation and current implementation status.
 - Support for both npm and CDN is already a settled product direction; future planning should focus on the concrete build/distribution strategy needed to satisfy both.
-- `CLAUDE_REVIEW.md` is now the stronger candidate for the eventual unified `ACTION_PLAN_REFERENCE`, with this file serving as the supplementary review log until convergence is complete.
-- The newer TypeScript/package-documentation direction was initially incomplete, but the major correctness gaps identified in review have now been addressed in `CLAUDE_REVIEW.md`.
+- `agents/CLAUDE_REVIEW.md` is now the stronger candidate for the eventual unified `ACTION_PLAN_REFERENCE`, with this file serving as the supplementary review log until convergence is complete.
+- The newer TypeScript/package-documentation direction was initially incomplete, but the major correctness gaps identified in review have now been addressed in `agents/CLAUDE_REVIEW.md`.
 
 ## Latest Open Questions
 
@@ -459,7 +459,7 @@ Remaining note:
 
 - Reuse the exported detail types consistently across all framework examples where practical.
 - Keep the per-framework installed-package verification checklist as a release gate before removing draft/wip notices.
-- When `CODEX_REVIEW.md` is eventually retired, these resolved TypeScript notes no longer need to be preserved separately because `CLAUDE_REVIEW.md` now covers them adequately.
+- When `CODEX_REVIEW.md` is eventually retired, these resolved TypeScript notes no longer need to be preserved separately because `agents/CLAUDE_REVIEW.md` now covers them adequately.
 
 ## Additional Notes
 

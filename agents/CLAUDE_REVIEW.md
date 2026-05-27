@@ -266,22 +266,18 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [x] `sideEffects: true` in `package.json` — prevents bundler tree-shaking of the registration side effect.
 - [x] `files: ["dist/"]` in `package.json` — whitelist-only npm package contents.
 - [x] CSP documented: `blob:` URLs for workers + AudioWorklet require `worker-src 'self' blob:` / `script-src 'self' blob:`.
+- [x] Inlining strategy resolved: esbuild plugin intercepts `test.js` loading, replaces URL patterns with inlined Blob URL source. No `new Worker(new URL(...))` reaches esbuild — prevents spurious secondary worker files.
+- [x] Output filename convention: `.esm.js` (npm ESM) + `.iife.js` (CDN). Phase 7 template updated to match. No CJS output (Web Components browser-only).
 
-#### Open decisions (to resolve during implementation)
-- [ ] Inlining strategy: `define` + `typeof` guard blocked by esbuild's Worker auto-bundling heuristic (emits spurious `worker-HASH.js`). **Replace with stdin approach:** build script reads `test.js` source, string-substitutes worker/processor URL patterns with inlined Blob URL code, passes result to esbuild via `stdin`. No URL patterns reach esbuild.
-- [ ] Output filename convention: Phase 5 currently uses `.esm.js` / `.iife.js`. Phase 7 template references `.cjs` (should be removed — Web Components are browser-only). **Decide one convention before implementing.**
-
-#### Implementation (to do)
-- [ ] Fix `src/scripts/test.js` — add `.js` extension to `./mls` import (native ESM requirement for `serve src/`).
-- [ ] Fix `src/scripts/latency-test-element.js` — reorder stream release *before* `latency-complete` event dispatch in `#emitComplete()` (prevents re-entrant `start()` from grabbing stale stream). Add SSR guard to registration: `if (typeof customElements !== 'undefined' && !customElements.get(...))`.
-- [ ] Fix `src/scripts/test.js` — add `typeof __WORKER_SOURCE__` / `__PROCESSOR_SOURCE__` conditionals (will be substituted at build time, no URL patterns reach esbuild).
-- [ ] Create `scripts/build-component.mjs` — esbuild JS API with stdin-based inlining.
-- [ ] Update `package.json` — remove Parcel devDependency + scripts, add esbuild, add `build:component` script, add distribution fields.
-- [ ] Update `.gitignore` — add `dist/` if not present.
-- [ ] Verify: `npm run build:component` produces both bundles + source maps (no spurious worker-HASH.js).
-- [ ] Verify: `npx serve src/` serves demo with no build step.
-- [ ] Verify: `npm pack --dry-run` lists only `dist/`, `README.md`, `LICENSE`.
-- [ ] The component bundle is a prerequisite for the live demo page (Phase 6).
+#### Implementation (done, verified)
+- [x] Fix `src/scripts/test.js` — add `.js` extension to `./mls` import.
+- [x] Fix `src/scripts/latency-test-element.js` — reorder stream release before event in `#emitComplete()`. Add SSR guard to registration.
+- [x] Create `scripts/build-component.mjs` — esbuild JS API with plugin-based inlining.
+- [x] Update `package.json` — remove Parcel, add esbuild, add distribution fields (`exports`, `module`, `main`, `files`, `sideEffects`, `unpkg`, `jsdelivr`), add `build:component` script.
+- [x] Clean up `.parcel-cache/`.
+- [x] Verified: `npm run build:component` produces both bundles + source maps (no spurious worker-HASH.js).
+- [x] Verified: `npm pack --dry-run` lists only `dist/`, `README.md`, `LICENSE`, `package.json` (7 files, 97KB).
+- [x] The component bundle is a prerequisite for the live demo page (Phase 6).
 
 ### Phase 6 — Documentation & demo
 

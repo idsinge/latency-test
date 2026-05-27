@@ -19,12 +19,12 @@ Before starting any work, read these files in order:
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Project overview, architecture, file map, data flow, browser notes |
-| `CLAUDE_REVIEW.md` | Full migration plan (Phases 1–7), resolved decisions, packaging checklist |
-| `CODEX_REVIEW.md` | Adversarial review log, open questions, architecture risks |
-| `CODEX_README.md` | README direction and documentation strategy |
-| `claude_codex_workflow_context.md` | Claude+Codex collaboration workflow design notes (some sections reference resolved branch/repo issues — see git history for context) |
+| `agents/CLAUDE_REVIEW.md` | Full migration plan (Phases 1–7), resolved decisions, packaging checklist |
+| `agents/CODEX_REVIEW.md` | Adversarial review log, open questions, architecture risks |
+| `agents/CODEX_README.md` | README direction and documentation strategy |
+| `agents/claude_codex_workflow_context.md` | Claude+Codex collaboration workflow design notes (some sections reference resolved branch/repo issues — see git history for context) |
 
-Ignore `.parcel-cache/`, `dist/`, `node_modules/`, `docs/.vitepress/cache/`.
+Ignore `dist/`, `node_modules/`, `docs/.vitepress/cache/`.
 
 ## Current agent setup
 
@@ -106,7 +106,7 @@ Manual reviews keep the learning loop intentional. Enable only when explicitly d
 9. User decides what to accept.
 10. Commit. Repeat.
 
-> See `claude_codex_workflow_context.md` for the original workflow design notes.
+> See `agents/claude_codex_workflow_context.md` for the original workflow design notes.
 > Note: some sections reference an older branch state and will be revised when
 > the file is migrated to a documentation page.
 
@@ -194,7 +194,7 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Complete |
 | 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | In progress |
 | 6 | Documentation & demo (API docs, README, live demo page) | Pending |
-| 7 | npm publishing (`@hi-audio/latency-test`) — see `CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
+| 7 | npm publishing (`@hi-audio/latency-test`) — see `agents/CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
 | 8 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
 
 TypeScript declaration files (`src/index.d.ts`, typed events) are planned after

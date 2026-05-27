@@ -31,7 +31,7 @@ This registers the `<latency-test>` custom element globally. After the import, u
 ## CDN (no build step)
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
 ```
 
 Place this in the `<head>` of your HTML file. The element is registered automatically when the script loads.
@@ -44,7 +44,7 @@ Place this in the `<head>` of your HTML file. The element is registered automati
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
 </head>
 <body>
   <latency-test></latency-test>
@@ -95,5 +95,5 @@ git clone https://github.com/idsinge/latency-test.git
 cd latency-test
 npm install
 npm run dev
-# open http://localhost:1234
+# open http://localhost:3000
 ```

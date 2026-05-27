@@ -27,7 +27,7 @@ features:
     details: Works with Vanilla JS, React, Vue, Svelte, Angular, and Next.js. Zero dependencies at runtime.
 ---
 
-> **Work in progress.** The `<latency-test>` web component is currently in development. The API and examples described here reflect the planned interface. See [CLAUDE_REVIEW.md](https://github.com/idsinge/latency-test/blob/main/CLAUDE_REVIEW.md) for migration status.
+> **Work in progress.** The `<latency-test>` web component is currently in development. The API and examples described here reflect the planned interface. See [agents/CLAUDE_REVIEW.md](https://github.com/idsinge/latency-test/blob/main/agents/CLAUDE_REVIEW.md) for migration status.
 
 ## Quick start
 

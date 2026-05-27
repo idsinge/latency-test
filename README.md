@@ -69,7 +69,7 @@ Run the prototype app:
 ```bash
 npm install
 npm run dev
-# open http://localhost:1234
+# open http://localhost:3000
 ```
 
 Run the documentation site:
@@ -91,7 +91,7 @@ npm run docs:preview  # preview built docs locally
 
 ## Repository scope
 
-This repository contains the prototype implementation, full package planning (see `CLAUDE_REVIEW.md`), and the VitePress documentation site. The root README is intentionally concise — detailed integration guidance lives in `docs/`. 
+This repository contains the prototype implementation, full package planning (see `agents/CLAUDE_REVIEW.md`), and the VitePress documentation site. The root README is intentionally concise — detailed integration guidance lives in `docs/`. 
 
 ## Roadmap
 

@@ -1,4 +1,4 @@
-import { generateMLS } from './mls'
+import { generateMLS } from './mls.js'
 
 function concatFloat32(arrays) {
     let len = 0

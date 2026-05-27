@@ -16,7 +16,7 @@ The developer decides what to accept.
 
 This document covers workflow, setup, and portability only.
 For project architecture and migration plan see `CLAUDE.md`, `AGENTS.md`,
-and `CLAUDE_REVIEW.md`.
+and `agents/CLAUDE_REVIEW.md`.
 
 ---
 
@@ -121,9 +121,9 @@ This re-orients Codex to the current repo state on the new machine.
 |------|-----------------|
 | `AGENTS.md` | Agent roles, migration phases, resolved decisions, review priorities |
 | `CLAUDE.md` | Architecture, file map, data flow, browser notes — read automatically by Claude Code |
-| `CLAUDE_REVIEW.md` | Full migration plan (Phases 1–7), packaging checklist |
-| `CODEX_REVIEW.md` | Adversarial review log, open questions, architecture risks |
-| `CODEX_README.md` | README and documentation strategy |
+| `agents/CLAUDE_REVIEW.md` | Full migration plan (Phases 1–7), packaging checklist |
+| `agents/CODEX_REVIEW.md` | Adversarial review log, open questions, architecture risks |
+| `agents/CODEX_README.md` | README and documentation strategy |
 
 **What does NOT travel between machines:**
 
@@ -135,11 +135,11 @@ This re-orients Codex to the current repo state on the new machine.
 | Claude Code memory files (`~/.claude/projects/...`) | Local only — never in git |
 
 **Consequence:** never rely on Claude's session memory for project decisions.
-If something is decided, it belongs in `AGENTS.md` or `CLAUDE_REVIEW.md`,
+If something is decided, it belongs in `AGENTS.md` or `agents/CLAUDE_REVIEW.md`,
 not in a memory file that only exists on one machine.
 
 **Recommended file reading order on a new machine:**
-`AGENTS.md` → `CLAUDE.md` → `CLAUDE_REVIEW.md` → `CODEX_REVIEW.md` → `CODEX_README.md` → `package.json`
+`AGENTS.md` → `CLAUDE.md` → `agents/CLAUDE_REVIEW.md` → `agents/CODEX_REVIEW.md` → `agents/CODEX_README.md` → `package.json`
 
 ---
 
