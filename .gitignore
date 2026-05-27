@@ -3,6 +3,7 @@ node_modules
 dist
 docs/.vitepress/dist
 docs/.vitepress/cache
+docs/.vitepress/.temp
 .agents
 .claude
 skills-lock.json

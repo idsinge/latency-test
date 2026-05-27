@@ -15,14 +15,14 @@ const inlinePlugin = {
                 /new URL\('worker\.js', import\.meta\.url\),/,
                 `URL.createObjectURL(new Blob([${JSON.stringify(workerSource)}], { type: 'application/javascript' })),`
             )
-            if (source.includes("'worker.js', import.meta.url")) {
+            if (/new URL\(['"`]worker\.js['"`]/.test(source)) {
                 throw new Error('build: worker URL pattern was not inlined — check test.js')
             }
             source = source.replace(
                 /const url = new URL\('\.\/recorder-processor\.js', import\.meta\.url\)\s*\n\s*const resp = await fetch\(url\)\s*\n\s*const source = await resp\.text\(\)/,
                 `const source = ${JSON.stringify(processorSource)}`
             )
-            if (source.includes("'./recorder-processor.js', import.meta.url")) {
+            if (/new URL\(['"`]\.\/recorder-processor\.js['"`]/.test(source)) {
                 throw new Error('build: processor fetch pattern was not inlined — check test.js')
             }
             return { contents: source, loader: 'js' }

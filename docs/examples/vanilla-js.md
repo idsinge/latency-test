@@ -15,7 +15,7 @@ No framework required. Import the package and use the element directly in HTML.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <button id="btn">Test Latency</button>

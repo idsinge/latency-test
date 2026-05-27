@@ -464,7 +464,7 @@ Remaining note:
 ## Additional Notes
 
 - The repository contains `CLAUDE.md`, not `CLUADE.md`.
-- Ignore `.parcel-cache`, `dist`, and `node_modules` during repository study, as requested.
+- Ignore `dist` and `node_modules` during repository study, as requested.
 - There is no test suite currently, so migration validation will need to rely on manual browser testing unless tests are added later.
 - `package.json` now reflects the intended published package name, but it is not yet a publish-ready package manifest.
 - Supporting both npm and CDN consumers means the eventual distribution strategy should be validated against both a bundler-based app flow and a direct browser `<script type="module">` flow.

@@ -82,9 +82,9 @@ npm run docs:dev
 Other commands:
 
 ```bash
-npm run build         # production build (demo app)
-npm run docs:build    # build VitePress docs
-npm run docs:preview  # preview built docs locally
+npm run build:component  # build the component bundle (dist/)
+npm run docs:build       # build VitePress docs
+npm run docs:preview     # preview built docs locally
 ```
 
 **Requirement:** Node.js v14 or above.

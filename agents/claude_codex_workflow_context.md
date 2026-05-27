@@ -91,7 +91,7 @@ npm run docs:build
 
 Both should complete without errors. If they fail, check Node version (`nvm use`).
 
-Note: `node_modules/`, `dist/`, `.parcel-cache/`, and `docs/.vitepress/cache/`
+Note: `node_modules/`, `dist/`, and `docs/.vitepress/cache/`
 are never committed. They must be rebuilt locally on every machine.
 
 ### 6. Verify the agents

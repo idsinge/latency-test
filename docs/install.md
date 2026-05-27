@@ -30,11 +30,19 @@ This registers the `<latency-test>` custom element globally. After the import, u
 
 ## CDN (no build step)
 
+Choose the approach that fits your project:
+
+**ESM (modern browsers — recommended):**
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 ```
 
-Place this in the `<head>` of your HTML file. The element is registered automatically when the script loads.
+**IIFE (universal — no module support required):**
+```html
+<script src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+```
+
+Both register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
 
 ---
 

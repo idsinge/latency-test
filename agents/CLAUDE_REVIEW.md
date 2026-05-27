@@ -316,13 +316,13 @@ Before the first publish, verify the following fields are present in `package.js
   "version": "1.0.0",
   "description": "...",
   "type": "module",
-  "main": "dist/latency-test.iife.js",
+  "main": "dist/latency-test.esm.js",
   "module": "dist/latency-test.esm.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/latency-test.esm.js",
-      "default": "./dist/latency-test.iife.js",
+      "default": "./dist/latency-test.esm.js",
       "types": "./dist/index.d.ts"
     }
   },

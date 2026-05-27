@@ -38,7 +38,7 @@ npm run docs:preview     # preview built docs locally
 
 ## File Map
 
-Ignore `.parcel-cache/`, `dist/`, and `node_modules/` — they are build artifacts.
+Ignore `dist/` and `node_modules/` — they are build artifacts.
 
 ```
 src/
