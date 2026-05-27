@@ -46,7 +46,7 @@
 &lt;script&gt;
   const tester = document.querySelector('#minimal-tester')
 
-  tester.addEventListener('latency-complete', e =&gt; {
+  tester.addEventListener('latency-result', e =&gt; {
     console.log(`Latency: ${e.detail.latency} ms`)
   })
 

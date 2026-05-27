@@ -154,7 +154,7 @@ These fire with no meaningful payload (`e.detail` is an empty object `{}`). Use 
 
 | Event | When fired | Notes |
 |---|---|---|
-| `latency-start` | Permission granted; test is about to begin | Fires on the first `start()` call (warmup). On consecutive runs that reuse an already-acquired mic stream, this event does not fire again — use `latency-recording` as the reliable "test began" signal. |
+| `latency-start` | Mic acquired; test is about to begin | Always fires during `start()`, followed by `latency-recording` when signal playback begins. |
 | `latency-recording` | Signal playback started; capture is running | |
 | `latency-processing` | Recording stopped; cross-correlation worker is running | |
 

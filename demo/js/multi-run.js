@@ -45,6 +45,7 @@
     })
 
     startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true
         runNum = 0
         aggregateBox.style.display = 'none'
         currentBox.style.display = 'none'

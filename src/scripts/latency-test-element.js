@@ -18,7 +18,6 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     #pendingRuns = 0
     #allResults = []
     #stopped = false
-    #warmupDone = false
 
     constructor() {
         super()
@@ -66,7 +65,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this.#stopped = false
         try {
             this.#setupAudioContext()
-            if (!await this.#acquireMic()) return
+            await this.#acquireMic()
             this.#pendingRuns = Number.parseInt(this.numberOfTests, 10) || 1
             this.#allResults = []
             await this.#runNextTest()
@@ -76,31 +75,11 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     async #acquireMic() {
-        if (this.#hostProvidedStream) { this.#emitEvent('latency-start', {}); return true }
-        if (this.#inputStream) { this.#emitEvent('latency-start', {}); return true }
+        if (this.#hostProvidedStream) { this.#emitEvent('latency-start', {}); return }
+        if (this.#inputStream) { this.#emitEvent('latency-start', {}); return }
         this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-        if (!this.#warmupDone) {
-            this.#startSilence()
-            this.#warmupDone = true
-            this.#emitEvent('latency-start', {})
-            return false
-        }
         this.#emitEvent('latency-start', {})
-        return true
     }
-
-    // Start silent audio immediately after mic grant to warm up the audio
-    // pipeline. Prevents Chrome from producing a higher latency value on the
-    // first test run. Based on Chris Wilson's metronome technique:
-    // https://github.com/cwilso/metronome/blob/28a6e49d9dd75985d67d94fa9f45327d7310d62f/js/metronome.js#L74
-    #startSilence() {
-        const buffer = this.#audioContext.createBuffer(1, 2 * this.#audioContext.sampleRate, this.#audioContext.sampleRate)
-        const source = this.#audioContext.createBufferSource()
-        source.buffer = buffer
-        source.connect(this.#audioContext.destination)
-        source.start()
-    }
-
 
     #setupAudioContext() {
         if (!this.#audioContext) {

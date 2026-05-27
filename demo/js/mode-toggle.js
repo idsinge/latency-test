@@ -71,7 +71,6 @@
             mrTester.inputStream = stream
             awTester.audioContext = ac
             awTester.inputStream = stream
-            compareBtn.disabled = false
             await window.startTest(mrTester)
         } catch (err) {
             mrResultBox.querySelector('.detail').style.color = '#c62828'

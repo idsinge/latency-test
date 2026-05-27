@@ -60,50 +60,22 @@
 
     document.querySelectorAll('latency-test').forEach(el => {
         el.addEventListener('latency-recording', () => { activeTestCount++; updateActivity() })
-        el.addEventListener('latency-complete', () => { activeTestCount--; updateActivity() })
-        el.addEventListener('latency-error', () => { activeTestCount--; updateActivity() })
+        el.addEventListener('latency-complete', () => { activeTestCount = Math.max(0, activeTestCount - 1); updateActivity() })
+        el.addEventListener('latency-error', () => { activeTestCount = Math.max(0, activeTestCount - 1); updateActivity() })
     })
 
-    // ── Warmup-aware start ──
-    async function startTest(tester) {
-        let recordingSeen = false
-        let errorSeen = false
-        let done = false
-
-        const onRecording = () => { recordingSeen = true }
-        const onError = () => { errorSeen = true }
-
-        const cleanup = () => {
-            done = true
-            tester.removeEventListener('latency-recording', onRecording)
-            tester.removeEventListener('latency-error', onError)
-        }
-
+    // ── Start test and wait for completion ──
+    function startTest(tester) {
         return new Promise((resolve) => {
-            function attempt() {
-                recordingSeen = false
-                errorSeen = false
-
-                tester.addEventListener('latency-recording', onRecording, { once: true })
-                tester.addEventListener('latency-error', onError, { once: true })
-
-                tester.addEventListener('latency-start', function onStart() {
-                    setTimeout(() => {
-                        if (done) return
-                        if (errorSeen) { cleanup(); resolve(false); return }
-                        if (!recordingSeen) {
-                            attempt()
-                        } else {
-                            cleanup()
-                            resolve(true)
-                        }
-                    }, 300)
-                }, { once: true })
-
-                tester.start()
+            const onDone = () => { cleanup(); resolve(true) }
+            const onError = () => { cleanup(); resolve(false) }
+            const cleanup = () => {
+                tester.removeEventListener('latency-complete', onDone)
+                tester.removeEventListener('latency-error', onError)
             }
-
-            attempt()
+            tester.addEventListener('latency-complete', onDone, { once: true })
+            tester.addEventListener('latency-error', onError, { once: true })
+            tester.start()
         })
     }
 

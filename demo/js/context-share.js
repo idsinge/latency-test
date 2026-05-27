@@ -41,6 +41,7 @@
 
     initBtn.addEventListener('click', async () => {
         try {
+            tester.stop()
             ac?.close()
             stream?.getTracks().forEach(t => t.stop())
             ac = new AudioContext({ latencyHint: 0 })

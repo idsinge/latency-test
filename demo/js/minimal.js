@@ -31,6 +31,7 @@
     })
 
     startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true
         detailEl.textContent = 'Starting…'
         stopBtn.disabled = false
         await window.startTest(tester)

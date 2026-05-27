@@ -38,6 +38,7 @@
     })
 
     startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true
         await window.startTest(tester)
     })
     stopBtn.addEventListener('click', () => tester.stop())
