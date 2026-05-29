@@ -31,7 +31,6 @@ export class LatencyTestController {
     recordingMode = 'mediarecorder'
     workletNode = null
     stopped = false
-    preRollMs = 300
     debug = false
     
     async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, bufferSize = 0, debug = false, onResult, onError, onReady, onRecording, onProcessing } = {}) {
@@ -86,7 +85,7 @@ export class LatencyTestController {
     }
 
     async prepareAudioToPlayAndRecord() {
-        this.#log('prepareAudioToPlayAndRecord', { recordingMode: this.recordingMode, preRollMs: this.preRollMs, audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.#log('prepareAudioToPlayAndRecord', { recordingMode: this.recordingMode, audioTime: this.audioContext.currentTime.toFixed(4) })
         this.signalrecorded = null
         this.noiseSource = this.audioContext.createBufferSource()
         this.noiseSource.buffer = this.noiseBuffer
@@ -105,21 +104,6 @@ export class LatencyTestController {
         silenceNode.start()
         this.#log('silence started', { audioTime: this.audioContext.currentTime.toFixed(4) })
 
-        const preRollT0 = performance.now()
-        this.#log('pre-roll start', { preRollMs: this.preRollMs, targetAudioTime: (this.audioContext.currentTime + this.preRollMs / 1000).toFixed(4) })
-        await new Promise(resolve => {
-            const targetAudioTime = this.audioContext.currentTime + this.preRollMs / 1000
-            const wallDeadline = Date.now() + this.preRollMs * 2
-            const poll = () => {
-                if (this.stopped || this.audioContext.currentTime >= targetAudioTime || Date.now() >= wallDeadline) {
-                    resolve()
-                } else {
-                    setTimeout(poll, 10)
-                }
-            }
-            setTimeout(poll, 10)
-        })
-        this.#log('pre-roll complete', { audioTime: this.audioContext.currentTime.toFixed(4), elapsedMs: (performance.now() - preRollT0).toFixed(2) })
         if (this.stopped) return
 
         if (this.recordingMode === 'audioworklet') {
