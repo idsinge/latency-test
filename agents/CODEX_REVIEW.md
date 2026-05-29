@@ -417,6 +417,22 @@ These questions remain useful to answer later:
 
 1. Should the docs homepage carry an explicit draft banner near the hero, or is draft/planned labeling only on deeper pages sufficient?
 
+## Three-Mode Recording Design (2025-05-28)
+
+Following WAC 2025 peer review and dual-agent analysis (Claude + Codex), the `recording-mode` attribute now has three values. This is a settled decision — see Decision #14 in `agents/CLAUDE_REVIEW.md`.
+
+**Summary:**
+
+- `"mediarecorder"` — single-channel, mic stream used directly. Has a systematic timing *bias* (not just jitter): `noiseSource.start()` and `mediaRecorder.start()` are on different clocks; the unknown JS start offset shifts every measurement. `maxLag` makes the peak searchable but does not cancel this bias. Closest to the actual production DAW recording path.
+- `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`. Routes both the MLS reference and mic into a single encoded stereo stream, removing the start-timing bias. Inter-channel timing is channel-relative stable in practice (same Opus/AAC codec frame) but is not a sample-accurate API contract. Requires `createMediaStreamSource` (unavoidable in standard Web APIs), which adds extra nodes to the chain — so this path measures a **different pipeline** than `"mediarecorder"` (the overhead direction is browser-dependent; treat as a hypothesis to measure, not an assumption). This is intentional.
+- `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip. The accuracy reference.
+
+**Key research insight:** the three modes each measure the latency of their own pipeline. The *differences* between mode results are the research finding — they expose the contribution of JS start-timing bias, codec overhead, and extra-node latency. Do not flatten these into a single implementation.
+
+**Implementation status:** `"mediarecorder"` and `"audioworklet"` are implemented. `"mediarecorder-2ch"` is specified in Phase 3b of `agents/CLAUDE_REVIEW.md` and is `[ ]` not yet implemented.
+
+**API change:** `latency-result` event payload now includes a `mode` field (`"mediarecorder"` | `"mediarecorder-2ch"` | `"audioworklet"`). TypeScript `LatencyResultDetail` and `LatencyTestElement.recordingMode` updated accordingly in `agents/CLAUDE_REVIEW.md` Phase 7.
+
 ## Latest Feedback Notes
 
 Additional clarification from discussion:

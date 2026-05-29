@@ -17,10 +17,11 @@ This file tracks open questions and the planned action plan for converting `webl
 | 7 | **Root README stays short and repo-oriented once the docs site is live** | The VitePress docs site becomes the canonical integration reference. The README covers repo purpose, origin, run-locally instructions, and research context — not component API details. |
 | 8 | **AudioContext ownership: read-write property, component never closes it** | `element.audioContext` is a read-write JS property. Setter: host provides an existing context — component uses it and never closes it. Getter: always returns the active context, whether host-provided or internally created. If no context was set, the component creates one lazily on the first `start()` call and exposes it via the getter so the host can grab it for other audio work. The component never calls `.close()` on the AudioContext in either case — the host owns cleanup. This solves the edge case where the component is the first thing to touch audio: the host calls `start()`, then reads `element.audioContext` to get the context and continue building their audio graph. |
 | 9 | **Shadow DOM (open mode), empty root by default** | A shadow root is attached in the constructor but nothing is rendered into it initially (headless). This is the standard custom element pattern, is future-proof if optional UI is added later, and ensures event retargeting works correctly. Open mode is used so host apps can inspect internals when debugging; no CSS custom properties are exposed in v1 since there is no visible UI. |
-| 10 | **Lifecycle events: fire `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, `latency-complete`** | Host apps need state transitions to update their own UI (disable buttons, show spinners). Events are low-cost to emit and high-value for consumers. `latency-start` fires after permission is granted; `latency-recording` when MLS playback and capture begin; `latency-processing` when recording ends and the worker starts; `latency-result` with `{ latency, ratio, timestamp }`; `latency-error` with `{ message }`; `latency-complete` when all N tests finish (immediately after the single result in v1). |
+| 10 | **Lifecycle events: fire `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, `latency-complete`** | Host apps need state transitions to update their own UI (disable buttons, show spinners). Events are low-cost to emit and high-value for consumers. `latency-start` fires after permission is granted; `latency-recording` when MLS playback and capture begin; `latency-processing` when recording ends and the worker starts; `latency-result` with `{ latency, ratio, reliable, timestamp, mode }`; `latency-error` with `{ message }`; `latency-complete` when all N tests finish (immediately after the single result in v1). |
 | 11 | **AudioWorklet: `numberOfOutputs: 1`, Blob URL, no `buffer-size`** | Zero-output node risks input starvation — `numberOfOutputs: 1` with unconnected output is the known workaround. Blob URL inlining makes the processor self-contained for npm/CDN. `buffer-size` deferred — for ~1 second MLS captures, accumulating and posting once on stop is simpler. |
 | 12 | **Measurement inherits the host's audio environment** | The component does not create an idealized measurement environment. It inherits the host's `AudioContext` (sample rate, latency hint, buffer chain) and mic stream (constraints, backend). The latency result reflects the host's actual recording pipeline — system buffers included. If the host uses `recording-mode="audioworklet"` on Safari, the ~30ms system buffer IS part of the correct measurement. MediaRecorder path gives an optimistic value because it bypasses system buffers. Both are valid; they measure different things. |
 | 13 | **Mic constraints are host's responsibility when using host-provided streams** | The component hardcodes conservative mic constraints (`echoCancellation: false`, `channelCount: 1`) for self-created streams. Hosts with specific requirements (sample rate, channel count, gain) should create and pass their own stream via the `inputStream` property. |
+| 14 | **Three `recording-mode` values: `"mediarecorder"`, `"mediarecorder-2ch"`, `"audioworklet"`** | Each mode measures the latency of its own specific pipeline — they are not three ways to measure the same thing. `"mediarecorder"`: single-channel, mic stream used directly (`this.inputStream → MediaRecorder`), closest to the production DAW recording path, but has an unknown start-timing bias because `noiseSource.start()` and `mediaRecorder.start()` are on different clocks. `"mediarecorder-2ch"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias (both signals share one encoded stream), channel-relative timing is stable in practice but not a sample-accurate API guarantee; adds extra Web Audio nodes so measures a **different pipeline** than `"mediarecorder"` (the overhead direction is browser-dependent — treat as a hypothesis to measure, not an assumption). `"audioworklet"`: raw Float32 PCM, shared AudioContext clock, no codec round-trip — the accuracy reference. The *differences between modes* are the research finding: they expose the contribution of JS start-timing bias, codec overhead, and extra-node latency to the final measurement. This design targets both industrial calibration and research comparison. |
 
 ---
 
@@ -70,7 +71,7 @@ The headless-first decision shapes this directly. The primary interface is imper
 | `number-of-tests` | number | `1` | Consecutive tests to run (was removed from current code; re-implemented as component attribute) |
 | `mls-bits` | number | `15` | MLS order (sequence length = 2^n − 1). Only applies when `signal-type="mls"`. |
 | `max-lag-ms` | number | `600` | Cross-correlation search window in ms |
-| `recording-mode` | string | `"mediarecorder"` *(v1)* / `"audioworklet"` *(v2)* | Capture backend. v1 default: `"mediarecorder"` (implemented). v2 default: `"audioworklet"` (planned). Both values available in both versions. `ScriptProcessor` is not an attribute value but noted as an older-browser reference. |
+| `recording-mode` | string | `"mediarecorder"` *(v1)* / `"audioworklet"` *(v2)* | Capture backend. Three values: `"mediarecorder"` — single-channel, mic stream used directly, closest to production DAW path, has unknown JS start-timing bias (v1 default); `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias, channel-relative stable but not sample-accurate, measures a slightly different pipeline due to extra Web Audio nodes; `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference (v2 default). `ScriptProcessor` is not an attribute value but noted as an older-browser reference. |
 | `signal-type` | string | `"mls"` | Test signal. `"mls"` = Maximum Length Sequence (default). `"chirp"` = logarithmic sine sweep. `"golay"` = Golay complementary sequence pair. |
 | `input-gain` | number | `0` | Gain multiplier applied to the input stream before capture. `0` = no gain. Generalises the hardcoded Safari 50× workaround into a general user-configurable param. |
 
@@ -81,8 +82,8 @@ The headless-first decision shapes this directly. The primary interface is imper
 | `latency-start` | `{}` | Permission granted and test is about to begin |
 | `latency-recording` | `{}` | MLS playback started; capture is running |
 | `latency-processing` | `{}` | Recording stopped; cross-correlation worker is running |
-| `latency-result` | `{ latency, ratio, timestamp }` | Result of one test run |
-| `latency-complete` | `{ results[], mean, std, min, max }` | All N runs finished (fires immediately after the single result in v1) |
+| `latency-result` | `{ latency, ratio, reliable, timestamp, mode }` | Result of one test run. `reliable` is `true` when `ratio > 18 dB`. `mode` is the `recording-mode` value that produced the result (`"mediarecorder"`, `"mediarecorder-2ch"`, or `"audioworklet"`) — essential for cross-mode comparison. |
+| `latency-complete` | `{ results[], mean, std, min, max }` | All N runs finished (fires immediately after the single result in v1). Each item in `results[]` is a full `LatencyResultDetail` — includes `mode`, so multi-run/multi-mode tooling retains provenance per result. |
 | `latency-error` | `{ message }` | getUserMedia, AudioContext, or worker failure |
 
 The demo `index.html` will own the button and result display, wiring them to `element.start()` and the `latency-result` event. This replaces what `displayStart()` and `displayresults()` currently do inside `test.js`.
@@ -249,6 +250,47 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 > `peakValuePow / mean` is unaffected. The real improvement over MediaRecorder is the shared
 > start time between the two captured channels, eliminating the uncontrolled timing offset.
 
+### Phase 3b — MediaRecorder two-channel capture (`recording-mode="mediarecorder-2ch"`)
+
+> **Architecture note — merged from WAC 2025 peer reviewer + dual-agent review (Claude + Codex):**
+>
+> The single-channel MediaRecorder path has a **timing bias** (not merely jitter): `noiseSource.start()` and `mediaRecorder.start()` operate on different clocks. `maxLag` makes the peak searchable but does not remove this bias — the measured lag can be systematically offset by the unknown JS start gap on every run.
+>
+> The two-channel MediaRecorder approach addresses this by routing both the reference signal and the mic through a `ChannelMergerNode` → `MediaStreamDestinationNode`, encoding them together in a single Opus/AAC stream. Both signals share the same encoded timeline, so the start-timing bias is eliminated. Inter-channel timing is **channel-relative stable in practice** (same codec frame), but this is not a sample-accurate API guarantee — browsers may resample, pad, or handle stereo differently depending on container and codec.
+>
+> **Critical design constraint:** The mic must pass through `createMediaStreamSource` to enter the Web Audio graph for mixing. This node — together with `ChannelMergerNode` and `MediaStreamDestinationNode` — adds latency not present in the direct `"mediarecorder"` path. Therefore `"mediarecorder-2ch"` measures a **different pipeline** than `"mediarecorder"`. This is intentional: the three modes each measure their own pipeline, and the differences between them are the research data.
+>
+> **`createMediaStreamSource` is unavoidable** in standard cross-browser Web APIs. `MediaStreamTrackGenerator` (Breakout Box API) is a Chrome-only alternative that adds complexity without reducing the fundamental overhead — not recommended.
+
+Routing:
+
+```
+MLS AudioBufferSourceNode    →  ChannelMergerNode(2) input 0  →  MediaStreamDestinationNode  →  MediaRecorder
+Mic createMediaStreamSource  →  ChannelMergerNode(2) input 1  ↗
+MLS AudioBufferSourceNode    →  audioContext.destination  (speaker playback — unchanged)
+```
+
+After Blob decode (`decodeAudioData`):
+- `buffer.getChannelData(0)` = reference MLS (pre-DAC, from Web Audio graph)
+- `buffer.getChannelData(1)` = mic recording
+
+Cross-correlate ch1 against ch0 — worker contract unchanged: `{ command: 'correlation', data1: mic, data2: ref, maxLag }`.
+
+- [ ] Add `"mediarecorder-2ch"` as a valid value for `recording-mode` attribute in `latency-test-element.js` and `LatencyTestController`
+- [ ] Implement `#startMediaRecorder2ChCapture()` method in `LatencyTestController`
+- [ ] Create `ChannelMergerNode(2)`: connect MLS `AudioBufferSourceNode` → input 0; `createMediaStreamSource(this.inputStream)` → input 1
+- [ ] Connect merger → `audioContext.createMediaStreamDestination()`; pass `.stream` to `MediaRecorder` (replacing direct `this.inputStream`)
+- [ ] After Blob decode: extract `getChannelData(0)` as `ref`, `getChannelData(1)` as `mic`; post to worker as `{ data1: mic, data2: ref, maxLag }`
+- [ ] Verify stereo channels are preserved (ch0 ≠ ch1) after decode in Chrome, Firefox, Safari
+- [ ] Add `mode` field to `latency-result` event payload: `{ latency, ratio, timestamp, mode }`; emit from all three recording paths
+- [ ] Update TypeScript `LatencyResultDetail` interface to include `mode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'`
+- [ ] Guard against browser mono downmix: after `decodeAudioData`, check `audioBuffer.numberOfChannels < 2` and emit `latency-error` (`{ message: 'mediarecorder-2ch: browser downmixed stereo to mono' }`) rather than proceeding — prevents silent mis-measurement
+- [ ] MIME type strategy: use `MediaRecorder.isTypeSupported()` to select a stereo-capable type (e.g. `'audio/webm;codecs=opus'`); log `mediaRecorder.mimeType` after construction; stereo preservation per browser/MIME should be verified during the Chrome/Firefox/Safari validation pass
+- [ ] Cleanup on `stop()` and `noiseSource.onended`: disconnect `micSource`, `channelMerger`, `destNode`, and `noiseSource`; call `mediaRecorder.stop()` if still recording; clear `ondataavailable` and `onstop` handlers to prevent leaks
+- [ ] Emit `latency-processing` when `mediaRecorder.onstop` fires, consistent with the other two recording paths
+- [ ] Floor `maxLag` to an integer before posting to the worker: `Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)` — arbitrary `max-lag-ms` values produce non-integer sample counts (applies to all three modes, not just this path)
+- [ ] Document in `docs/api.md`: `"mediarecorder-2ch"` measures a different pipeline than `"mediarecorder"` due to extra Web Audio nodes; the difference is intentional and is itself a measurable research quantity
+
 ### Phase 4 — Demo page & integration
 - [ ] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
 - [ ] Demo page listens for `latency-result` and `latency-error` and updates its own UI
@@ -361,7 +403,9 @@ This file ships with the package and gives consumers typed access to the element
 export interface LatencyResultDetail {
   latency: number
   ratio: number
+  reliable: boolean
   timestamp: number
+  mode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'
 }
 
 export interface LatencyCompleteDetail {
@@ -394,8 +438,9 @@ export interface LatencyTestElement extends HTMLElement {
   numberOfTests: number
   mlsBits: number
   maxLagMs: number
-  recordingMode: 'mediarecorder' | 'audioworklet'
+  recordingMode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'
   signalType: 'mls' | 'chirp' | 'golay'
+  debug: boolean
   addEventListener<K extends keyof LatencyTestEventMap>(
     type: K,
     listener: (this: LatencyTestElement, ev: LatencyTestEventMap[K]) => any,
@@ -531,4 +576,8 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 - `helper.js` no longer exists — do not reference it or attempt to import from it.
 - **Docs homepage expectation management:** `docs/index.md` must always carry a visible draft/work-in-progress signal near the top (currently at line 30). The homepage shows install and usage code snippets that read like a published package — without an explicit notice, readers will assume the package already exists. Do not remove or soften this notice until the package is actually published on npm.
 - **Phase 3 dual-channel capture is not optional:** A WAC 2025 peer reviewer identified that the current single-channel MediaRecorder approach has an uncontrolled timing offset between `mediaRecorder.start()` and `noiseSource.start()`. The AudioWorklet processor must use `numberOfInputs: 2` — mic on input 0, reference signal loopback on input 1 — and cross-correlate the two captures. The `naomiaro/recording-calibration` reference implements this correctly. Do not implement Phase 3 as a direct MediaRecorder-to-AudioWorklet port without adopting this two-channel architecture.
+- **Three `recording-mode` values — each measures a different pipeline:** `"mediarecorder"` (single-channel, direct mic stream, has unknown start-timing *bias* — not just jitter — but is the closest to the production DAW recording path); `"mediarecorder-2ch"` (dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes the start-timing bias, channel-relative stable but not sample-accurate, measures a **different pipeline** due to extra Web Audio nodes — `createMediaStreamSource` is unavoidable; overhead direction is browser-dependent); `"audioworklet"` (raw PCM, shared AudioContext clock, accuracy reference). Do not flatten these into a single implementation — the mode differences are research data.
+- **Timing bias vs. jitter distinction:** the single-channel `"mediarecorder"` path has a *systematic timing bias* (the unknown JS start offset between `noiseSource.start()` and `mediaRecorder.start()` shifts the measured lag on every run). `maxLag` makes the correlation peak searchable but does not cancel this offset. Always use the word "bias" not "jitter" when describing this effect in docs or code comments.
+- **Debug logging mode** is implemented. `debug` boolean attribute gates `console.debug('[latency-test]', ...)` at key internal checkpoints. Full spec and task status in `agents/DEBUG_MODE_PLAN.md`. `latency-debug` custom event is explicitly NOT a target — do not add it.
+- **Firefox cold-start instability** is a known open issue with a dedicated plan in `agents/INSTABILITY_FIX_PLAN.md`. Two problems: (1) self-created stream is killed after every test cycle, causing cold-start on every manual click; (2) true cold-start — pre-roll silence warms AudioContext output side only, not the MediaRecorder capture path. Do not attempt to fix these without reading that file first.
 - Always ask the user before editing or modifying any existing file.

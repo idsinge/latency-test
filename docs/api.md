@@ -25,14 +25,15 @@ import '@hi-audio/latency-test'
 Attributes are reflected as properties and can be set either in HTML or via JavaScript.
 
 | Attribute | Property | Type | Default | Description | Status |
-|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|
 | `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | implemented |
-| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` uses `MediaRecorder` + Blob decode. `"audioworklet"` captures raw Float32 PCM directly from the audio graph. Both values are available. | implemented |
+| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` — single-channel, mic stream used directly, closest to production DAW path, has an unknown start-timing bias (implemented). `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias, channel-relative stable but not sample-accurate; measures a different pipeline due to extra Web Audio nodes — overhead direction is browser-dependent (planned). `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference (implemented). Each mode measures the latency of its own pipeline — the differences between modes are intentional and informative. | implemented / planned |
 | `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. Only `"mls"` is implemented. See signal types table below. | planned (v2) |
 | `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Attribute observed but gain node not yet wired. | planned (v2) |
 | `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
 | `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
 | `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
+| `debug` | `debug` | `boolean` | `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints — stream acquisition, pre-roll, recording start, worker messages, and result computation. **For development and debugging only; has no effect on measurement output.** Caution: `startPairSpanMs` in the log output is an upper-bound span that includes both `mediaRecorder.start()` and `noiseSource.start()` execution time — it is not a pure inter-call gap. Additionally, debug logging elsewhere (and DevTools being open) can perturb console and scheduling performance. Do not use debug mode for measurements you intend to record. Toggle at runtime without page reload: `element.debug = true`. | implemented |
 
 ### Example
 
@@ -113,11 +114,12 @@ Fired once per completed test run with the measurement result.
 
 ```js
 element.addEventListener('latency-result', (e) => {
-  const { latency, ratio, reliable, timestamp } = e.detail
+  const { latency, ratio, reliable, timestamp, mode } = e.detail
   // latency   — round-trip latency in milliseconds (number)
   // ratio     — correlation reliability in dB (number); values > 18 dB are considered reliable
   // reliable  — boolean, true when ratio > 18 dB
   // timestamp — Unix timestamp of the measurement (number)
+  // mode      — recording-mode that produced this result: "mediarecorder" | "mediarecorder-2ch" | "audioworklet"
 })
 ```
 
@@ -128,7 +130,7 @@ Fired when all runs complete (or when `stop()` aborts mid-sequence). Contains al
 ```js
 element.addEventListener('latency-complete', (e) => {
   const { results, mean, std, min, max, aborted } = e.detail
-  // results — array of { latency, ratio, reliable, timestamp } objects
+  // results — array of { latency, ratio, reliable, timestamp, mode } objects
   // mean    — mean latency in ms
   // std     — standard deviation of latency in ms
   // min     — minimum latency in ms

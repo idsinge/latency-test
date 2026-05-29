@@ -29,6 +29,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     disconnectedCallback() {
+        this.#log('disconnectedCallback', {})
         this.stop()
     }
 
@@ -37,6 +38,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
+        this.#log('attributeChangedCallback', { name, oldValue, newValue })
         const prop = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
         this[prop] = newValue
     }
@@ -59,10 +61,26 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this.#hostProvidedStream = !!stream
     }
 
+    get debug() {
+        return this.hasAttribute('debug')
+    }
+
+    set debug(v) {
+        v ? this.setAttribute('debug', '') : this.removeAttribute('debug')
+    }
+
+    #log(label, data) {
+        if (this.debug) console.debug('[latency-test]', performance.now().toFixed(2), label, data ?? '')
+    }
+
     // Method: start the test
     async start() {
         if (this.#controller) this.stop()
         this.#stopped = false
+        let streamState = 'none'
+        if (this.#hostProvidedStream) streamState = 'host-provided'
+        else if (this.#inputStream) streamState = 'reused'
+        this.#log('start', { recordingMode: this.recordingMode || 'mediarecorder', numberOfTests: this.numberOfTests || 1, streamState })
         try {
             this.#setupAudioContext()
             await this.#acquireMic()
@@ -75,25 +93,46 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     async #acquireMic() {
-        if (this.#hostProvidedStream) { this.#emitEvent('latency-start', {}); return }
-        if (this.#inputStream) { this.#emitEvent('latency-start', {}); return }
-        this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+        if (this.#hostProvidedStream) {
+            this.#log('#acquireMic', { streamState: 'host-provided' })
+            this.#emitEvent('latency-start', {}); return
+        }
+        if (this.#inputStream) {
+            this.#log('#acquireMic', { streamState: 'reused' })
+            this.#emitEvent('latency-start', {}); return
+        }
+        this.#log('#acquireMic', { streamState: 'calling getUserMedia' })
+        const t0 = performance.now()
+        try {
+            this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+        } catch (e) {
+            this.#log('#acquireMic getUserMedia failure', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        const track = this.#inputStream.getAudioTracks()[0]
+        const s = track?.getSettings() ?? {}
+        this.#log('#acquireMic getUserMedia success', { elapsedMs: (performance.now() - t0).toFixed(2), readyState: track?.readyState, enabled: track?.enabled, muted: track?.muted, sampleRate: s.sampleRate, channelCount: s.channelCount, echoCancellation: s.echoCancellation })
         this.#emitEvent('latency-start', {})
     }
 
     #setupAudioContext() {
-        if (!this.#audioContext) {
+        if (this.#audioContext) {
+            this.#log('#setupAudioContext reused', { sampleRate: this.#audioContext.sampleRate, state: this.#audioContext.state })
+        } else {
             this.#audioContext = new AudioContext({ latencyHint: 0 })
+            this.#log('#setupAudioContext created', { sampleRate: this.#audioContext.sampleRate, state: this.#audioContext.state })
         }
     }
 
     async #runNextTest() {
+        this.#log('#runNextTest', { pendingRuns: this.#pendingRuns })
         this.#controller = new LatencyTestController()
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
             bufferSize: Number.parseInt(this.bufferSize, 10) || 0,
             recordingMode: this.recordingMode || 'mediarecorder',
+            debug: this.debug,
             onReady: () => { },
             onRecording: () => this.#emitEvent('latency-recording', {}),
             onProcessing: () => this.#emitEvent('latency-processing', {}),
@@ -116,6 +155,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     #emitComplete(aborted) {
+        this.#log('#emitComplete', { resultCount: this.#allResults.length, streamWillStop: !this.#hostProvidedStream && !!this.#inputStream, aborted: !!aborted })
         const results = [...this.#allResults]
         const l = results.map(r => r.latency)
         const mean = l.length > 0 ? l.reduce((a, b) => a + b, 0) / l.length : 0
@@ -134,6 +174,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     #handleError(message) {
+        this.#log('#handleError', { message })
         this.#emitEvent('latency-error', { message })
         this.#controller?.stop()
         this.#controller = null
@@ -147,6 +188,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
 
     stop() {
         if (this.#stopped) return
+        this.#log('stop', { wasInProgress: !!this.#controller })
         this.#stopped = true
         this.#controller?.stop()
         this.#controller = null
@@ -163,6 +205,15 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
 
     // Helper: emit event with bubbles + composed
     #emitEvent(eventName, detail) {
+        let logDetail
+        if (eventName === 'latency-result') {
+            logDetail = { latency: detail.latency, ratio: detail.ratio, reliable: detail.reliable, mode: detail.mode }
+        } else if (eventName === 'latency-complete') {
+            logDetail = { resultCount: detail.results?.length, mean: detail.mean, aborted: detail.aborted }
+        } else {
+            logDetail = detail
+        }
+        this.#log('#emitEvent', { event: eventName, detail: logDetail })
         this.dispatchEvent(new CustomEvent(eventName, {
             bubbles: true,
             composed: true,

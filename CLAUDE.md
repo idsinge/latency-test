@@ -175,9 +175,10 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 
 | Attribute | Values | Description |
 |---|---|---|
-| `recording-mode` | `"mediarecorder"` \| `"audioworklet"` | Selects the capture backend. **v1 default: `"mediarecorder"`** (already implemented). **v2 default: `"audioworklet"`** (sample-accurate raw PCM, to be implemented). `ScriptProcessor` is deprecated but documented as an older-browser reference (see agents/CLAUDE_REVIEW.md). |
+| `recording-mode` | `"mediarecorder"` \| `"mediarecorder-2ch"` \| `"audioworklet"` | Selects the capture backend. `"mediarecorder"`: single-channel, direct mic stream, v1 default (implemented). `"mediarecorder-2ch"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias (planned). `"audioworklet"`: raw Float32 PCM, v2 default (implemented). Each mode measures a different pipeline — see Decision #14 in agents/CLAUDE_REVIEW.md. |
 | `signal-type` | `"mls"` \| `"chirp"` \| `"golay"` | Selects the test signal. `"mls"` is default. `"chirp"` is a logarithmic sine sweep. `"golay"` uses Golay complementary sequence pairs for high-SNR impulse response measurement. |
 | `input-gain` | number \| `0` | Applies a gain multiplier to the input stream before capture. `0` (default) means no gain. Replaces the hardcoded Safari-only 50× workaround with a general user-configurable parameter. |
+| `debug` | boolean \| `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. Development/debugging only — no effect on measurement output. Do not use during measurements you intend to record — `startPairSpanMs` is an upper-bound diagnostic span, not a pure inter-call gap, and DevTools being open can perturb scheduling generally. Implemented. |
 
 **External references used during design:**
 - [naomiaro/recording-calibration](https://github.com/naomiaro/recording-calibration) — AudioWorklet two-channel capture (mic + reference loopback), logarithmic chirp, cross-correlation — primary Phase 3 reference
