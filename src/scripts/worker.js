@@ -1,5 +1,6 @@
 // Listen for messages from the main thread
-addEventListener('message', (message) => {
+if (typeof WorkerGlobalScope !== 'undefined' && globalThis instanceof WorkerGlobalScope) {
+  addEventListener('message', (message) => {
     const debug = message.data.debug || false
     if (message.data.command === 'correlation') {
       calculateCrossCorrelation(message.data.data1, message.data.data2, message.data.maxLag, message.data.channel, debug)
@@ -9,9 +10,10 @@ addEventListener('message', (message) => {
       findPeakAndMean(message.data.array, message.data.channel, debug)
     }
   })
+}
 
 
-  function calculateCrossCorrelation(data1, data2, maxLag, channel, debug) {
+export function calculateCrossCorrelation(data1, data2, maxLag, channel, debug) {
     const t0 = performance.now()
     if (debug) console.debug('[latency-test]', (performance.timeOrigin + t0).toFixed(2), 'calculateCrossCorrelation', { data1Len: data1.length, data2Len: data2.length, maxLag, channel })
     const n1 = data1.length, n2 = data2.length
@@ -29,7 +31,7 @@ addEventListener('message', (message) => {
     postMessage({ correlation: crossCorrelations, channel: channel })
   }
 
-  function findPeakAndMean(array, channel, debug) {
+export function findPeakAndMean(array, channel, debug) {
     let peakIndex = 0
     let energy = 0
     let peakValuePow = Math.pow(array[0], 2)
