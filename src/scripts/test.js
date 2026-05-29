@@ -93,8 +93,7 @@ export class LatencyTestController {
 
         // Keep the audio thread scheduled during every test run (cwilso keepalive).
         // Without this, Firefox's audio scheduler may relax between runs and
-        // introduce timing jitter. The element's one-time #startSilence() warmup
-        // handles Chrome's first-run cold-start; this covers all runs.
+        // introduce timing jitter.
         const silenceBuffer = this.audioContext.createBuffer(
             1,
             2 * this.audioContext.sampleRate,
@@ -125,6 +124,9 @@ export class LatencyTestController {
 
         if (this.recordingMode === 'audioworklet') {
             await this.startWorkletCapture()
+        } else if (this.recordingMode === 'mediarecorder-2ch') {
+            this.onError?.('recording-mode "mediarecorder-2ch" is not yet implemented')
+            return
         } else {
             this.startMediaRecorderCapture()
         }
@@ -146,7 +148,11 @@ export class LatencyTestController {
         this.mediaRecorder.onstop = async () => {
             this.#log('mediaRecorder.onstop', { chunks: chunks.length })
             this.noiseSource.disconnect(this.audioContext.destination)
-            this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
+            try {
+                await this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
+            } catch (e) {
+                this.onError?.(e.message)
+            }
         }
         const mrStartTime = performance.now()
         try {
@@ -194,8 +200,8 @@ export class LatencyTestController {
             const ref = concatFloat32(e.data.ref)
             this.#log('worklet message received', { micLen: mic.length, refLen: ref.length })
             this.correlation = null
-            const wMaxLag = (this.maxLagMs / 1000) * this.audioContext.sampleRate
-            this.#log('worker postMessage correlation (worklet)', { maxLag: Math.floor(wMaxLag), data1Len: mic.length, data2Len: ref.length, channel: 0, debug: this.debug })
+            const wMaxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
+            this.#log('worker postMessage correlation (worklet)', { maxLag: wMaxLag, data1Len: mic.length, data2Len: ref.length, channel: 0, debug: this.debug })
             this.worker.postMessage({
                 command: 'correlation',
                 data1: mic,
@@ -311,8 +317,8 @@ export class LatencyTestController {
         }
         this.#log('decodeAudioData result', { channels: this.signalrecorded.numberOfChannels, duration: this.signalrecorded.duration.toFixed(3) + 's', sampleRate: this.signalrecorded.sampleRate, length: this.signalrecorded.length })
 
-        const maxLag = (this.maxLagMs / 1000) * this.audioContext.sampleRate
-        this.#log('worker postMessage correlation', { maxLag: Math.floor(maxLag), data1Len: this.signalrecorded.getChannelData(0).length, data2Len: this.noiseBuffer.getChannelData(0).length, channel: 0, debug: this.debug })
+        const maxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
+        this.#log('worker postMessage correlation', { maxLag, data1Len: this.signalrecorded.getChannelData(0).length, data2Len: this.noiseBuffer.getChannelData(0).length, channel: 0, debug: this.debug })
         this.correlation = null
         this.worker.postMessage({
             command: 'correlation',
