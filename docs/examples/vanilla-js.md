@@ -49,6 +49,7 @@ No framework required. Import the package and use the element directly in HTML.
 
 ```html
 <latency-test id="lt" number-of-tests="10"></latency-test>
+<button id="btn">Run 10 tests</button>
 
 <script>
   const lt = document.getElementById('lt')
@@ -62,7 +63,8 @@ No framework required. Import the package and use the element directly in HTML.
     console.log(`Mean: ${mean.toFixed(2)} ms | Std: ${std.toFixed(2)} | Min: ${min.toFixed(2)} | Max: ${max.toFixed(2)}`)
   })
 
-  lt.start()
+  // Must be called from a user gesture — AudioContext requires it
+  document.getElementById('btn').addEventListener('click', () => lt.start())
 </script>
 ```
 
@@ -70,7 +72,9 @@ No framework required. Import the package and use the element directly in HTML.
 
 ## Sharing an existing AudioContext
 
-```js
+```html
+<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
+<script type="module">
 import '@hi-audio/latency-test'
 
 const ac = new AudioContext()
@@ -81,7 +85,9 @@ lt.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-lt.start()
+// Must be called from a user gesture — getUserMedia requires it
+document.getElementById('startBtn').addEventListener('click', () => lt.start())
+</script>
 ```
 
 ---

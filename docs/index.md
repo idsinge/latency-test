@@ -51,13 +51,13 @@ npm install @hi-audio/latency-test
 ## Key concepts
 
 - The component is **headless by default** — it exposes `start()` / `stop()` and fires events. No built-in button or result display.
-- Results are delivered via the `latency-result` CustomEvent (`{ latency, ratio, timestamp }`).
+- Results are delivered via the `latency-result` CustomEvent (`{ latency, ratio, reliable, timestamp, mode }`).
 - A reliability ratio above **18 dB** indicates a trustworthy measurement.
 - Microphone access is requested on the first `start()` call.
 - For DAW or multi-context applications, pass your existing `AudioContext` via `element.audioContext = ac` before calling `start()`.
-- Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, planned).
-- Use `signal-type` to select the measurement signal: `"mls"`, `"chirp"`, or `"golay"`.
-- Use `input-gain` to apply a custom input gain (e.g. `50` to compensate for low Safari microphone levels).
+- Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, implemented). `"mediarecorder-2ch"` is planned (Phase 3b).
+- Use `signal-type` to select the measurement signal: `"mls"` (implemented), `"chirp"`, or `"golay"` (planned).
+- `input-gain` is reserved for a future gain multiplier — it is not yet wired in the current version.
 
 ## Try it live
 

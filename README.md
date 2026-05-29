@@ -34,6 +34,7 @@ Multiple consecutive tests with aggregate statistics:
 
 ```html
 <latency-test id="lt" number-of-tests="5"></latency-test>
+<button id="btn">Run 5 tests</button>
 
 <script type="module">
   import '@hi-audio/latency-test'
@@ -49,7 +50,7 @@ Multiple consecutive tests with aggregate statistics:
     console.log(`mean ${mean.toFixed(2)} ms · std ${std.toFixed(2)} · min ${min.toFixed(2)} · max ${max.toFixed(2)}`)
   })
 
-  lt.start()
+  document.getElementById('btn').addEventListener('click', () => lt.start())
 </script>
 ```
 
@@ -82,12 +83,13 @@ npm run docs:dev
 Other commands:
 
 ```bash
+npm test                 # run unit tests (Node 18, no install needed)
 npm run build:component  # build the component bundle (dist/)
 npm run docs:build       # build VitePress docs
 npm run docs:preview     # preview built docs locally
 ```
 
-**Requirement:** Node.js v14 or above.
+**Requirement:** Node.js v18 or above (project pins v18.12.1 via `.nvmrc`).
 
 ## Repository scope
 
@@ -96,8 +98,9 @@ This repository contains the prototype implementation, full package planning (se
 ## Roadmap
 
 - [x] Prototype: MLS signal generation, cross-correlation via Web Worker, MediaRecorder capture
-- [ ] Web Component refactor: `<latency-test>` Custom Element, Shadow DOM, instance-based architecture
-- [ ] AudioWorklet backend: dual-channel raw PCM capture (mic + reference loopback) replacing MediaRecorder
+- [x] Web Component refactor: `<latency-test>` Custom Element, Shadow DOM, instance-based architecture
+- [x] AudioWorklet backend: `recording-mode="audioworklet"` — dual-channel raw PCM capture via dedicated AudioWorklet processor
+- [ ] `recording-mode="mediarecorder-2ch"`: dual-channel MediaRecorder path removing start-timing bias (Phase 3b)
 - [ ] npm package publication as `@hi-audio/latency-test`
 - [ ] Additional signal types: chirp (logarithmic sine sweep), Golay complementary sequences
 

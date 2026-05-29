@@ -169,17 +169,22 @@ export class AppModule {}
 
 ## TypeScript
 
-Types are bundled with the package. Use the exported type with `@ViewChild` for fully typed programmatic access:
+TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a local type:
 
 ```ts
-import type { LatencyTestElement } from '@hi-audio/latency-test'
+type LatencyTestElement = HTMLElement & {
+  start(): void
+  stop(): void
+  audioContext: AudioContext
+}
+
 import { ViewChild, ElementRef, AfterViewInit } from '@angular/core'
 
 @ViewChild('lt') ltRef!: ElementRef<LatencyTestElement>
 
 ngAfterViewInit() {
-  this.ltRef.nativeElement.start()       // ✅ typed
-  this.ltRef.nativeElement.audioContext  // ✅ typed
+  this.ltRef.nativeElement.start()
+  this.ltRef.nativeElement.audioContext
 }
 ```
 

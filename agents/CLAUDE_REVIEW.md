@@ -117,7 +117,7 @@ Shadow DOM, open mode, with an empty shadow root attached in the constructor. No
 
 **Resolved.**
 
-The `input-gain` attribute is a general-purpose gain multiplier. The component applies a GainNode with the given value before capture, regardless of browser or recording backend. No browser detection lives inside the component.
+The `input-gain` attribute is a general-purpose gain multiplier. **The GainNode is not yet wired** — the attribute is observed and the property is set, but no gain is applied in the current code. Wiring the GainNode is deferred to v2. No browser detection lives inside the component.
 
 The hardcoded `getCorrectStreamForSafari()` method in `test.js` is **removed during Phase 1**. Its responsibility moves to the host: if the host knows it is running on Safari ≥ 16 with `echoCancellation: false`, it sets `element.inputGain = 50` before calling `start()`. The demo page will include a code example showing this pattern.
 
@@ -206,10 +206,10 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 
 ### Phase 1 — Refactor `TestLatencyMLS` to instance-based class
 - [x] Convert all `static` methods and properties to instance methods and fields
-- [x] Strip all DOM manipulation out of the class: remove `displayStart()`, `finishTest()`, and the `innerHTML` writes in `displayresults()` — these move to the demo page
+- [x] Strip all DOM manipulation out of the class: `displayStart()` and `finishTest()` are kept as no-op callback stubs in `test.js` (they call `onReady?.()` and `onProcessing?.()` respectively); `innerHTML` writes in `displayresults()` replaced by `onResult` callback
 - [x] Replace DOM side-effects in `displayresults()` with a callback or event emission
 - [x] Remove `getCorrectStreamForSafari()` — browser detection and gain selection moves to the host/demo page; the component applies whatever `input-gain` value it receives via its property
-- [x] Keep `mls.js` and `worker.js` untouched
+- [x] Keep `mls.js` untouched. `worker.js` received two changes for unit testing: `export` added to both functions and `addEventListener` wrapped in a `WorkerGlobalScope` guard — no behavioural change in production.
 
 ### Phase 2 — Create the Custom Element shell
 - [x] Create `src/scripts/latency-test-element.js` — the Custom Element class extending `HTMLElement`
@@ -220,7 +220,7 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [x] Dispatch all six lifecycle + result events (Decision #10): `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
 - [x] Microphone permission (`getUserMedia`) is requested lazily on the first `start()` call — never on `connectedCallback`. This is the correct model for embedded use in host apps that may not want immediate permission prompts.
 - [x] Handle `connectedCallback` and `disconnectedCallback`: on disconnect, stop any in-progress test, terminate the worker, and disconnect audio nodes — do not close the AudioContext (host always owns cleanup per Decision #8)
-- [x] Chrome first-run latency: mitigated by `#startSilence()` — starts a silent AudioBuffer immediately after mic grant to warm up the audio pipeline. Based on Chris Wilson's metronome technique.
+- [x] Chrome first-run latency: mitigated by a silent AudioBuffer started inside `prepareAudioToPlayAndRecord()` in `test.js` on every test run. Based on Chris Wilson's metronome technique. Note: `#startSilence()` was never a separate method — the logic is inline.
 
 ### Phase 3 — AudioWorklet processor (replaces MediaRecorder)
 
@@ -236,9 +236,8 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
   - Input 0: mic stream (via `MediaStreamAudioSourceNode` → worklet)
   - Input 1: MLS reference signal loopback (same `AudioBufferSourceNode` connected to both `AudioContext.destination` and the worklet)
   - `buffer-size` attribute deferred (verdict: unnecessary for MLS-length captures)
-- [x] Implement `process()` to buffer both channels and post `{ mic, ref }` as a single transferable on stop
-- [x] Implement data-return strategy: MessagePort accumulation, single post on stop (no transferables
-     needed for MLS-length captures; SharedArrayBuffer deferred — Q1 still open)
+- [x] Implement `process()` to buffer both channels and post `{ mic, ref }` on stop
+- [x] Implement data-return strategy: MessagePort accumulation, single post on stop (plain arrays, no transferables — MLS-length captures are small enough; SharedArrayBuffer deferred — Q1 still open)
 - [x] Worker.js contract unchanged — both paths use `{ command: 'correlation', data1, data2, maxLag }`
 - [x] Wire the worklet into the latency test flow alongside the existing MediaRecorder path, selected via `recording-mode` attribute
 - [ ] `input-gain` GainNode deferred to v2
@@ -282,19 +281,19 @@ Cross-correlate ch1 against ch0 — worker contract unchanged: `{ command: 'corr
 - [ ] Connect merger → `audioContext.createMediaStreamDestination()`; pass `.stream` to `MediaRecorder` (replacing direct `this.inputStream`)
 - [ ] After Blob decode: extract `getChannelData(0)` as `ref`, `getChannelData(1)` as `mic`; post to worker as `{ data1: mic, data2: ref, maxLag }`
 - [ ] Verify stereo channels are preserved (ch0 ≠ ch1) after decode in Chrome, Firefox, Safari
-- [ ] Add `mode` field to `latency-result` event payload: `{ latency, ratio, timestamp, mode }`; emit from all three recording paths
+- [x] Add `mode` field to `latency-result` event payload: `{ latency, ratio, timestamp, mode }`; emitted from both implemented paths (`mediarecorder` and `audioworklet`). `mediarecorder-2ch` emits `latency-error` instead of a result — it does not produce a `latency-result` event until Phase 3b is implemented.
 - [ ] Update TypeScript `LatencyResultDetail` interface to include `mode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'`
 - [ ] Guard against browser mono downmix: after `decodeAudioData`, check `audioBuffer.numberOfChannels < 2` and emit `latency-error` (`{ message: 'mediarecorder-2ch: browser downmixed stereo to mono' }`) rather than proceeding — prevents silent mis-measurement
 - [ ] MIME type strategy: use `MediaRecorder.isTypeSupported()` to select a stereo-capable type (e.g. `'audio/webm;codecs=opus'`); log `mediaRecorder.mimeType` after construction; stereo preservation per browser/MIME should be verified during the Chrome/Firefox/Safari validation pass
 - [ ] Cleanup on `stop()` and `noiseSource.onended`: disconnect `micSource`, `channelMerger`, `destNode`, and `noiseSource`; call `mediaRecorder.stop()` if still recording; clear `ondataavailable` and `onstop` handlers to prevent leaks
 - [ ] Emit `latency-processing` when `mediaRecorder.onstop` fires, consistent with the other two recording paths
-- [ ] Floor `maxLag` to an integer before posting to the worker: `Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)` — arbitrary `max-lag-ms` values produce non-integer sample counts (applies to all three modes, not just this path)
-- [ ] Document in `docs/api.md`: `"mediarecorder-2ch"` measures a different pipeline than `"mediarecorder"` due to extra Web Audio nodes; the difference is intentional and is itself a measurable research quantity
+- [x] Floor `maxLag` to an integer before posting to the worker: `Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)` — fixed in both worklet and mediarecorder paths in `test.js`
+- [x] Document in `docs/api.md`: `"mediarecorder-2ch"` measures a different pipeline than `"mediarecorder"` due to extra Web Audio nodes; the difference is intentional and is itself a measurable research quantity
 
 ### Phase 4 — Demo page & integration
-- [ ] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
-- [ ] Demo page listens for `latency-result` and `latency-error` and updates its own UI
-- [ ] Demo page optionally listens for `latency-complete` and renders a histogram (host-side, not component-side)
+- [x] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
+- [x] Demo page listens for `latency-result` and `latency-error` and updates its own UI
+- [ ] Demo page optionally listens for `latency-complete` and renders a histogram (host-side) — aggregate stats (mean/std/min/max) are shown; histogram not yet implemented
 - [ ] Verify `worker.js` works correctly with Float32 PCM coming from the AudioWorklet path
 - [ ] Test `number-of-tests` > 1 loop driven by the component
 

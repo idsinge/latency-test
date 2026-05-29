@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- Node.js v14 or above (for local development and bundler-based projects)
+- Node.js v18 or above (project pins v18.12.1 via `.nvmrc`)
 - A browser with Web Audio API, AudioWorklet, and `getUserMedia` support
 - HTTPS or `localhost` (required for microphone access)
 
@@ -56,6 +56,7 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 </head>
 <body>
   <latency-test></latency-test>
+  <button id="start">Test Latency</button>
 
   <script>
     const el = document.querySelector('latency-test')
@@ -68,8 +69,8 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
       console.error('Test failed:', e.detail.message)
     })
 
-    // Start the test programmatically:
-    el.start()
+    // Must be called from a user gesture — AudioContext requires it
+    document.getElementById('start').addEventListener('click', () => el.start())
   </script>
 </body>
 </html>
@@ -81,7 +82,9 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 
 If your application already has an `AudioContext` (e.g. a DAW or audio workstation), pass it to the element before calling `start()` to avoid creating a second context:
 
-```js
+```html
+<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
+<script type="module">
 import '@hi-audio/latency-test'
 
 const el = document.querySelector('latency-test')
@@ -91,7 +94,9 @@ el.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-el.start()
+// Must be called from a user gesture — getUserMedia requires it
+document.getElementById('startBtn').addEventListener('click', () => el.start())
+</script>
 ```
 
 ---

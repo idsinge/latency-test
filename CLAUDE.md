@@ -21,10 +21,12 @@
 - `MediaRecorder` API (current recording mechanism, default in v1 — to be replaced by `AudioWorklet` default in v2)
 - Web Workers (off-main-thread cross-correlation computation)
 - esbuild (component bundle, ESM + IIFE outputs)
-- No TypeScript, no test suite
+- No TypeScript
+- Unit tests: `node:test` + `node:assert/strict`, Node 18.12.1, no third-party test library
 
 **Dev commands:**
 ```
+npm test                 # run unit tests (tests/mls.test.js + tests/worker.test.js)
 npm run dev              # static file server — serves src/ natively
 npm run build:component  # produces dist/latency-test.esm.js + .iife.js
 npm run docs:dev         # VitePress docs dev server (http://localhost:5173)
@@ -42,11 +44,13 @@ Ignore `dist/` and `node_modules/` — they are build artifacts.
 
 ```
 src/
-  index.html              — Minimal app shell: single anchor button (#testlatencymlsbtn)
+  index.html              — Demo page: mode selector, run-count input, <latency-test> element, start button, results/aggregate divs
   scripts/
-    index.js              — Entry point: getUserMedia, AudioContext creation, calls TestLatencyMLS.initialize()
-    test.js               — Core class TestLatencyMLS (all-static singleton pattern)
+    index.js              — Demo entry point: wires UI events, sets element attributes, renders latency-result / latency-complete / latency-error
+    latency-test-element.js — <latency-test> Custom Element: lifecycle, attribute reflection, getUserMedia, AudioContext, event dispatch
+    test.js               — LatencyTestController: MLS generation, pre-roll, mediarecorder/audioworklet capture, worker messaging, result callbacks
     mls.js                — MLS signal generation (LFSR algorithm, tap tables for bits 2–16)
+    recorder-processor.js — AudioWorkletProcessor: dual-channel mic+reference capture, posts { mic, ref } Float32 arrays on stop
     worker.js             — Web Worker: cross-correlation and peak detection (off main thread)
 assets/
   ERC_logo.png
@@ -70,6 +74,12 @@ docs/
     docs.yml              — GitHub Actions: build VitePress and deploy to GitHub Pages
 ```
 
+```
+tests/
+  mls.test.js             — unit tests for generateMLS() (node:test)
+  worker.test.js          — unit tests for calculateCrossCorrelation() and findPeakAndMean() (node:test)
+```
+
 **Deleted files (no longer in repo):**
 - `src/style.css` — removed
 - `src/scripts/helper.js` — removed (contained all canvas drawing: waveform, cross-correlation, histogram)
@@ -79,44 +89,53 @@ docs/
 ## Architecture & Data Flow
 
 ```
-index.js
-  └─ getUserMedia() → stream (mono, no echo/noise/AGC processing)
-  └─ new AudioContext({ latencyHint: 0 })
-  └─ TestLatencyMLS.initialize(ac, stream, btnId)
-        └─ creates Web Worker (worker.js)
-        └─ generateMLS(15) → 32767-sample binary sequence
-        └─ generateAudio() → AudioBuffer (+1.0 / -1.0 samples)
-        └─ getCorrectStreamForSafari() — applies 50x gain on Safari > 16  ← removed in Phase 1 (replaced by input-gain attribute)
-        └─ displayStart() — renders "TEST LATENCY" button in #testlatencymlsbtn
+<latency-test> element (latency-test-element.js)
+  └─ start()
+        └─ new AudioContext({ latencyHint: 0 })   [if no host-provided context]
+        └─ getUserMedia() → stream                 [if no host-provided stream]
+        └─ emits latency-start
+        └─ new LatencyTestController()
+        └─ controller.initialize(ac, stream, { recordingMode, mlsBits, maxLagMs, ... })
+              └─ creates Web Worker (worker.js)
+              └─ generateMLS(mlsBits) → binary sequence
+              └─ generateAudio() → AudioBuffer (+1.0 / -1.0 samples)
+        └─ controller.onAudioSetupFinished()
+              └─ prepareAudioToPlayAndRecord()
+                    └─ silence buffer (cwilso keepalive — prevents Firefox scheduler relaxing between runs)
+                    └─ 300 ms currentTime-based pre-roll
+                    └─ recordingMode === "audioworklet"      → startWorkletCapture()
+                    └─ recordingMode === "mediarecorder-2ch" → onError (not yet implemented)
+                    └─ else                                  → startMediaRecorderCapture()
 
-  [User clicks button]
-  └─ prepareAudioToPlayAndRecord()
-        └─ creates silence buffer (keeps AudioContext alive — cwilso trick)
-        └─ creates noiseSource (MLS AudioBuffer)
-        └─ creates MediaRecorder on inputStream
-        └─ noiseSource.start() + mediaRecorder.start() simultaneously
+  [mediarecorder path]
+        └─ noiseSource → audioContext.destination
+        └─ MediaRecorder(inputStream).start() + noiseSource.start()
         └─ noiseSource.onended → mediaRecorder.stop()
+        └─ onstop → decodeAudioData → worker.postMessage({ command: 'correlation', data1: mic, data2: ref, maxLag })
 
-  [Recording stops]
-  └─ displayAudioTagElem(chunks, mimeType)
-        └─ Blob → decodeAudioData → AudioBuffer (signalrecorded)
-        └─ worker.postMessage({ command: 'correlation', data1, data2, maxLag, channel: 0 })
+  [audioworklet path]
+        └─ loads recorder-processor.js as Blob URL → audioWorklet.addModule()
+        └─ AudioWorkletNode(recorder-processor, { numberOfInputs: 2 })
+        └─ createMediaStreamSource(stream) → workletNode input 0 (mic)
+        └─ noiseSource → workletNode input 1 (reference) + destination
+        └─ noiseSource.onended → workletNode.port.postMessage('stop')
+        └─ workletNode message ({ mic, ref }) → worker.postMessage({ command: 'correlation', data1: mic, data2: ref, maxLag })
 
   [Worker: calculateCrossCorrelation]
         └─ O(n × maxLag) time-domain cross-correlation
-        └─ maxLag = 0.600 × sampleRate (600 ms window)
+        └─ maxLag = Math.floor(maxLagMs / 1000 × sampleRate)
         └─ postMessage({ correlation, channel })
 
   [Worker: findPeakAndMean]
-        └─ finds peak index (max squared value) and mean energy
+        └─ finds peak index (max squared value) and mean energy (index 0 excluded from energy sum)
         └─ postMessage({ peakValuePow, peakIndex, mean, channel })
 
-  [Main thread: displayresults]
+  [Controller: displayresults → onResult callback]
         └─ latency (ms) = peakIndex / sampleRate × 1000
         └─ ratio (dB)   = 10 × log10(peakValuePow / mean)
         └─ threshold: ratio > 18 dB → reliable measurement
-        └─ result rendered inline into the button's innerHTML (badge spans)
-        └─ channel 1 path exists in code but only logs to console (no canvas)
+        └─ onResult({ latency, ratio, reliable, timestamp, mode }) → element emits latency-result
+        └─ pending runs? → runNextTest() : emitComplete() → element emits latency-complete
 ```
 
 ---
@@ -136,40 +155,51 @@ index.js
 
 ## DOM Elements
 
-Only one hardcoded ID remains in the current codebase:
+The component (`latency-test-element.js`) has no hardcoded DOM IDs and writes nothing to the DOM — it is headless. The demo page (`src/index.html`) owns all UI elements:
 
-| ID | Location | Purpose |
-|---|---|---|
-| `testlatencymlsbtn` | index.html | Anchor element that `displayStart()` replaces with a button |
+| ID | Purpose |
+|---|---|
+| `#mode-select` | Dropdown: `mediarecorder` / `audioworklet` |
+| `#run-count` | Number input: how many consecutive tests (1–20) |
+| `#tester` | The `<latency-test>` element itself |
+| `#start-btn` | Button that calls `tester.start()` on click |
+| `#results` | Inline text: latency ms, ratio dB, reliable flag |
+| `#aggregate` | Inline text: mean / std / min / max after multi-run complete |
 
-Results (latency ms and ratio dB) are written directly into the button's `innerHTML` as `<span>` badges. There is no separate log element, no popup, and no canvas in the current HTML.
-
----
-
-## Known Design Issues (relevant to web component conversion)
-
-1. **All-static class** — `TestLatencyMLS` uses only static methods and properties, making it a disguised singleton. Multiple instances are not possible. Must be refactored to instance-based before wrapping in a Custom Element.
-
-2. **Hardcoded DOM ID** — `displayStart()` calls `document.getElementById(TestLatencyMLS.btnId)` to reach outside the class. For Shadow DOM, all internal DOM must live inside the shadow root.
-
-3. **MediaRecorder for recording** — Captures audio as a compressed Blob, then decodes it back to PCM via `decodeAudioData`. Introduces codec round-trip and quality loss. The plan is to replace this with an `AudioWorklet` for sample-accurate raw PCM capture.
-
-4. **Safari workaround** — `getCorrectStreamForSafari()` inserts a 50× gain node and forces `channelCount = 1` on the stream before it reaches `MediaRecorder`. **Removed in Phase 1.** Gain compensation is replaced by the general `input-gain` attribute — the host sets the value, the component applies it with no browser detection internally.
-
-5. **Single test only** — The multi-test loop, result accumulation (`LATENCYTESTRESULTS`), statistics, and histogram were removed during simplification. These may be re-implemented as web component features (via attributes and events) rather than in-page logic.
-
-6. **No visual debugging** — `helper.js` (waveform and cross-correlation canvas drawing) was removed. If debug visualization is needed in the web component it must be re-implemented inside the shadow root.
+Results are dispatched as `CustomEvent` from the element. The demo page renders them into `#results` and `#aggregate`.
 
 ---
 
-## Web Component + AudioWorklet Migration Goals
+## Current Implementation Notes
 
-- Wrap the latency test into a `<latency-test>` Custom Element
-- Shadow DOM attached in the constructor with an empty shadow root — no built-in UI in v1 (headless-first)
-- Headless-first: primary API is `start()` / `stop()` methods + custom events; no built-in UI in v1
-- Events dispatched: `latency-result`, `latency-error` (and optionally `latency-complete` for multi-test runs)
-- `worker.js` correlation logic is preserved but updated in Phase 3: it will receive `{ mic, ref }` Float32 buffers (two-channel capture) and cross-correlate them against each other, not correlate mic against the pre-known MLS sequence
-- The AudioWorklet processor uses `numberOfInputs: 2` — input 0 = mic, input 1 = reference signal loopback — and returns `{ mic, ref }` PCM chunks to the main thread via MessagePort or SharedArrayBuffer (see agents/CLAUDE_REVIEW.md Phase 3 for architecture rationale)
+The web component refactor (Phases 1–3a) is complete. Previous design issues are resolved. Remaining known limitations:
+
+1. **`input-gain` not yet wired** — The attribute is observed and the property is settable, but no `GainNode` is created. Setting `input-gain` has no effect in the current code. Deferred to v2.
+
+2. **`signal-type` not yet wired** — Only `"mls"` is implemented. The attribute is observed but `signalType` is never read by `LatencyTestController`. Deferred to v2.
+
+3. **`recording-mode="mediarecorder-2ch"` not yet implemented** — Emits `latency-error` with "not yet implemented" if selected. Phase 3b.
+
+4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is a Phase 4 item.
+
+5. **No TypeScript declarations** — No `.d.ts` file or `types` field in `package.json`. Planned for pre-publish phase.
+
+---
+
+## Web Component Status
+
+Phases 1–3a are complete. The `<latency-test>` Custom Element is implemented with:
+
+- Shadow DOM (open mode, empty — headless-first)
+- `start()` / `stop()` public methods
+- All six events: `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
+- `recording-mode="mediarecorder"` (default) and `recording-mode="audioworklet"` both working
+- `worker.js` cross-correlates two buffers: in the audioworklet path these are captured `{ mic, ref }` Float32 PCM; in the mediarecorder path they are the decoded recording vs the pre-generated MLS AudioBuffer
+
+**Still in progress:**
+- Phase 3b: `recording-mode="mediarecorder-2ch"` (dual-channel MediaRecorder, removes start-timing bias)
+- Phase 4: histogram, browser verification matrix
+- Phase 7: npm publication
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 
@@ -177,7 +207,7 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 |---|---|---|
 | `recording-mode` | `"mediarecorder"` \| `"mediarecorder-2ch"` \| `"audioworklet"` | Selects the capture backend. `"mediarecorder"`: single-channel, direct mic stream, v1 default (implemented). `"mediarecorder-2ch"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias (planned). `"audioworklet"`: raw Float32 PCM, v2 default (implemented). Each mode measures a different pipeline — see Decision #14 in agents/CLAUDE_REVIEW.md. |
 | `signal-type` | `"mls"` \| `"chirp"` \| `"golay"` | Selects the test signal. `"mls"` is default. `"chirp"` is a logarithmic sine sweep. `"golay"` uses Golay complementary sequence pairs for high-SNR impulse response measurement. |
-| `input-gain` | number \| `0` | Applies a gain multiplier to the input stream before capture. `0` (default) means no gain. Replaces the hardcoded Safari-only 50× workaround with a general user-configurable parameter. |
+| `input-gain` | number \| `0` | Intended to apply a gain multiplier to the input stream before capture. **Not yet wired** — the attribute is observed and the property is settable, but no GainNode is created. Setting it has no effect in the current code. Deferred to v2. |
 | `debug` | boolean \| `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. Development/debugging only — no effect on measurement output. Do not use during measurements you intend to record — `startPairSpanMs` is an upper-bound diagnostic span, not a pure inter-call gap, and DevTools being open can perturb scheduling generally. Implemented. |
 
 **External references used during design:**
@@ -190,10 +220,10 @@ Results (latency ms and ratio dB) are written directly into the button's `innerH
 
 ## Browser Compatibility Notes
 
-- Chrome/Chromium/Edge: Standard behavior, higher latency variability. First-run latency is often higher than subsequent runs — mitigated by starting a silent AudioBuffer immediately after mic grant (warm-up technique, see `latency-test-element.js:#startSilence()`).
+- Chrome/Chromium/Edge: Standard behavior, higher latency variability. First-run latency is often higher than subsequent runs — mitigated by a silent AudioBuffer started at the top of every `prepareAudioToPlayAndRecord()` call (cwilso keepalive technique).
 - Firefox: Most stable results (std dev often 0), higher absolute latency on Windows
-- Safari: The 50× gain boost is now host-controlled — set `input-gain="50"` if microphone levels are too low (common on Safari > v16 with `echoCancellation: false`). Wired earpods force stereo input (only left channel used).
-- iOS: Some devices exhibit aliasing above 12 kHz on audio input, degrading MLS quality. The chirp signal is bandlimited to 1500–8000 Hz to avoid this. Use `signal-type="chirp"` or `"golay"` if MLS gives unreliable results on iOS.
+- Safari: Some devices have low microphone levels with `echoCancellation: false`. The `input-gain` attribute is intended to address this but is not yet wired (v2 item). Wired earpods force stereo input (only left channel used).
+- iOS: Some devices exhibit aliasing above 12 kHz on audio input, degrading MLS quality. `signal-type="chirp"` (planned, bandlimited to 1500–8000 Hz) will address this — not yet implemented.
 - All browsers: require HTTPS (or localhost) for `getUserMedia`
 
 ---

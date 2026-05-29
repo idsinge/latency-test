@@ -22,7 +22,7 @@ import '@hi-audio/latency-test'
 
 ## Attributes
 
-Attributes are reflected as properties and can be set either in HTML or via JavaScript.
+Attributes can be set in HTML or via JavaScript property assignment. Setting an attribute updates the corresponding JS property via `attributeChangedCallback`. Setting a JS property directly does not update the HTML attribute (reflection is one-way).
 
 | Attribute | Property | Type | Default | Description | Status |
 |---|---|---|---|---|---|
@@ -171,7 +171,7 @@ These values are fixed by the research methodology and are not configurable:
 | Reliability threshold | `18 dB` | Minimum correlation ratio for a trustworthy measurement — empirically chosen in the WAC 2025 experiments |
 | MLS amplitude | `±1.0` | Binary MLS sequence mapped to `+1.0` / `−1.0` float samples |
 | Chirp frequency range | `1500–8000 Hz` | Bandlimited to avoid input aliasing above 12 kHz present on some iOS devices |
-| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Essential for accurate measurement; these are always forced |
+| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Applied when the component calls `getUserMedia`. Not applied to host-provided streams — the host is responsible for setting constraints on streams passed via `element.inputStream`. |
 
 ---
 
@@ -182,4 +182,4 @@ These values are fixed by the research methodology and are not configurable:
 - Web Workers
 - HTTPS or `localhost`
 
-Safari may require manual gain compensation — set `input-gain="50"` if microphone levels are too low (common on Safari > v16 with `echoCancellation` disabled). The component does not apply any gain automatically.
+Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.

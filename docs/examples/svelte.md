@@ -163,16 +163,18 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
 
 ## TypeScript
 
-Types are bundled with the package. Declare the element type for `bind:this`:
+TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a local type:
 
 ```ts
-import type { LatencyTestElement } from '@hi-audio/latency-test'
+type LatencyTestElement = HTMLElement & {
+  start(): void
+  stop(): void
+  audioContext: AudioContext
+}
 
 let lt: LatencyTestElement
-
-// then in the template:
 // <latency-test bind:this={lt} />
 
-lt?.start()       // ✅ typed
-lt?.audioContext  // ✅ typed
+lt?.start()
+lt?.audioContext
 ```
