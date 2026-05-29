@@ -120,15 +120,18 @@ export default function Home() {
 
 ## TypeScript
 
-Types are bundled with the package. Programmatic access via `useRef` is always fully typed:
+TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, cast the ref manually:
 
 ```ts
-const el = ltRef.current // → LatencyTestElement
-el?.start()        // ✅ typed
-el?.audioContext   // ✅ typed
+const el = ltRef.current as HTMLElement & {
+  start(): void
+  stop(): void
+  audioContext: AudioContext
+}
+el?.start()
 ```
 
-**React 19+** — once the package is installed, `<latency-test>` in JSX picks up types from `HTMLElementTagNameMap` automatically. No manual declarations needed. Verify end-to-end once the package is published.
+**React 19+** — once declarations ship, `<latency-test>` in JSX will pick up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
 
 **React < 19** (most current Next.js projects) — add a JSX namespace declaration:
 
@@ -143,6 +146,7 @@ declare namespace JSX {
       'recording-mode'?: 'mediarecorder' | 'audioworklet'
       'signal-type'?: 'mls' | 'chirp' | 'golay'
       'input-gain'?: number
+      'buffer-size'?: number
     }
   }
 }

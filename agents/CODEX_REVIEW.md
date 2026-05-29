@@ -159,7 +159,7 @@ The repository story is now substantially clearer:
 
 - `package.json` names the future package
 - `CLAUDE.md` describes docs and packaging direction
-- `CLAUDE_REVIEW.md` describes migration and publishing decisions
+- `agents/CLAUDE_REVIEW.md` describes migration and publishing decisions
 - `docs/` provides the developer-facing integration site
 
 This is a real improvement. The repo now reads like a project that is transitioning from research prototype to reusable developer-facing package.
@@ -336,7 +336,7 @@ Additional current delta:
 
 - the repository is no longer only about code migration; it now includes public-facing developer documentation and package-distribution planning
 - this increases the importance of maintaining alignment between implementation state, docs claims, and package metadata
-- `CLAUDE_REVIEW.md` is now ahead of `CODEX_REVIEW.md` in several architecture decisions, so convergence work should now mostly flow from `CLAUDE_REVIEW.md` into this file until both can be merged cleanly
+- `agents/CLAUDE_REVIEW.md` is now ahead of `CODEX_REVIEW.md` in several architecture decisions, so convergence work should now mostly flow from `agents/CLAUDE_REVIEW.md` into this file until both can be merged cleanly
 
 Practical consequence of the latest decisions:
 
@@ -362,7 +362,7 @@ Remaining comment:
 - The headless-first and versioned-backend framing is useful.
 - The package-publishing notes are appropriate, but they should continue to be treated as planning until a real component build output exists.
 
-### `CLAUDE_REVIEW.md`
+### `agents/CLAUDE_REVIEW.md`
 
 Opinion:
 
@@ -403,19 +403,35 @@ Remaining comments:
 
 Recent review feedback that should not be lost:
 
-- `CLAUDE_REVIEW.md` is materially better now because the decisions section reduces ambiguity and improves continuity across sessions.
-- The remaining cleanup need in `CLAUDE_REVIEW.md` is consistency: resolved decisions should stop reappearing as if they are still unresolved.
+- `agents/CLAUDE_REVIEW.md` is materially better now because the decisions section reduces ambiguity and improves continuity across sessions.
+- The remaining cleanup need in `agents/CLAUDE_REVIEW.md` is consistency: resolved decisions should stop reappearing as if they are still unresolved.
 - `docs/index.md` is coherent and well structured, but the homepage should manage expectations clearly because it presents install/use snippets for a package that is still planned.
 - The docs site should keep a strict distinction between target-state reference documentation and current implementation status.
 - Support for both npm and CDN is already a settled product direction; future planning should focus on the concrete build/distribution strategy needed to satisfy both.
-- `CLAUDE_REVIEW.md` is now the stronger candidate for the eventual unified `ACTION_PLAN_REFERENCE`, with this file serving as the supplementary review log until convergence is complete.
-- The newer TypeScript/package-documentation direction was initially incomplete, but the major correctness gaps identified in review have now been addressed in `CLAUDE_REVIEW.md`.
+- `agents/CLAUDE_REVIEW.md` is now the stronger candidate for the eventual unified `ACTION_PLAN_REFERENCE`, with this file serving as the supplementary review log until convergence is complete.
+- The newer TypeScript/package-documentation direction was initially incomplete, but the major correctness gaps identified in review have now been addressed in `agents/CLAUDE_REVIEW.md`.
 
 ## Latest Open Questions
 
 These questions remain useful to answer later:
 
 1. Should the docs homepage carry an explicit draft banner near the hero, or is draft/planned labeling only on deeper pages sufficient?
+
+## Three-Mode Recording Design (2025-05-28)
+
+Following WAC 2025 peer review and dual-agent analysis (Claude + Codex), the `recording-mode` attribute now has three values. This is a settled decision — see Decision #14 in `agents/CLAUDE_REVIEW.md`.
+
+**Summary:**
+
+- `"mediarecorder"` — single-channel, mic stream used directly. Has a systematic timing *bias* (not just jitter): `noiseSource.start()` and `mediaRecorder.start()` are on different clocks; the unknown JS start offset shifts every measurement. `maxLag` makes the peak searchable but does not cancel this bias. Closest to the actual production DAW recording path.
+- `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`. Routes both the MLS reference and mic into a single encoded stereo stream, removing the start-timing bias. Inter-channel timing is channel-relative stable in practice (same Opus/AAC codec frame) but is not a sample-accurate API contract. Requires `createMediaStreamSource` (unavoidable in standard Web APIs), which adds extra nodes to the chain — so this path measures a **different pipeline** than `"mediarecorder"` (the overhead direction is browser-dependent; treat as a hypothesis to measure, not an assumption). This is intentional.
+- `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip. The accuracy reference.
+
+**Key research insight:** the three modes each measure the latency of their own pipeline. The *differences* between mode results are the research finding — they expose the contribution of JS start-timing bias, codec overhead, and extra-node latency. Do not flatten these into a single implementation.
+
+**Implementation status:** `"mediarecorder"` and `"audioworklet"` are implemented. `"mediarecorder-2ch"` is specified in Phase 3b of `agents/CLAUDE_REVIEW.md` and is `[ ]` not yet implemented.
+
+**API change:** `latency-result` event payload now includes a `mode` field (`"mediarecorder"` | `"mediarecorder-2ch"` | `"audioworklet"`). TypeScript `LatencyResultDetail` and `LatencyTestElement.recordingMode` updated accordingly in `agents/CLAUDE_REVIEW.md` Phase 7.
 
 ## Latest Feedback Notes
 
@@ -459,12 +475,12 @@ Remaining note:
 
 - Reuse the exported detail types consistently across all framework examples where practical.
 - Keep the per-framework installed-package verification checklist as a release gate before removing draft/wip notices.
-- When `CODEX_REVIEW.md` is eventually retired, these resolved TypeScript notes no longer need to be preserved separately because `CLAUDE_REVIEW.md` now covers them adequately.
+- When `CODEX_REVIEW.md` is eventually retired, these resolved TypeScript notes no longer need to be preserved separately because `agents/CLAUDE_REVIEW.md` now covers them adequately.
 
 ## Additional Notes
 
 - The repository contains `CLAUDE.md`, not `CLUADE.md`.
-- Ignore `.parcel-cache`, `dist`, and `node_modules` during repository study, as requested.
+- Ignore `dist` and `node_modules` during repository study, as requested.
 - There is no test suite currently, so migration validation will need to rely on manual browser testing unless tests are added later.
 - `package.json` now reflects the intended published package name, but it is not yet a publish-ready package manifest.
 - Supporting both npm and CDN consumers means the eventual distribution strategy should be validated against both a bundler-based app flow and a direct browser `<script type="module">` flow.

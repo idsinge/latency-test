@@ -165,14 +165,18 @@ onMounted(() => {
 
 ## TypeScript
 
-Types are bundled with the package. Import the element type for typed refs:
+TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a minimal local type:
 
 ```ts
-import type { LatencyTestElement } from '@hi-audio/latency-test'
+type LatencyTestElement = HTMLElement & {
+  start(): void
+  stop(): void
+  audioContext: AudioContext
+}
 
 const ltRef = ref<LatencyTestElement | null>(null)
-ltRef.value?.start()       // ✅ typed
-ltRef.value?.audioContext  // ✅ typed
+ltRef.value?.start()
+ltRef.value?.audioContext
 ```
 
 To prevent Vue from warning about an unknown element, mark it as a custom element in `vite.config.ts`:

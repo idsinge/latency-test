@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- Node.js v14 or above (for local development and bundler-based projects)
+- Node.js v18 or above (project pins v18.12.1 via `.nvmrc`)
 - A browser with Web Audio API, AudioWorklet, and `getUserMedia` support
 - HTTPS or `localhost` (required for microphone access)
 
@@ -30,11 +30,19 @@ This registers the `<latency-test>` custom element globally. After the import, u
 
 ## CDN (no build step)
 
+Choose the approach that fits your project:
+
+**ESM (modern browsers — recommended):**
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 ```
 
-Place this in the `<head>` of your HTML file. The element is registered automatically when the script loads.
+**IIFE (universal — no module support required):**
+```html
+<script src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+```
+
+Both register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
 
 ---
 
@@ -44,10 +52,11 @@ Place this in the `<head>` of your HTML file. The element is registered automati
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <latency-test></latency-test>
+  <button id="start">Test Latency</button>
 
   <script>
     const el = document.querySelector('latency-test')
@@ -60,8 +69,8 @@ Place this in the `<head>` of your HTML file. The element is registered automati
       console.error('Test failed:', e.detail.message)
     })
 
-    // Start the test programmatically, or wire to your own button:
-    document.querySelector('#myButton').addEventListener('click', () => el.start())
+    // Must be called from a user gesture — AudioContext requires it
+    document.getElementById('start').addEventListener('click', () => el.start())
   </script>
 </body>
 </html>
@@ -73,7 +82,9 @@ Place this in the `<head>` of your HTML file. The element is registered automati
 
 If your application already has an `AudioContext` (e.g. a DAW or audio workstation), pass it to the element before calling `start()` to avoid creating a second context:
 
-```js
+```html
+<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
+<script type="module">
 import '@hi-audio/latency-test'
 
 const el = document.querySelector('latency-test')
@@ -83,7 +94,9 @@ el.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-el.start()
+// Must be called from a user gesture — getUserMedia requires it
+document.getElementById('startBtn').addEventListener('click', () => el.start())
+</script>
 ```
 
 ---
@@ -95,5 +108,5 @@ git clone https://github.com/idsinge/latency-test.git
 cd latency-test
 npm install
 npm run dev
-# open http://localhost:1234
+# open http://localhost:3000
 ```

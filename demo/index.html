@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latency Test — Demo</title>
+    <script src="../dist/latency-test.iife.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <a href="#panel-minimal" class="skip-link">Skip to demo</a>
+    <h1>@hi-audio/latency-test · Demo</h1>
+    <p>Validates the built IIFE bundle — load component via <code>&lt;script&gt;</code> tag</p>
+    <span id="activity-indicator" class="activity-idle"></span>
+</header>
+
+<div id="connect-section">
+    <button id="connect-btn" class="btn btn-primary">Connect Audio</button>
+    <p id="connect-status"></p>
+</div>
+
+<div id="demo-section" hidden>
+<div class="tablist" role="tablist" aria-label="Demo patterns">
+    <button role="tab" id="tab-minimal" aria-selected="true" aria-controls="panel-minimal" tabindex="0">Minimal</button>
+    <button role="tab" id="tab-multi" aria-selected="false" aria-controls="panel-multi" tabindex="-1">Multi-Run</button>
+    <button role="tab" id="tab-context" aria-selected="false" aria-controls="panel-context" tabindex="-1">Context Share</button>
+    <button role="tab" id="tab-mode" aria-selected="false" aria-controls="panel-mode" tabindex="-1">Mode Toggle</button>
+    <button role="tab" id="tab-lifecycle" aria-selected="false" aria-controls="panel-lifecycle" tabindex="-1">Lifecycle</button>
+</div>
+
+<main>
+
+<!-- ─── Tab: Minimal ─── -->
+<div id="panel-minimal" class="tabpanel" role="tabpanel" aria-labelledby="tab-minimal" aria-hidden="false">
+    <h2>Minimal Integration</h2>
+    <p class="desc">Single test run using the <code>mediarecorder</code> backend. The simplest way to validate the component works.</p>
+    <div class="controls">
+        <button class="btn btn-primary" id="minimal-start">Start Test</button>
+        <button class="btn btn-secondary" id="minimal-stop" disabled>Stop</button>
+    </div>
+    <div id="minimal-result" class="result-box">
+        <div class="latency">—</div>
+        <div class="detail" id="minimal-detail">Press <strong>Start Test</strong> to begin</div>
+    </div>
+    <latency-test id="minimal-tester"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="minimal-tester"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#minimal-tester')
+
+  tester.addEventListener('latency-result', e =&gt; {
+    console.log(`Latency: ${e.detail.latency} ms`)
+  })
+
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+<!-- ─── Tab: Multi-Run ─── -->
+<div id="panel-multi" class="tabpanel" role="tabpanel" aria-labelledby="tab-multi" aria-hidden="true">
+    <h2>Multi-Run with Aggregates</h2>
+    <p class="desc">Configure the number of test runs. Results are accumulated and displayed with mean, standard deviation, min, and max.</p>
+    <div class="controls">
+        <label>Runs:
+            <input type="number" id="multi-count" value="5" min="1" max="50">
+        </label>
+        <button class="btn btn-primary" id="multi-start">Start</button>
+        <button class="btn btn-secondary" id="multi-stop" disabled>Stop</button>
+    </div>
+    <div id="multi-current" class="result-box" style="display:none">
+        <div class="latency" id="multi-current-latency">—</div>
+        <div class="detail" id="multi-current-detail"></div>
+    </div>
+    <div id="multi-aggregate" class="result-box aggregate" style="display:none">
+        <div class="stat" id="multi-mean">Mean: —</div>
+        <div class="stat" id="multi-stats">SD (Standard Deviation): — · Min: — · Max: —</div>
+    </div>
+    <latency-test id="multi-tester"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;!-- Option 1: HTML attribute --&gt;
+&lt;latency-test id="multi-tester" number-of-tests="5"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#multi-tester')
+  tester.addEventListener('latency-complete', e =&gt; {
+    console.log(`Mean: ${e.detail.mean} ms (${e.detail.results.length} runs)`)
+  })
+  tester.start()
+&lt;/script&gt;
+
+&lt;!-- Option 2: JS property --&gt;
+&lt;latency-test id="multi-tester"&gt;&lt;/latency-test&gt;
+&lt;script&gt;
+  const tester = document.querySelector('#multi-tester')
+  tester.numberOfTests = 5
+  tester.addEventListener('latency-complete', e =&gt; {
+    console.log(`Mean: ${e.detail.mean} ms (${e.detail.results.length} runs)`)
+  })
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+<!-- ─── Tab: Context Share ─── -->
+<div id="panel-context" class="tabpanel" role="tabpanel" aria-labelledby="tab-context" aria-hidden="true">
+    <h2>Host-Managed AudioContext &amp; Stream</h2>
+    <p class="desc">The host creates its own <code>AudioContext</code> and <code>MediaStream</code>, then passes them via properties. The component never closes or stops what it didn't create.</p>
+    <div class="controls">
+        <button class="btn btn-primary" id="context-init">Start Test</button>
+        <button class="btn btn-secondary" id="context-stop" disabled>Stop</button>
+    </div>
+    <div id="context-status" class="result-box">
+        <div class="detail">Ready. Click <strong>Start Test</strong>.</div>
+    </div>
+    <div id="context-result" class="result-box" style="display:none">
+        <div class="latency" id="context-latency">—</div>
+        <div class="detail" id="context-detail"></div>
+    </div>
+    <latency-test id="context-tester"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="context-tester"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#context-tester')
+
+  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, channelCount: 1 }
+  })
+  const ac = new AudioContext({ latencyHint: 0 })
+
+  tester.audioContext = ac
+  tester.inputStream = stream
+  tester.start()
+
+  // Component never closes/stops host-provided resources
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+<!-- ─── Tab: Mode Toggle ─── -->
+<div id="panel-mode" class="tabpanel" role="tabpanel" aria-labelledby="tab-mode" aria-hidden="true">
+    <h2>Capture Backend Comparison</h2>
+    <p class="desc">Run <code>MediaRecorder</code> and <code>AudioWorklet</code> back-to-back on the same source stream for direct A/B comparison.</p>
+    <div class="controls">
+        <button class="btn btn-primary" id="mode-compare">Compare</button>
+    </div>
+    <div class="mode-row">
+        <div class="mode-col">
+            <h3>MediaRecorder</h3>
+            <div id="mode-mr-result" class="result-box">
+                <div class="detail">Waiting…</div>
+            </div>
+        </div>
+        <div class="mode-col">
+            <h3>AudioWorklet</h3>
+            <div id="mode-aw-result" class="result-box">
+                <div class="detail">Waiting…</div>
+            </div>
+        </div>
+    </div>
+    <div id="mode-compare-result" class="result-box" style="display:none"></div>
+    <latency-test id="mode-mr" recording-mode="mediarecorder"></latency-test>
+    <latency-test id="mode-aw" recording-mode="audioworklet"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="mode-mr" recording-mode="mediarecorder"&gt;&lt;/latency-test&gt;
+&lt;latency-test id="mode-aw" recording-mode="audioworklet"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const mr = document.querySelector('#mode-mr')
+  const aw = document.querySelector('#mode-aw')
+
+  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, channelCount: 1 }
+  })
+  const ac = new AudioContext({ latencyHint: 0 })
+
+  mr.audioContext = aw.audioContext = ac
+  mr.inputStream = aw.inputStream = stream
+
+  mr.addEventListener('latency-complete', e =&gt; {
+    console.log(`MR: ${e.detail.latency} ms`)
+  })
+  aw.addEventListener('latency-complete', e =&gt; {
+    console.log(`AW: ${e.detail.latency} ms`)
+  })
+
+  mr.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+<!-- ─── Tab: Lifecycle ─── -->
+<div id="panel-lifecycle" class="tabpanel" role="tabpanel" aria-labelledby="tab-lifecycle" aria-hidden="true">
+    <h2>Lifecycle Event Log</h2>
+    <p class="desc">All six lifecycle events are logged in real-time with timestamps.</p>
+    <div class="controls">
+        <button class="btn btn-primary" id="lifecycle-start">Start Test</button>
+        <button class="btn btn-secondary" id="lifecycle-stop" disabled>Stop</button>
+        <button class="btn btn-secondary" id="lifecycle-clear">Clear Log</button>
+    </div>
+    <div id="lifecycle-log" class="event-log">
+        <div class="info">// Event log ready</div>
+    </div>
+    <latency-test id="lifecycle-tester"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="lifecycle-tester"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#lifecycle-tester')
+
+  tester.addEventListener('latency-start', e =&gt; console.log('start'))
+  tester.addEventListener('latency-recording', e =&gt; console.log('recording'))
+  tester.addEventListener('latency-processing', e =&gt; console.log('processing'))
+  tester.addEventListener('latency-result', e =&gt; console.log(e.detail))
+  tester.addEventListener('latency-complete', e =&gt; console.log('complete'))
+  tester.addEventListener('latency-error', e =&gt; console.error(e.detail))
+
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+</main>
+</div><!-- #demo-section -->
+
+<script src="js/common.js"></script>
+<script src="js/minimal.js"></script>
+<script src="js/multi-run.js"></script>
+<script src="js/context-share.js"></script>
+<script src="js/mode-toggle.js"></script>
+<script src="js/lifecycle.js"></script>
+</body>
+</html>

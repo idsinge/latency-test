@@ -3,19 +3,45 @@
   "version": "1.0.0",
   "description": "Web Component for measuring browser round-trip audio latency using MLS, chirp, or Golay signals.",
   "scripts": {
-    "dev": "parcel --no-cache src/*.html",
-    "build": "parcel build 'src/*.html'",
-    "predeploy": "rm -rf dist && parcel build 'src/*.html' --public-url ./",
-    "deploy": "gh-pages -d dist",
+    "test": "node --test tests/mls.test.js tests/worker.test.js",
+    "dev": "echo 'use: npx serve src/'",
+    "demo": "npx serve .",
+    "build:component": "node scripts/build-component.mjs",
+"build:component:dev": "node scripts/build-component.mjs --dev",
+    "deploy": "gh-pages -d src",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/latency-test.esm.js",
+      "default": "./dist/latency-test.esm.js"
+    }
+  },
+  "module": "./dist/latency-test.esm.js",
+  "main": "./dist/latency-test.esm.js",
+  "unpkg": "./dist/latency-test.iife.js",
+  "jsdelivr": "./dist/latency-test.iife.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/idsinge/latency-test.git"
   },
-  "keywords": ["web-component", "audio", "latency", "mls", "audioworklet", "webaudio"],
+  "keywords": [
+    "web-component",
+    "audio",
+    "latency",
+    "mls",
+    "audioworklet",
+    "webaudio"
+  ],
   "author": "Hi-Audio",
   "license": "MIT",
   "bugs": {
@@ -23,8 +49,8 @@
   },
   "homepage": "https://idsinge.github.io/latency-test/",
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "gh-pages": "^6.1.1",
-    "parcel": "^2.12.0",
     "vitepress": "^1.6.0"
   }
 }

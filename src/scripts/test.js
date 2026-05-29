@@ -1,174 +1,322 @@
-import { generateMLS } from './mls'
+import { generateMLS } from './mls.js'
 
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-                
-export class TestLatencyMLS {
+function concatFloat32(arrays) {
+    let len = 0
+    for (const a of arrays) len += a.length
+    const result = new Float32Array(len)
+    let offset = 0
+    for (const a of arrays) { result.set(a, offset); offset += a.length }
+    return result
+}
 
-    noiseBuffer = null   
-    
+const loadedProcessors = new WeakMap()
+
+export class LatencyTestController {
+
+    noiseBuffer = null
     audioContext = null
-
+    correlation = null
     worker = null
-
     signalrecorded = null
-    
-    btnId = null
-
     inputStream = null
+    mediaRecorder = null
+    noiseSource = null
+    onResult = null
+    onError = null
+    onReady = null
+    onRecording = null
+    onProcessing = null
+    mlsBits = 15
+    maxLagMs = 600
+    recordingMode = 'mediarecorder'
+    workletNode = null
+    stopped = false
+    debug = false
+    
+    async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, bufferSize = 0, debug = false, onResult, onError, onReady, onRecording, onProcessing } = {}) {
 
-    recordGainNode = null   
-
-    static getCorrectStreamForSafari(stream){
-        const safariVersionIndex = navigator.userAgent.indexOf('Version/')
-        const versionString =  navigator.userAgent.substring(safariVersionIndex + 8)
-        const safariVersion = parseFloat(versionString)        
-        if(isSafari && safariVersion > 16){
-            const micsource = TestLatencyMLS.audioContext.createMediaStreamSource(stream)
-            TestLatencyMLS.recordGainNode = TestLatencyMLS.audioContext.createGain()
-            micsource.connect(TestLatencyMLS.recordGainNode)
-            // If echocancellation is set to false in constraints the input gain from mic is very low, 
-            // that's why we need to increase it to 50
-            const defaultGain = 50
-            TestLatencyMLS.recordGainNode.gain.value = defaultGain
-            const dest = TestLatencyMLS.audioContext.createMediaStreamDestination()
-            // If echocancellation is set to false in constraints the input when using wired earpods (with mic) 
-            // is stereo but one single channel (left) so we need to force channelCount to be 1
-            dest.channelCount = 1
-            TestLatencyMLS.recordGainNode.connect(dest)
-            return dest.stream
-        } else {
-            return stream
-        }
-    }
-
-    static async initialize(ac, stream, btnId, numTests) {
-
-        TestLatencyMLS.btnId = btnId        
-
-        TestLatencyMLS.worker = new Worker(
+        this.recordingMode = recordingMode
+        this.mlsBits = mlsBits
+        this.maxLagMs = maxLagMs
+        this.bufferSize = bufferSize
+        this.debug = debug
+        this.onResult = onResult
+        this.onError = onError
+        this.onReady = onReady
+        this.onRecording = onRecording
+        this.onProcessing = onProcessing
+        
+        this.worker = new Worker(
             new URL('worker.js', import.meta.url),
             {type: 'module'}
         )
-        TestLatencyMLS.worker.addEventListener('message', (message) => {
-            TestLatencyMLS.workerMessageHanlder(message)
+        this.worker.addEventListener('message', (message) => {
+            this.workerMessageHandler(message)
+        })
+        this.worker.addEventListener('error', (e) => {
+            this.#log('worker error', { message: e.message })
+        })
+        this.worker.addEventListener('messageerror', (e) => {
+            this.#log('worker messageerror', { message: e.message })
         })
             
-        TestLatencyMLS.audioContext = ac
-        TestLatencyMLS.onAudioPermissionGranted(stream)
+        this.audioContext = ac
+        this.onAudioPermissionGranted(stream)
+        this.#log('initialize', { recordingMode, mlsBits, maxLagMs, sampleRate: ac.sampleRate, debug })
     }
 
-    static onAudioPermissionGranted(inputStream) {
-        
-        const noisemls = generateMLS(15)
-        TestLatencyMLS.noiseBuffer = TestLatencyMLS.generateAudio(noisemls, TestLatencyMLS.audioContext.sampleRate)
-        const userMediaStream =  TestLatencyMLS.getCorrectStreamForSafari(inputStream)
-        
-        TestLatencyMLS.inputStream = userMediaStream
-        TestLatencyMLS.displayStart()
+    #log(label, data) {
+        if (this.debug) console.debug('[latency-test]', performance.now().toFixed(2), label, data ?? '')
     }
 
-
-    static displayStart() {
-
-        TestLatencyMLS.content = document.getElementById(TestLatencyMLS.btnId)
-        TestLatencyMLS.content.innerHTML = ''        
-        TestLatencyMLS.startbutton = document.createElement('a')
-        TestLatencyMLS.startbutton.innerText = 'TEST LATENCY'
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.onAudioSetupFinished
-        TestLatencyMLS.content.appendChild(TestLatencyMLS.startbutton)
-    
+    onAudioPermissionGranted(inputStream) {
+        const noisemls = generateMLS(this.mlsBits)
+        this.noiseBuffer = this.generateAudio(noisemls, this.audioContext.sampleRate)
+        this.inputStream = inputStream
+        this.displayStart()
     }
 
-    static async onAudioSetupFinished() {
-        TestLatencyMLS.startbutton.innerText = 'STOP'       
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.displayStart
-        TestLatencyMLS.prepareAudioToPlayAndrecord()
+    displayStart() {
+        this.onReady?.()
     }
 
-    static prepareAudioToPlayAndrecord() {
+    async onAudioSetupFinished() {
+        return this.prepareAudioToPlayAndRecord()
+    }
 
-        TestLatencyMLS.signalrecorded = null
+    async prepareAudioToPlayAndRecord() {
+        this.#log('prepareAudioToPlayAndRecord', { recordingMode: this.recordingMode, audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.signalrecorded = null
+        this.noiseSource = this.audioContext.createBufferSource()
+        this.noiseSource.buffer = this.noiseBuffer
 
-        /* @cwilso:  https://github.com/cwilso/metronome/blob/28a6e49d9dd75985d67d94fa9f45327d7310d62f/js/metronome.js#L74 */
-        const silenceBuffer = TestLatencyMLS.audioContext.createBuffer(1, 2*TestLatencyMLS.audioContext.sampleRate, TestLatencyMLS.audioContext.sampleRate)
-        const silenceNode = TestLatencyMLS.audioContext.createBufferSource()
+        // Keep the audio thread scheduled during every test run (cwilso keepalive).
+        // Without this, Firefox's audio scheduler may relax between runs and
+        // introduce timing jitter.
+        const silenceBuffer = this.audioContext.createBuffer(
+            1,
+            2 * this.audioContext.sampleRate,
+            this.audioContext.sampleRate
+        )
+        const silenceNode = this.audioContext.createBufferSource()
         silenceNode.buffer = silenceBuffer
-       
-        const doTheTest = () => {
+        silenceNode.connect(this.audioContext.destination)
+        silenceNode.start()
+        this.#log('silence started', { audioTime: this.audioContext.currentTime.toFixed(4) })
 
-            const noiseSource = TestLatencyMLS.audioContext.createBufferSource()
-            noiseSource.buffer = TestLatencyMLS.noiseBuffer
+        if (this.stopped) return
 
-            noiseSource.connect(TestLatencyMLS.audioContext.destination)
+        if (this.recordingMode === 'audioworklet') {
+            await this.startWorkletCapture()
+        } else if (this.recordingMode === 'mediarecorder-2ch') {
+            this.onError?.('recording-mode "mediarecorder-2ch" is not yet implemented')
+            return
+        } else {
+            this.startMediaRecorderCapture()
+        }
+    }
 
-            let chunks = []
+    startMediaRecorderCapture() {
+        this.noiseSource.connect(this.audioContext.destination)
 
-            const mediaRecorder = new MediaRecorder(TestLatencyMLS.inputStream)
-
-            mediaRecorder.ondataavailable = async (event) => {
-                chunks.push(event.data)
-            }
-            mediaRecorder.onstop = async () => {
-                noiseSource.disconnect(TestLatencyMLS.audioContext.destination)
-                TestLatencyMLS.displayAudioTagElem(chunks, mediaRecorder.mimeType)
-            }
-
-            mediaRecorder.start()
-
-            noiseSource.start()
-            noiseSource.onended = function () {
-                mediaRecorder.stop()
-                TestLatencyMLS.finishTest()
+        let chunks = []
+        try {
+            this.mediaRecorder = new MediaRecorder(this.inputStream)
+        } catch (e) {
+            this.#log('MediaRecorder constructor failure', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.mediaRecorder.ondataavailable = async (event) => {
+            chunks.push(event.data)
+        }
+        this.mediaRecorder.onstop = async () => {
+            this.#log('mediaRecorder.onstop', { chunks: chunks.length })
+            this.noiseSource.disconnect(this.audioContext.destination)
+            try {
+                await this.displayAudioTagElem(chunks, this.mediaRecorder.mimeType)
+            } catch (e) {
+                this.onError?.(e.message)
             }
         }
-        silenceNode.start(0)
-        doTheTest()
+        const mrStartTime = performance.now()
+        try {
+            this.mediaRecorder.start()
+        } catch (e) {
+            this.#log('mediaRecorder.start failure', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.noiseSource.start()
+        const nsStartTime = performance.now()
+        this.#log('mediaRecorder.start', { mimeType: this.mediaRecorder.mimeType, t: mrStartTime.toFixed(2) })
+        this.#log('noiseSource.start', { audioTime: this.audioContext.currentTime.toFixed(4), startPairSpanMs: (nsStartTime - mrStartTime).toFixed(2) })
+        this.onRecording?.()
+        this.noiseSource.onended = () => {
+            this.mediaRecorder.stop()
+            this.finishTest()
+        }
     }
 
-    static finishTest() {
-        TestLatencyMLS.startbutton.innerText = 'PROCESSING... '
-        TestLatencyMLS.startbutton.onclick = TestLatencyMLS.displayStart        
+    async startWorkletCapture() {
+        await this.loadRecorderProcessor(this.audioContext)
+
+        this.workletNode = new AudioWorkletNode(this.audioContext, 'recorder-processor', {
+            numberOfInputs: 2,
+            numberOfOutputs: 1,
+            outputChannelCount: [1],
+            processorOptions: { bufferSize: this.bufferSize }
+        })
+
+        this.micSource = this.audioContext.createMediaStreamSource(this.inputStream)
+        this.micSource.connect(this.workletNode, 0, 0)
+        this.#log('worklet mic source connected', { audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.noiseSource.connect(this.workletNode, 0, 1)
+        this.#log('worklet ref source connected', { audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.noiseSource.connect(this.audioContext.destination)
+
+        this.workletNode.port.postMessage({ command: 'start' })
+        this.#log('workletNode start', { audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.noiseSource.start()
+        this.#log('noiseSource.start (worklet)', { audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.onRecording?.()
+
+        this.workletNode.port.onmessage = (e) => {
+            const mic = concatFloat32(e.data.mic)
+            const ref = concatFloat32(e.data.ref)
+            this.#log('worklet message received', { micLen: mic.length, refLen: ref.length })
+            this.correlation = null
+            const wMaxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
+            this.#log('worker postMessage correlation (worklet)', { maxLag: wMaxLag, data1Len: mic.length, data2Len: ref.length, channel: 0, debug: this.debug })
+            this.worker.postMessage({
+                command: 'correlation',
+                data1: mic,
+                data2: ref,
+                maxLag: wMaxLag,
+                channel: 0,
+                debug: this.debug
+            })
+            this.workletNode.port.onmessage = null
+            this.workletNode.disconnect()
+            this.workletNode = null
+            this.micSource?.disconnect()
+            this.micSource = null
+        }
+
+        this.noiseSource.onended = () => {
+            this.workletNode.port.postMessage({ command: 'stop' })
+            this.#log('workletNode stop', { audioTime: this.audioContext.currentTime.toFixed(4) })
+            this.finishTest()
+        }
     }
 
-    static async blobToAudioBuffer(audioContext, blob) {
+   async loadRecorderProcessor(ac) {
+        const t0 = performance.now()
+        const pending = loadedProcessors.get(ac)
+        if (pending) {
+            this.#log('loadRecorderProcessor cache-hit', {})
+            await pending
+            return
+        }
+        this.#log('loadRecorderProcessor start', {})
+        const p = (async () => {
+            const url = new URL('./recorder-processor.js', import.meta.url)
+            const resp = await fetch(url)
+            const source = await resp.text()
+            const blob = new Blob([source], { type: 'application/javascript' })
+            const blobUrl = URL.createObjectURL(blob)
+            await ac.audioWorklet.addModule(blobUrl)
+            URL.revokeObjectURL(blobUrl)
+        })()
+        loadedProcessors.set(ac, p.catch(e => {
+            this.#log('loadRecorderProcessor failure', { error: e.message })
+            loadedProcessors.delete(ac)
+            throw e
+        }))
+        await loadedProcessors.get(ac)
+        this.#log('loadRecorderProcessor complete', { elapsedMs: (performance.now() - t0).toFixed(2) })
+    }
+
+    finishTest() {
+        this.onProcessing?.()
+    }
+
+    stop() {
+        this.#log('stop', { alreadyStopped: this.stopped, hasRecorder: !!this.mediaRecorder, hasWorklet: !!this.workletNode })
+        this.stopped = true
+        if (this.noiseSource) {
+            this.noiseSource.onended = null
+            try { this.noiseSource.stop() } catch (e) {}
+            this.noiseSource.disconnect()
+        }
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.onstop = null
+            this.mediaRecorder.stop()
+        }
+        if (this.workletNode) {
+            this.workletNode.port.onmessage = null
+            this.workletNode.port.postMessage({ command: 'stop' })
+            this.workletNode.disconnect()
+            this.workletNode = null
+        }
+        if (this.micSource) {
+            this.micSource.disconnect()
+            this.micSource = null
+        }
+        if (this.worker) {
+            this.worker.terminate()
+            this.worker = null
+        }
+    }
+
+    async blobToAudioBuffer(audioContext, blob) {
         const arrayBuffer = await blob.arrayBuffer()
         return await audioContext.decodeAudioData(arrayBuffer)
     }
 
-    static workerMessageHanlder(message){
+    workerMessageHandler(message){
         if(message.data.correlation){
-            TestLatencyMLS.correlation = message.data.correlation
-            TestLatencyMLS.worker.postMessage({
+            this.correlation = message.data.correlation
+            this.#log('worker postMessage findpeak', { correlationLen: this.correlation.length })
+            this.worker.postMessage({
                 command: 'findpeak',
-                array: TestLatencyMLS.correlation,
-                channel: message.data.channel
+                array: this.correlation,
+                channel: message.data.channel,
+                debug: this.debug
             })
         }
-        if(message.data.peakValuePow){                 
-            TestLatencyMLS.displayresults(message.data, TestLatencyMLS.signalrecorded, TestLatencyMLS.noiseBuffer, TestLatencyMLS.correlation)                      
+        if('peakValuePow' in message.data){
+            this.#log('worker result', { peakIndex: message.data.peakIndex, channel: message.data.channel })
+            this.displayresults(message.data, this.signalrecorded, this.noiseBuffer, this.correlation)
         }
     }  
 
-    static async displayAudioTagElem(chunks, mimeType) {
-        
+    async displayAudioTagElem(chunks, mimeType) {
+
         const recordedAudio = new Blob(chunks, { type: mimeType })
-        
-        TestLatencyMLS.signalrecorded = await TestLatencyMLS.blobToAudioBuffer(TestLatencyMLS.audioContext, recordedAudio)       
-        
-        TestLatencyMLS.correlation = null
-        TestLatencyMLS.worker.postMessage({
+
+        try {
+            this.signalrecorded = await this.blobToAudioBuffer(this.audioContext, recordedAudio)
+        } catch (e) {
+            this.#log('decodeAudioData failure', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.#log('decodeAudioData result', { channels: this.signalrecorded.numberOfChannels, duration: this.signalrecorded.duration.toFixed(3) + 's', sampleRate: this.signalrecorded.sampleRate, length: this.signalrecorded.length })
+
+        const maxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
+        this.#log('worker postMessage correlation', { maxLag, data1Len: this.signalrecorded.getChannelData(0).length, data2Len: this.noiseBuffer.getChannelData(0).length, channel: 0, debug: this.debug })
+        this.correlation = null
+        this.worker.postMessage({
             command: 'correlation',
-            data1: TestLatencyMLS.signalrecorded.getChannelData(0), 
-            data2: TestLatencyMLS.noiseBuffer.getChannelData(0), 
-            maxLag: (0.600 * TestLatencyMLS.audioContext.sampleRate),
-            channel: 0
+            data1: this.signalrecorded.getChannelData(0),
+            data2: this.noiseBuffer.getChannelData(0),
+            maxLag,
+            channel: 0,
+            debug: this.debug
         })
-        URL.revokeObjectURL(recordedAudio)
     }
 
-    static generateAudio(mlsSequence, frequency) {        
+    generateAudio(mlsSequence, frequency) {        
 
-        const audioBuffer = TestLatencyMLS.audioContext.createBuffer(1, mlsSequence.length, frequency)
+        const audioBuffer = this.audioContext.createBuffer(1, mlsSequence.length, frequency)
         let bufferData = audioBuffer.getChannelData(0)
         for (let i = 0; i < mlsSequence.length; i++) {
             // Convert binary sequence to audio signal
@@ -177,17 +325,13 @@ export class TestLatencyMLS {
         return audioBuffer
     }
 
-    static displayresults(peak, signalrecorded, mlssignal, correlation) {
-       
+    displayresults(peak, signalrecorded, mlssignal, correlation) {
         if(peak.channel === 0){
-            const roundtriplatency = Number(peak.peakIndex / mlssignal.sampleRate * 1000).toFixed(2)
-            const ratioIs = 10 * Math.log10(peak.peakValuePow / peak.mean)
-            if(ratioIs <= 18){
-                console.error('The Latency Test did not go well, there could be an issue with the audio settings')
-            }
-            TestLatencyMLS.startbutton.innerText = 'TEST AGAIN '
-            TestLatencyMLS.startbutton.innerHTML += `<span class='badge badge-info'>lat: ${roundtriplatency} ms.</span><br>`
-            TestLatencyMLS.startbutton.innerHTML += `<span class='badge badge-light'>ratio: ${ratioIs.toFixed(2)} dB</span>`
+            const latency = peak.peakIndex / mlssignal.sampleRate * 1000
+            const ratio = 10 * Math.log10(peak.peakValuePow / peak.mean)
+            const reliable = ratio > 18
+            this.#log('displayresults', { latency: latency.toFixed(2) + 'ms', ratio: ratio.toFixed(2) + 'dB', reliable, mode: this.recordingMode })
+            this.onResult?.({latency, ratio, reliable, timestamp: Date.now(), mode: this.recordingMode})
         } else{
             console.log('Channel', peak.channel )
             const roundtriplatency = peak.peakIndex / mlssignal.sampleRate * 1000

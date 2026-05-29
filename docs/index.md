@@ -18,16 +18,16 @@ hero:
 
 features:
   - title: Multiple Signal Types
-    details: MLS (Maximum Length Sequence), logarithmic chirp sweep, and Golay complementary sequence pairs — choose the signal that fits your measurement environment.
+    details: MLS (Maximum Length Sequence) — the current default. Chirp and Golay are planned for a future release.
   - title: Dual Capture Backends
-    details: MediaRecorder (v1 default, implemented) and AudioWorklet (v2 default, planned) — both available via the recording-mode attribute. Enables a non-breaking migration path.
+    details: MediaRecorder and AudioWorklet — both implemented and selectable via the recording-mode attribute.
   - title: Headless by Default
     details: Exposes start() / stop() methods and fires CustomEvents. No built-in UI — drop it into any host application or DAW without styling conflicts.
   - title: Framework Ready
     details: Works with Vanilla JS, React, Vue, Svelte, Angular, and Next.js. Zero dependencies at runtime.
 ---
 
-> **Work in progress.** The `<latency-test>` web component is currently in development. The API and examples described here reflect the planned interface. See [CLAUDE_REVIEW.md](https://github.com/idsinge/latency-test/blob/main/CLAUDE_REVIEW.md) for migration status.
+> **Work in progress.** The `<latency-test>` web component is currently in development. The API and examples described here reflect the planned interface. See [agents/CLAUDE_REVIEW.md](https://github.com/idsinge/latency-test/blob/main/agents/CLAUDE_REVIEW.md) for migration status.
 
 ## Quick start
 
@@ -51,13 +51,13 @@ npm install @hi-audio/latency-test
 ## Key concepts
 
 - The component is **headless by default** — it exposes `start()` / `stop()` and fires events. No built-in button or result display.
-- Results are delivered via the `latency-result` CustomEvent (`{ latency, ratio, timestamp }`).
+- Results are delivered via the `latency-result` CustomEvent (`{ latency, ratio, reliable, timestamp, mode }`).
 - A reliability ratio above **18 dB** indicates a trustworthy measurement.
 - Microphone access is requested on the first `start()` call.
 - For DAW or multi-context applications, pass your existing `AudioContext` via `element.audioContext = ac` before calling `start()`.
-- Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, planned).
-- Use `signal-type` to select the measurement signal: `"mls"`, `"chirp"`, or `"golay"`.
-- Use `input-gain` to apply a custom input gain (e.g. `50` to compensate for low Safari microphone levels).
+- Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, implemented). `"mediarecorder-2ch"` is planned (Phase 3b).
+- Use `signal-type` to select the measurement signal: `"mls"` (implemented), `"chirp"`, or `"golay"` (planned).
+- `input-gain` is reserved for a future gain multiplier — it is not yet wired in the current version.
 
 ## Try it live
 

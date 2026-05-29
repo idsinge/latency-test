@@ -1,6 +1,8 @@
 # API Reference — `@hi-audio/latency-test`
 
-> **Draft.** This document describes the planned API for the `<latency-test>` web component. The component is not yet published.
+> **Draft.** This document describes the API for `<latency-test>`.
+> Items marked `(implemented)` are active in the current version.
+> Items marked `(planned)` are reserved for future versions.
 
 ---
 
@@ -20,16 +22,18 @@ import '@hi-audio/latency-test'
 
 ## Attributes
 
-Attributes are reflected as properties and can be set either in HTML or via JavaScript.
+Attributes can be set in HTML or via JavaScript property assignment. Setting an attribute updates the corresponding JS property via `attributeChangedCallback`. Setting a JS property directly does not update the HTML attribute (reflection is one-way).
 
-| Attribute | Property | Type | Default | Description |
-|---|---|---|---|---|
-| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. |
-| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. **v1 default: `"mediarecorder"`** — uses `MediaRecorder` + Blob decode (implemented). **v2 default: `"audioworklet"`** — raw Float32 PCM directly from the audio graph (planned). Both values are accepted in both versions. See ScriptProcessor note below. |
-| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. See signal types table below. |
-| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Use `50` to replicate the automatic Safari microphone compensation if needed. |
-| `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. |
-| `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. |
+| Attribute | Property | Type | Default | Description | Status |
+|---|---|---|---|---|---|
+| `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | implemented |
+| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` — single-channel, mic stream used directly, closest to production DAW path, has an unknown start-timing bias (implemented). `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias, channel-relative stable but not sample-accurate; measures a different pipeline due to extra Web Audio nodes — overhead direction is browser-dependent (planned). `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference (implemented). Each mode measures the latency of its own pipeline — the differences between modes are intentional and informative. | implemented / planned |
+| `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. Only `"mls"` is implemented. See signal types table below. | planned (v2) |
+| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Attribute observed but gain node not yet wired. | planned (v2) |
+| `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
+| `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
+| `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
+| `debug` | `debug` | `boolean` | `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints — stream acquisition, pre-roll, recording start, worker messages, and result computation. **For development and debugging only; has no effect on measurement output.** Caution: `startPairSpanMs` in the log output is an upper-bound span that includes both `mediaRecorder.start()` and `noiseSource.start()` execution time — it is not a pure inter-call gap. Additionally, debug logging elsewhere (and DevTools being open) can perturb console and scheduling performance. Do not use debug mode for measurements you intend to record. Toggle at runtime without page reload: `element.debug = true`. | implemented |
 
 ### Example
 
@@ -92,7 +96,7 @@ element.start()
 
 ### `stop()`
 
-Aborts an in-progress measurement. The component returns to its idle state. No `latency-result` or `latency-complete` events are fired for the aborted run.
+Aborts an in-progress measurement. The component returns to its idle state. If runs were pending, a `latency-complete` event fires with `{ aborted: true }` and partial results. No `latency-result` fires for the aborted run.
 
 ```js
 element.stop()
@@ -110,25 +114,28 @@ Fired once per completed test run with the measurement result.
 
 ```js
 element.addEventListener('latency-result', (e) => {
-  const { latency, ratio, timestamp } = e.detail
+  const { latency, ratio, reliable, timestamp, mode } = e.detail
   // latency   — round-trip latency in milliseconds (number)
   // ratio     — correlation reliability in dB (number); values > 18 dB are considered reliable
+  // reliable  — boolean, true when ratio > 18 dB
   // timestamp — Unix timestamp of the measurement (number)
+  // mode      — recording-mode that produced this result: "mediarecorder" | "mediarecorder-2ch" | "audioworklet"
 })
 ```
 
 ### `latency-complete`
 
-Fired after all runs finish when `number-of-tests` > 1. Contains aggregate statistics over the full set.
+Fired when all runs complete (or when `stop()` aborts mid-sequence). Contains all results and aggregate statistics. When aborted, `e.detail.aborted` is `true`.
 
 ```js
 element.addEventListener('latency-complete', (e) => {
-  const { results, mean, std, min, max } = e.detail
-  // results — array of { latency, ratio, timestamp } objects
+  const { results, mean, std, min, max, aborted } = e.detail
+  // results — array of { latency, ratio, reliable, timestamp, mode } objects
   // mean    — mean latency in ms
   // std     — standard deviation of latency in ms
   // min     — minimum latency in ms
   // max     — maximum latency in ms
+  // aborted — true when stop() was called mid-sequence (undefined otherwise)
 })
 ```
 
@@ -145,13 +152,13 @@ element.addEventListener('latency-error', (e) => {
 
 ### Lifecycle events
 
-These fire with no payload (`e.detail` is `null`). Use them to update host UI state — disable buttons, show spinners, etc.
+These fire with no meaningful payload (`e.detail` is an empty object `{}`). Use them to update host UI state — disable buttons, show spinners, etc.
 
-| Event | When fired |
-|---|---|
-| `latency-start` | Permission granted; test is about to begin |
-| `latency-recording` | Signal playback started; capture is running |
-| `latency-processing` | Recording stopped; cross-correlation worker is running |
+| Event | When fired | Notes |
+|---|---|---|
+| `latency-start` | Mic acquired; test is about to begin | Always fires during `start()`, followed by `latency-recording` when signal playback begins. |
+| `latency-recording` | Signal playback started; capture is running | |
+| `latency-processing` | Recording stopped; cross-correlation worker is running | |
 
 ---
 
@@ -164,7 +171,7 @@ These values are fixed by the research methodology and are not configurable:
 | Reliability threshold | `18 dB` | Minimum correlation ratio for a trustworthy measurement — empirically chosen in the WAC 2025 experiments |
 | MLS amplitude | `±1.0` | Binary MLS sequence mapped to `+1.0` / `−1.0` float samples |
 | Chirp frequency range | `1500–8000 Hz` | Bandlimited to avoid input aliasing above 12 kHz present on some iOS devices |
-| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Essential for accurate measurement; these are always forced |
+| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Applied when the component calls `getUserMedia`. Not applied to host-provided streams — the host is responsible for setting constraints on streams passed via `element.inputStream`. |
 
 ---
 
@@ -175,4 +182,4 @@ These values are fixed by the research methodology and are not configurable:
 - Web Workers
 - HTTPS or `localhost`
 
-Safari may require manual gain compensation — set `input-gain="50"` if microphone levels are too low (common on Safari > v16 with `echoCancellation` disabled). The component does not apply any gain automatically.
+Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.

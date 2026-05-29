@@ -15,7 +15,7 @@ No framework required. Import the package and use the element directly in HTML.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <button id="btn">Test Latency</button>
@@ -49,6 +49,7 @@ No framework required. Import the package and use the element directly in HTML.
 
 ```html
 <latency-test id="lt" number-of-tests="10"></latency-test>
+<button id="btn">Run 10 tests</button>
 
 <script>
   const lt = document.getElementById('lt')
@@ -62,7 +63,8 @@ No framework required. Import the package and use the element directly in HTML.
     console.log(`Mean: ${mean.toFixed(2)} ms | Std: ${std.toFixed(2)} | Min: ${min.toFixed(2)} | Max: ${max.toFixed(2)}`)
   })
 
-  lt.start()
+  // Must be called from a user gesture — AudioContext requires it
+  document.getElementById('btn').addEventListener('click', () => lt.start())
 </script>
 ```
 
@@ -70,7 +72,9 @@ No framework required. Import the package and use the element directly in HTML.
 
 ## Sharing an existing AudioContext
 
-```js
+```html
+<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
+<script type="module">
 import '@hi-audio/latency-test'
 
 const ac = new AudioContext()
@@ -81,7 +85,9 @@ lt.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-lt.start()
+// Must be called from a user gesture — getUserMedia requires it
+document.getElementById('startBtn').addEventListener('click', () => lt.start())
+</script>
 ```
 
 ---
@@ -100,7 +106,8 @@ document.getElementById('stopBtn').addEventListener('click', () => {
 
 ## TypeScript
 
-Types are bundled with the package. No manual declarations needed — `querySelector` returns the correct type automatically:
+Types are planned for a future release (Phase 7 — pre-publish).  
+Once available, `querySelector` returns the correct type automatically:
 
 ```ts
 import '@hi-audio/latency-test'
