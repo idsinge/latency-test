@@ -16,6 +16,12 @@
     <span id="activity-indicator" class="activity-idle"></span>
 </header>
 
+<div id="connect-section">
+    <button id="connect-btn" class="btn btn-primary">Connect Audio</button>
+    <p id="connect-status"></p>
+</div>
+
+<div id="demo-section" hidden>
 <div class="tablist" role="tablist" aria-label="Demo patterns">
     <button role="tab" id="tab-minimal" aria-selected="true" aria-controls="panel-minimal" tabindex="0">Minimal</button>
     <button role="tab" id="tab-multi" aria-selected="false" aria-controls="panel-multi" tabindex="-1">Multi-Run</button>
@@ -106,11 +112,11 @@
     <h2>Host-Managed AudioContext &amp; Stream</h2>
     <p class="desc">The host creates its own <code>AudioContext</code> and <code>MediaStream</code>, then passes them via properties. The component never closes or stops what it didn't create.</p>
     <div class="controls">
-        <button class="btn btn-primary" id="context-init">Init &amp; Start</button>
+        <button class="btn btn-primary" id="context-init">Start Test</button>
         <button class="btn btn-secondary" id="context-stop" disabled>Stop</button>
     </div>
     <div id="context-status" class="result-box">
-        <div class="detail">Ready. Click <strong>Init &amp; Start</strong>.</div>
+        <div class="detail">Ready. Click <strong>Start Test</strong>.</div>
     </div>
     <div id="context-result" class="result-box" style="display:none">
         <div class="latency" id="context-latency">—</div>
@@ -124,11 +130,11 @@
 &lt;script&gt;
   const tester = document.querySelector('#context-tester')
 
-  // Pass host-owned resources via JS properties
-  const ac = new AudioContext({ latencyHint: 0 })
+  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
+  const ac = new AudioContext({ latencyHint: 0 })
 
   tester.audioContext = ac
   tester.inputStream = stream
@@ -172,11 +178,11 @@
   const mr = document.querySelector('#mode-mr')
   const aw = document.querySelector('#mode-aw')
 
-  // Both share the same AudioContext + MediaStream
-  const ac = new AudioContext({ latencyHint: 0 })
+  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
+  const ac = new AudioContext({ latencyHint: 0 })
 
   mr.audioContext = aw.audioContext = ac
   mr.inputStream = aw.inputStream = stream
@@ -226,6 +232,7 @@
 </div>
 
 </main>
+</div><!-- #demo-section -->
 
 <script src="js/common.js"></script>
 <script src="js/minimal.js"></script>

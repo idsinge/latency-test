@@ -1,6 +1,39 @@
 ;(function () {
     'use strict'
 
+    // ── Audio session setup ──
+    const MIC_CONSTRAINTS = {
+        audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            latency: 0,
+            channelCount: 1
+        }
+    }
+
+    const connectBtn = document.getElementById('connect-btn')
+    const connectStatus = document.getElementById('connect-status')
+    const demoSection = document.getElementById('demo-section')
+
+    connectBtn.addEventListener('click', async () => {
+        connectBtn.disabled = true
+        connectStatus.textContent = 'Requesting mic access…'
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+            const ac = new AudioContext({ latencyHint: 0 })
+            document.querySelectorAll('latency-test').forEach(el => {
+                el.inputStream = stream
+                el.audioContext = ac
+            })
+            document.getElementById('connect-section').style.display = 'none'
+            demoSection.removeAttribute('hidden')
+        } catch (e) {
+            connectStatus.textContent = `Could not access mic: ${e.message}`
+            connectBtn.disabled = false
+        }
+    })
+
     // ── Tab system ──
     const tablist = document.querySelector('.tablist')
     const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'))

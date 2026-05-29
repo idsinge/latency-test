@@ -8,8 +8,6 @@
     const awResultBox = document.getElementById('mode-aw-result')
     const compareResultBox = document.getElementById('mode-compare-result')
 
-    let stream = null
-    let ac = null
     let results = {}
 
     mrTester.addEventListener('latency-result', e => {
@@ -55,27 +53,10 @@
 
     compareBtn.addEventListener('click', async () => {
         compareBtn.disabled = true
-        ac?.close()
-        stream?.getTracks().forEach(t => t.stop())
         results = {}
         compareResultBox.style.display = 'none'
         mrResultBox.innerHTML = '<div class="detail">Running MR…</div>'
         awResultBox.innerHTML = '<div class="detail">Waiting for MR…</div>'
-
-        try {
-            ac = new AudioContext({ latencyHint: 0 })
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
-            })
-            mrTester.audioContext = ac
-            mrTester.inputStream = stream
-            awTester.audioContext = ac
-            awTester.inputStream = stream
-            await window.startTest(mrTester)
-        } catch (err) {
-            mrResultBox.querySelector('.detail').style.color = '#c62828'
-            mrResultBox.querySelector('.detail').textContent = err.message
-            compareBtn.disabled = false
-        }
+        await window.startTest(mrTester)
     })
 })()

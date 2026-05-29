@@ -9,9 +9,6 @@
     const latencyEl = document.getElementById('context-latency')
     const detailEl = document.getElementById('context-detail')
 
-    let ac = null
-    let stream = null
-
     tester.addEventListener('latency-start', () => {
         initBtn.disabled = true
         stopBtn.disabled = false
@@ -40,23 +37,12 @@
     })
 
     initBtn.addEventListener('click', async () => {
-        try {
-            tester.stop()
-            ac?.close()
-            stream?.getTracks().forEach(t => t.stop())
-            ac = new AudioContext({ latencyHint: 0 })
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
-            })
-            tester.audioContext = ac
-            tester.inputStream = stream
-            resultBox.style.display = 'none'
-            statusEl.querySelector('.detail').textContent = 'AudioContext + stream set. Starting test…'
-            stopBtn.disabled = false
-            await window.startTest(tester)
-        } catch (err) {
-            statusEl.querySelector('.detail').textContent = `Error: ${err.message}`
-        }
+        initBtn.disabled = true
+        stopBtn.disabled = false
+        resultBox.style.display = 'none'
+        statusEl.querySelector('.detail').textContent = 'Starting test with host-provided resources…'
+        await window.startTest(tester)
+        initBtn.disabled = false
     })
 
     stopBtn.addEventListener('click', () => {
