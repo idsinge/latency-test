@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="hiaudio">
-    <title>Hi-Audio Latency Test — MediaRecorder</title>
+    <title>Hi-Audio Latency Test — AudioWorklet</title>
 </head>
 
 <body>
     <main id="app">
-        <nav><a href="audioworklet.html">Switch to AudioWorklet →</a></nav>
+        <nav><a href="index.html">← Switch to MediaRecorder</a></nav>
         <div id="connect-section">
             <button id="connect-btn">Connect Audio</button>
             <p id="connect-status"></p>
@@ -19,7 +19,7 @@
             <label>Number of runs:
                 <input type="number" id="run-count" value="1" min="1" max="20">
             </label>
-            <latency-test id="tester" recording-mode="mediarecorder"></latency-test>
+            <latency-test id="tester" recording-mode="audioworklet"></latency-test>
             <button id="start-btn">TEST LATENCY</button>
             <div id="results"></div>
             <div id="aggregate" style="display:none"></div>

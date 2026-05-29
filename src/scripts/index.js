@@ -19,7 +19,6 @@ const btn = document.getElementById('start-btn')
 const results = document.getElementById('results')
 const aggregate = document.getElementById('aggregate')
 const runCount = document.getElementById('run-count')
-const modeSelect = document.getElementById('mode-select')
 
 // --- Audio session setup ---
 
@@ -40,10 +39,6 @@ connectBtn.addEventListener('click', async () => {
 })
 
 // --- Measurement ---
-
-modeSelect.addEventListener('change', () => {
-    tester.recordingMode = modeSelect.value
-})
 
 tester.addEventListener('latency-start', () => {
     btn.textContent = 'STARTING...'
