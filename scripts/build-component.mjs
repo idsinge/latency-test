@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, rmSync } from 'fs'
+import { mkdirSync, readFileSync, readdirSync, rmSync } from 'fs'
 import { resolve } from 'path'
 import * as esbuild from 'esbuild'
 
@@ -37,6 +37,7 @@ const inlinePlugin = {
 }
 
 function cleanDist() {
+    mkdirSync('dist', { recursive: true })
     const files = readdirSync('dist/')
     const keep = new Set([
         'latency-test.esm.js', 'latency-test.esm.js.map',
