@@ -33,6 +33,14 @@ jobs:
       - name: Build VitePress docs
         run: npm run docs:build
 
+      - name: Build component bundle
+        run: npm run build:component
+
+      - name: Copy demo and component bundle into Pages output
+        run: |
+          cp -R demo docs/.vitepress/dist/demo
+          cp -R dist docs/.vitepress/dist/dist
+
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
