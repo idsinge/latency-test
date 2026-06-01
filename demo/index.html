@@ -28,6 +28,7 @@
     <button role="tab" id="tab-context" aria-selected="false" aria-controls="panel-context" tabindex="-1">Context Share</button>
     <button role="tab" id="tab-mode" aria-selected="false" aria-controls="panel-mode" tabindex="-1">Mode Toggle</button>
     <button role="tab" id="tab-lifecycle" aria-selected="false" aria-controls="panel-lifecycle" tabindex="-1">Lifecycle</button>
+    <button role="tab" id="tab-debug" aria-selected="false" aria-controls="panel-debug" tabindex="-1">Debug Mode</button>
 </div>
 
 <main>
@@ -231,6 +232,53 @@
     </details>
 </div>
 
+<!-- ─── Tab: Debug Mode ─── -->
+<div id="panel-debug" class="tabpanel" role="tabpanel" aria-labelledby="tab-debug" aria-hidden="true">
+    <h2>Debug Mode</h2>
+    <div class="callout-warn">
+        <strong>Development only.</strong> Debug mode enables <code>console.debug('[latency-test]', …)</code> logging at internal checkpoints. Having debug on — or DevTools open — can perturb browser scheduling and affect latency accuracy. Do not use for measurements you intend to record.
+    </div>
+    <div class="controls">
+        <label>
+            <input type="checkbox" id="debug-toggle"> Enable debug logging
+        </label>
+        <button class="btn btn-primary" id="debug-start">Start Test</button>
+        <button class="btn btn-secondary" id="debug-stop" disabled>Stop</button>
+    </div>
+    <div id="debug-result" class="result-box">
+        <div class="detail">Enable debug logging, then press <strong>Start Test</strong>.</div>
+    </div>
+    <div id="debug-console" class="event-log">
+        <div class="info">// Debug log</div>
+    </div>
+    <p class="desc">Main-thread checkpoints only — cross-correlation worker logs appear in DevTools but not here.</p>
+    <latency-test id="debug-tester"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;!-- Option 1: HTML attribute (debug on from page load) --&gt;
+&lt;latency-test id="tester" debug&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#tester')
+
+  tester.addEventListener('latency-result', e =&gt; {
+    // [latency-test] lines appear in DevTools console
+    console.log(`Latency: ${e.detail.latency.toFixed(2)} ms`)
+  })
+
+  tester.start()
+&lt;/script&gt;
+
+&lt;!-- Option 2: Runtime toggle (enable before start() for full logs) --&gt;
+&lt;latency-test id="tester"&gt;&lt;/latency-test&gt;
+&lt;script&gt;
+  const tester = document.querySelector('#tester')
+  tester.debug = true   // enable before start() to capture all checkpoints
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
 </main>
 </div><!-- #demo-section -->
 
@@ -240,5 +288,6 @@
 <script src="js/context-share.js"></script>
 <script src="js/mode-toggle.js"></script>
 <script src="js/lifecycle.js"></script>
+<script src="js/debug.js"></script>
 </body>
 </html>

@@ -13,6 +13,9 @@ hero:
       text: API Reference
       link: /api
     - theme: alt
+      text: Live Demo
+      link: https://idsinge.github.io/latency-test/demo/
+    - theme: alt
       text: GitHub
       link: https://github.com/idsinge/latency-test
 
@@ -61,7 +64,7 @@ npm install @hi-audio/latency-test
 
 ## Try it live
 
-> **Coming soon.** A live interactive demo will be available here once the component is published. It will let you test round-trip latency in your browser — with your own microphone and audio setup — before deciding whether to include the component in your project.
+An interactive demo is live at **[idsinge.github.io/latency-test/demo](https://idsinge.github.io/latency-test/demo/)**. It loads the built IIFE bundle and lets you test round-trip latency in your browser — with your own microphone and audio setup — across all available capture backends and usage patterns.
 
 ## Origin
 
