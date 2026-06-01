@@ -61,7 +61,7 @@ Full integration docs are published via VitePress (see `docs/`):
 - **API reference** — attributes, methods, events, algorithm constants: `docs/api.md`
 - **Framework examples** — Vanilla JS, React, Vue, Svelte, Angular, Next.js: `docs/examples/`
 - **Installation** — npm, CDN, AudioContext sharing: `docs/install.md`
-- Live demo: coming soon
+- **Live demo:** https://idsinge.github.io/latency-test/demo/
 
 ## Local development
 

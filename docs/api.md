@@ -64,6 +64,42 @@ Reference: [superpoweredSDK/WebBrowserAudioLatencyMeasurement](https://github.co
 
 ---
 
+## Debug Mode
+
+The `debug` attribute enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. It is intended for development and troubleshooting only.
+
+### Enabling
+
+```html
+<!-- HTML attribute -->
+<latency-test debug></latency-test>
+```
+
+```js
+// JS property — can be toggled at runtime without page reload
+element.debug = true
+```
+
+> **Enable debug before calling `start()` for full coverage.**
+> The `debug` flag is passed to the controller and worker at run start — their logs are snapshotted at that point. Element-level lifecycle logs (e.g. `latency-complete`) read `debug` live, so changes mid-run may still affect those.
+
+### What gets logged
+
+Each line is prefixed `[latency-test]` with a timestamp in ms — main-thread logs use `performance.now()` (relative to page load); worker logs use `performance.timeOrigin + performance.now()` (absolute wall-clock ms). Checkpoints include:
+
+- Stream acquisition and track settings (`getUserMedia`)
+- `AudioContext` creation or reuse (sample rate, state)
+- Recording start — mode, MIME type, MLS buffer length
+- Worker message sends (correlation command, `maxLag`, buffer sizes)
+- Worker results (peak index, ratio, mode)
+- `startPairSpanMs` — wall-clock span between `mediaRecorder.start()` and `noiseSource.start()`. This is an **upper-bound diagnostic** that spans the execution time of both calls; it is not a pure inter-call gap and should not be interpreted as the start-timing bias between the two clocks.
+
+### Warning: do not use for production measurements
+
+> Debug logging — and having DevTools open — can perturb browser scheduling and affect latency estimates. Results collected while `debug` is enabled should not be recorded, published, or compared against non-debug measurements.
+
+---
+
 ## Properties (JS only)
 
 These are set via JavaScript, not HTML attributes.
