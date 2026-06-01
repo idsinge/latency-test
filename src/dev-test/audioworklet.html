@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="hiaudio">
     <title>Hi-Audio Latency Test — AudioWorklet</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
     <main id="app">
-        <nav><a href="index.html">← Switch to MediaRecorder</a></nav>
+        <nav>
+            <a href="../index.html">← Back</a> ·
+            <a href="mediarecorder.html">MediaRecorder →</a> ·
+            <a href="gain.html">Host Gain →</a>
+        </nav>
+        <h1>AudioWorklet Test</h1>
         <div id="connect-section">
             <button id="connect-btn">Connect Audio</button>
             <p id="connect-status"></p>
@@ -25,7 +29,6 @@
             <div id="aggregate" style="display:none"></div>
         </div>
     </main>
-    <script type="module" src="scripts/index.js"></script>
+    <script type="module" src="index.js"></script>
 </body>
-
 </html>

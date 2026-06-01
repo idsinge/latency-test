@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="hiaudio">
+    <title>Hi-Audio Latency Test — MediaRecorder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main id="app">
+        <nav>
+            <a href="../index.html">← Back</a> ·
+            <a href="audioworklet.html">AudioWorklet →</a> ·
+            <a href="gain.html">Host Gain →</a>
+        </nav>
+        <h1>MediaRecorder Test</h1>
+        <div id="connect-section">
+            <button id="connect-btn">Connect Audio</button>
+            <p id="connect-status"></p>
+        </div>
+        <div id="test-section" style="display:none">
+            <label>Number of runs:
+                <input type="number" id="run-count" value="1" min="1" max="20">
+            </label>
+            <latency-test id="tester" recording-mode="mediarecorder"></latency-test>
+            <button id="start-btn">TEST LATENCY</button>
+            <div id="results"></div>
+            <div id="aggregate" style="display:none"></div>
+        </div>
+    </main>
+    <script type="module" src="index.js"></script>
+</body>
+</html>
