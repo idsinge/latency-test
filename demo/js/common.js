@@ -28,6 +28,8 @@
             })
             document.getElementById('connect-section').style.display = 'none'
             demoSection.removeAttribute('hidden')
+            window.demoAudioSession = { stream, ac }
+            document.dispatchEvent(new CustomEvent('latency-demo-session-ready', { detail: { stream, ac } }))
         } catch (e) {
             connectStatus.textContent = `Could not access mic: ${e.message}`
             connectBtn.disabled = false
