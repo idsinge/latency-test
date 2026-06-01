@@ -1,4 +1,4 @@
-import './latency-test-element.js'
+import '../scripts/latency-test-element.js'
 
 const MIC_CONSTRAINTS = {
     audio: {

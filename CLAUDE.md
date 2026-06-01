@@ -44,14 +44,20 @@ Ignore `dist/` and `node_modules/` — they are build artifacts.
 
 ```
 src/
-  index.html              — Demo page: mode selector, run-count input, <latency-test> element, start button, results/aggregate divs
-  scripts/
-    index.js              — Demo entry point: wires UI events, sets element attributes, renders latency-result / latency-complete / latency-error
+  index.html              — Dev entry point: navigation hub to local test pages (not deployed)
+  scripts/                — Component source only (compiled into dist/ — do not add dev-only files here)
     latency-test-element.js — <latency-test> Custom Element: lifecycle, attribute reflection, getUserMedia, AudioContext, event dispatch
     test.js               — LatencyTestController: MLS generation, pre-roll, mediarecorder/audioworklet capture, worker messaging, result callbacks
     mls.js                — MLS signal generation (LFSR algorithm, tap tables for bits 2–16)
     recorder-processor.js — AudioWorkletProcessor: dual-channel mic+reference capture, posts { mic, ref } Float32 arrays on stop
     worker.js             — Web Worker: cross-correlation and peak detection (off main thread)
+    iife-entry.js         — IIFE bundle entry point (re-exports latency-test-element for UMD/IIFE consumers)
+  dev-test/               — Local development test pages (served by npm run dev, never deployed)
+    index.js              — Shared UI wiring for mediarecorder.html and audioworklet.html
+    gain.js               — UI wiring for host-gain test page; builds ChannelSplitter gain chain
+    mediarecorder.html    — MediaRecorder mode test page
+    audioworklet.html     — AudioWorklet mode test page
+    gain.html             — Host-controlled gain test page
 assets/
   ERC_logo.png
 docs/
@@ -69,6 +75,7 @@ docs/
     svelte.md
     angular.md
     nextjs.md
+    host-gain.md
 .github/
   workflows/
     docs.yml              — GitHub Actions: build VitePress and deploy to GitHub Pages
@@ -155,11 +162,11 @@ tests/
 
 ## DOM Elements
 
-The component (`latency-test-element.js`) has no hardcoded DOM IDs and writes nothing to the DOM — it is headless. The demo page (`src/index.html`) owns all UI elements:
+The component (`latency-test-element.js`) has no hardcoded DOM IDs and writes nothing to the DOM — it is headless. The `src/dev-test/` pages own their own UI elements:
 
 | ID | Purpose |
 |---|---|
-| `#mode-select` | Dropdown: `mediarecorder` / `audioworklet` |
+| `#connect-btn` | Button that calls `getUserMedia` and creates the `AudioContext` |
 | `#run-count` | Number input: how many consecutive tests (1–20) |
 | `#tester` | The `<latency-test>` element itself |
 | `#start-btn` | Button that calls `tester.start()` on click |

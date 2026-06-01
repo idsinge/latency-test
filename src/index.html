@@ -1,31 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="hiaudio">
-    <title>Hi-Audio Latency Test — MediaRecorder</title>
+    <title>Hi-Audio Latency Test — Dev</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 2rem; background: #f5f5f7; color: #1a1a1a; }
+        h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        p { font-size: 0.85rem; color: #666; margin-bottom: 1.5rem; }
+        ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+        a { color: #6c63ff; text-decoration: none; font-size: 0.9rem; }
+        a:hover { text-decoration: underline; }
+        .note { font-size: 0.8rem; color: #999; margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+        code { font-family: monospace; background: #eee; padding: 0.1em 0.3em; border-radius: 3px; }
+    </style>
 </head>
-
 <body>
-    <main id="app">
-        <nav><a href="audioworklet.html">Switch to AudioWorklet →</a></nav>
-        <div id="connect-section">
-            <button id="connect-btn">Connect Audio</button>
-            <p id="connect-status"></p>
-        </div>
-        <div id="test-section" style="display:none">
-            <label>Number of runs:
-                <input type="number" id="run-count" value="1" min="1" max="20">
-            </label>
-            <latency-test id="tester" recording-mode="mediarecorder"></latency-test>
-            <button id="start-btn">TEST LATENCY</button>
-            <div id="results"></div>
-            <div id="aggregate" style="display:none"></div>
-        </div>
-    </main>
-    <script type="module" src="scripts/index.js"></script>
+    <h1>Hi-Audio Latency Test — Dev Pages</h1>
+    <p>Local development only. Run <code>npm run dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+    <ul>
+        <li><a href="dev-test/mediarecorder.html">MediaRecorder — single-channel mic test</a></li>
+        <li><a href="dev-test/audioworklet.html">AudioWorklet — raw PCM test</a></li>
+        <li><a href="dev-test/gain.html">Host Gain — ChannelSplitter + GainNode chain</a></li>
+    </ul>
+    <p class="note">
+        Source files in <code>src/scripts/</code> are compiled into <code>dist/</code> via <code>npm run build:component</code>.<br>
+        The public integration demo is in <code>demo/</code> and uses the built IIFE bundle.
+    </p>
 </body>
-
 </html>
