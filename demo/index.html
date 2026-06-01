@@ -29,6 +29,7 @@
     <button role="tab" id="tab-mode" aria-selected="false" aria-controls="panel-mode" tabindex="-1">Mode Toggle</button>
     <button role="tab" id="tab-lifecycle" aria-selected="false" aria-controls="panel-lifecycle" tabindex="-1">Lifecycle</button>
     <button role="tab" id="tab-debug" aria-selected="false" aria-controls="panel-debug" tabindex="-1">Debug Mode</button>
+    <button role="tab" id="tab-gain" aria-selected="false" aria-controls="panel-gain" tabindex="-1">Host Gain</button>
 </div>
 
 <main>
@@ -131,7 +132,6 @@
 &lt;script&gt;
   const tester = document.querySelector('#context-tester')
 
-  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
@@ -179,7 +179,6 @@
   const mr = document.querySelector('#mode-mr')
   const aw = document.querySelector('#mode-aw')
 
-  // getUserMedia first, then AudioContext (required for correct sample rate on Firefox macOS)
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
@@ -279,6 +278,56 @@
     </details>
 </div>
 
+<!-- ─── Tab: Host Gain ─── -->
+<div id="panel-gain" class="tabpanel" role="tabpanel" aria-labelledby="tab-gain" aria-hidden="true">
+    <h2>Host-Controlled Input Gain</h2>
+    <p class="desc">The host builds a <code>GainNode</code> chain and passes the processed stream to the component. Use this when your recording setup has low mic levels — common on Safari ≥ 16 with <code>echoCancellation: false</code> (empirical value: 50×). A <code>ChannelSplitterNode</code> isolates the left channel, which also handles wired earpods on Safari that force a stereo stream with signal only on the left.</p>
+    <div class="callout-warn">
+        This tab measures a different pipeline than direct-stream mode (an extra browser-managed Web Audio / MediaStream bridge). Results are self-consistent but should not be compared directly to other tabs.
+    </div>
+    <div class="controls">
+        <label><input type="checkbox" id="gain-chain-toggle" checked> Use gain chain</label>
+        <label>Input gain:
+            <input type="number" id="gain-value" value="1" min="0" max="200" step="1">
+        </label>
+        <button class="btn btn-primary" id="gain-start">Start Test</button>
+        <button class="btn btn-secondary" id="gain-stop" disabled>Stop</button>
+    </div>
+    <div id="gain-result" class="result-box">
+        <div class="detail">Set gain, then press <strong>Start Test</strong>.</div>
+    </div>
+    <latency-test id="gain-tester" recording-mode="mediarecorder"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="tester" recording-mode="mediarecorder"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: false, noiseSuppression: false,
+             autoGainControl: false, channelCount: 1 }
+  })
+  const ac = new AudioContext({ latencyHint: 0 })
+
+  // Set gainValue to 50 for Safari &gt;= 16 with echoCancellation: false
+  const gainValue = 1
+  const source = ac.createMediaStreamSource(stream)
+  const splitter = ac.createChannelSplitter(2)
+  const gainNode = ac.createGain()
+  gainNode.gain.value = gainValue
+  const dest = ac.createMediaStreamDestination()
+  dest.channelCount = 1
+  source.connect(splitter)
+  splitter.connect(gainNode, 0) // left channel only
+  gainNode.connect(dest)
+
+  const tester = document.querySelector('#tester')
+  tester.audioContext = ac
+  tester.inputStream = dest.stream
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
 </main>
 </div><!-- #demo-section -->
 
@@ -289,5 +338,6 @@
 <script src="js/mode-toggle.js"></script>
 <script src="js/lifecycle.js"></script>
 <script src="js/debug.js"></script>
+<script src="js/host-gain.js"></script>
 </body>
 </html>
