@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="hiaudio">
+    <title>Hi-Audio Latency Test — Host Gain</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main id="app">
+        <nav>
+            <a href="../index.html">← Back</a> ·
+            <a href="mediarecorder.html">MediaRecorder →</a> ·
+            <a href="audioworklet.html">AudioWorklet →</a>
+        </nav>
+        <h1>Host Gain Test</h1>
+        <div id="connect-section">
+            <button id="connect-btn">Connect Audio</button>
+            <p id="connect-status"></p>
+        </div>
+        <div id="test-section" style="display:none">
+            <label><input type="checkbox" id="gain-chain" checked> Use gain chain</label>
+            <label>Input gain (1 = unity · 50 = Safari ≥ 16 with echoCancellation:false):
+                <input type="number" id="gain-value" value="1" min="0" max="200" step="1">
+            </label>
+            <label>Number of runs:
+                <input type="number" id="run-count" value="1" min="1" max="20">
+            </label>
+            <latency-test id="tester" recording-mode="mediarecorder"></latency-test>
+            <button id="start-btn">TEST LATENCY</button>
+            <div id="results"></div>
+            <div id="aggregate" style="display:none"></div>
+        </div>
+    </main>
+    <script type="module" src="gain.js"></script>
+</body>
+</html>
