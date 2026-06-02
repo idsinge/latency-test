@@ -61,12 +61,20 @@ Full integration docs are published via VitePress (see `docs/`):
 
 ## Local development
 
-Run the prototype app:
+Run the component dev pages (source, no build needed):
 
 ```bash
 npm install
 npm run dev
 # open http://localhost:3000
+```
+
+Run the demo against the built bundle:
+
+```bash
+npm run build:component  # build dist/ first
+npm run demo
+# open http://localhost:3000/demo/
 ```
 
 Run the documentation site:

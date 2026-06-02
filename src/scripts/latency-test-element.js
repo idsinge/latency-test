@@ -19,6 +19,14 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     #allResults = []
     #stopped = false
 
+    numberOfTests = 1
+    mlsBits = 15
+    maxLagMs = 600
+    bufferSize = 0
+    recordingMode = 'mediarecorder'
+    signalType = 'mls'
+    inputGain = 0
+
     constructor() {
         super()
         this.attachShadow({ mode: 'open' })
@@ -88,6 +96,14 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
             this.#allResults = []
             await this.#runNextTest()
         } catch (error) {
+            this.#controller?.stop()
+            this.#controller = null
+            this.#pendingRuns = 0
+            this.#stopped = true
+            if (!this.#hostProvidedStream && this.#inputStream) {
+                this.#inputStream.getTracks().forEach(t => t.stop())
+                this.#inputStream = null
+            }
             this.#emitEvent('latency-error', { message: error.message })
         }
     }

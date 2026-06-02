@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: '@adasp/latency-test',
-  description: 'Web Component for measuring browser round-trip audio latency using MLS, chirp, or Golay signals.',
+  description: 'Web Component for measuring browser round-trip audio latency using an MLS signal.',
   base: '/latency-test/',
 
   head: [

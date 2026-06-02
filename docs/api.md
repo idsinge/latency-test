@@ -1,6 +1,5 @@
 # API Reference — `@adasp/latency-test`
 
-> **Draft.** This document describes the API for `<latency-test>`.
 > Items marked `(implemented)` are active in the current version.
 > Items marked `(planned)` are reserved for future versions.
 

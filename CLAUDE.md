@@ -21,7 +21,7 @@
 - `MediaRecorder` API (current recording mechanism, default in v1 — to be replaced by `AudioWorklet` default in v2)
 - Web Workers (off-main-thread cross-correlation computation)
 - esbuild (component bundle, ESM + IIFE outputs)
-- No TypeScript
+- TypeScript declarations (`src/index.d.ts`) ship with the package as `dist/index.d.ts`
 - Unit tests: `node:test` + `node:assert/strict`, Node 18.12.1, no third-party test library
 
 **Dev commands:**
@@ -189,7 +189,7 @@ The web component refactor (Phases 1–3a) is complete. Previous design issues a
 
 4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is a Phase 4 item.
 
-5. **No TypeScript declarations** — No `.d.ts` file or `types` field in `package.json`. Planned for pre-publish phase.
+5. **`input-gain` not yet wired** — The attribute is observed, the property is settable and typed, but no `GainNode` is created internally. Setting it has no effect. Use the host-gain pattern instead (see `docs/examples/host-gain.md`). Deferred to v2.
 
 ---
 
@@ -206,7 +206,6 @@ Phases 1–3a are complete. The `<latency-test>` Custom Element is implemented w
 **Still in progress:**
 - Phase 3b: `recording-mode="mediarecorder-2ch"` (dual-channel MediaRecorder, removes start-timing bias)
 - Phase 4: histogram, browser verification matrix
-- Phase 7: npm publication
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 

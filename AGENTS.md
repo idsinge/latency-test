@@ -160,7 +160,7 @@ Stored in session folder (`~/.copilot/session-state/<id>/files/`):
 
 ## Current stack
 
-- Vanilla JavaScript ES modules — no TypeScript, no test suite
+- Vanilla JavaScript ES modules — TypeScript declarations ship in the package (`src/index.d.ts` → `dist/index.d.ts`); unit tests in `tests/` using `node:test`
 - Web Audio API (`AudioContext`, `AudioBuffer`, `AudioBufferSourceNode`)
 - Dual capture backend: `AudioWorklet` (v2 default) + `MediaRecorder` (v1 default, fallback)
 - Web Worker for cross-correlation and peak detection (off main thread)
@@ -235,8 +235,7 @@ Do not re-open these unless the user explicitly asks:
 
 ## Known risks
 
-- No test suite — migration correctness depends on manual browser testing across
-  Chrome, Firefox, Safari, and mobile.
+- Unit tests cover MLS generation and cross-correlation (`npm test`); browser integration correctness still depends on manual testing across Chrome, Firefox, Safari, and mobile.
 - CSP with `blob:` URLs: workers and AudioWorklet processors loaded via Blob require
   `worker-src 'self' blob:` and `script-src 'self' blob:` in the Content-Security-Policy header.
 - AudioContext autoplay policy: `start()` must be called from a user gesture (click, touchstart).
