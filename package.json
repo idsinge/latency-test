@@ -1,7 +1,7 @@
 {
   "name": "@adasp/latency-test",
-  "version": "1.0.0",
-  "description": "Web Component for measuring browser round-trip audio latency using MLS, chirp, or Golay signals.",
+  "version": "1.0.1",
+  "description": "Web Component for measuring browser round-trip audio latency using an MLS signal.",
   "scripts": {
     "test": "node --test tests/mls.test.js tests/worker.test.js",
     "dev": "npx -y serve src/",
@@ -31,6 +31,9 @@
     "README.md",
     "LICENSE"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "sideEffects": true,
   "publishConfig": {
     "access": "public"

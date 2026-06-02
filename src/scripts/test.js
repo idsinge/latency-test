@@ -55,9 +55,11 @@ export class LatencyTestController {
         })
         this.worker.addEventListener('error', (e) => {
             this.#log('worker error', { message: e.message })
+            if (!this.stopped) this.onError?.(`Worker error: ${e.message ?? 'unknown'}`)
         })
         this.worker.addEventListener('messageerror', (e) => {
             this.#log('worker messageerror', { message: e.message })
+            if (!this.stopped) this.onError?.('Worker message deserialization error')
         })
             
         this.audioContext = ac

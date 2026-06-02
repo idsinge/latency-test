@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "@adasp/latency-test"
   text: "Round-trip audio latency measurement"
-  tagline: "Web Component powered by Web Audio API. Headless API, multiple signal types, easy to embed in any Web Audio project."
+  tagline: "Web Component powered by Web Audio API. Headless API, MLS-based latency measurement, easy to embed in any Web Audio project."
   actions:
     - theme: brand
       text: Get Started
@@ -20,8 +20,8 @@ hero:
       link: https://github.com/idsinge/latency-test
 
 features:
-  - title: Multiple Signal Types
-    details: MLS (Maximum Length Sequence) — the current default. Chirp and Golay are planned for a future release.
+  - title: MLS-Based Measurement
+    details: Uses a Maximum Length Sequence signal and cross-correlation for accurate round-trip latency estimation. Chirp and Golay are planned for a future release.
   - title: Dual Capture Backends
     details: MediaRecorder and AudioWorklet — both implemented and selectable via the recording-mode attribute.
   - title: Headless by Default
@@ -57,7 +57,7 @@ npm install @adasp/latency-test
 - Microphone access is requested on the first `start()` call.
 - For DAW or multi-context applications, pass your existing `AudioContext` via `element.audioContext = ac` before calling `start()`.
 - Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, implemented). `"mediarecorder-2ch"` is planned (Phase 3b).
-- Use `signal-type` to select the measurement signal: `"mls"` (implemented), `"chirp"`, or `"golay"` (planned).
+- `signal-type` is `"mls"` in v1. `"chirp"` and `"golay"` are planned for v2.
 - `input-gain` is reserved for a future gain multiplier — it is not yet wired in the current version.
 
 ## Try it live

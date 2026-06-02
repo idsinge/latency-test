@@ -6,6 +6,7 @@
 |------|---------|
 | `latency-test.esm.js` | ESM module — use with `<script type="module">` or `import` in bundlers |
 | `latency-test.iife.js` | IIFE bundle — use with plain `<script>` tag (no module support needed) |
+| `index.d.ts` | TypeScript declarations — types for `LatencyTestElement`, events, and payloads |
 | `*.map` | Source maps — automatically loaded by browser devtools |
 
 Both files are **minified by default**. For development (unminified, easier debugging):

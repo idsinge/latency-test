@@ -188,10 +188,10 @@
   mr.inputStream = aw.inputStream = stream
 
   mr.addEventListener('latency-complete', e =&gt; {
-    console.log(`MR: ${e.detail.latency} ms`)
+    console.log(`MR: ${e.detail.mean.toFixed(2)} ms`)
   })
   aw.addEventListener('latency-complete', e =&gt; {
-    console.log(`AW: ${e.detail.latency} ms`)
+    console.log(`AW: ${e.detail.mean.toFixed(2)} ms`)
   })
 
   mr.start()

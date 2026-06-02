@@ -142,7 +142,7 @@ declare namespace JSX {
       'mls-bits'?: number
       'max-lag-ms'?: number
       'recording-mode'?: 'mediarecorder' | 'audioworklet'
-      'signal-type'?: 'mls' | 'chirp' | 'golay'
+      'signal-type'?: 'mls'
       'input-gain'?: number
       'buffer-size'?: number
     }
