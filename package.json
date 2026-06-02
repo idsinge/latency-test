@@ -1,5 +1,5 @@
 {
-  "name": "@hi-audio/latency-test",
+  "name": "@adasp/latency-test",
   "version": "1.0.0",
   "description": "Web Component for measuring browser round-trip audio latency using MLS, chirp, or Golay signals.",
   "scripts": {
@@ -7,14 +7,17 @@
     "dev": "npx -y serve src/",
     "demo": "npx serve .",
     "build:component": "node scripts/build-component.mjs",
-"build:component:dev": "node scripts/build-component.mjs --dev",
+    "build:component:dev": "node scripts/build-component.mjs --dev",
+    "prepublishOnly": "npm run build:component",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "type": "module",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/latency-test.esm.js",
       "default": "./dist/latency-test.esm.js"
     }
@@ -29,6 +32,9 @@
     "LICENSE"
   ],
   "sideEffects": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/idsinge/latency-test.git"

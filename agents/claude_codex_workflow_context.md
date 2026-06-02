@@ -8,7 +8,7 @@ Working branch: `webcomponent`
 
 Use **Claude Code as a teacher and pair programmer** while migrating an
 existing browser-based round-trip audio latency app into a reusable Web
-Component package (`@hi-audio/latency-test`).
+Component package (`@adasp/latency-test`).
 
 Use **Codex (via the Claude Code Codex plugin)** as an independent adversarial
 reviewer. Claude teaches and implements. Codex challenges and reviews.

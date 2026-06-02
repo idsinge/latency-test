@@ -34,7 +34,7 @@ npm run docs:build       # build VitePress docs
 npm run docs:preview     # preview built docs locally
 ```
 
-**npm package publishing:** Published as `@hi-audio/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in agents/CLAUDE_REVIEW.md — Phase 7.
+**npm package publishing:** Published as `@adasp/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in agents/CLAUDE_REVIEW.md — Phase 7.
 
 ---
 

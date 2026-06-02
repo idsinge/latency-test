@@ -9,7 +9,7 @@ modification requires approval first.
 ## Project goal
 
 Migrate the current browser round-trip audio latency prototype into a
-reusable Web Component package: `@hi-audio/latency-test`.
+reusable Web Component package: `@adasp/latency-test`.
 Both npm import and CDN/script-tag usage are first-class distribution targets.
 
 ## Key reference files
@@ -194,12 +194,11 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 4 | Demo page & integration (rewrite demo, multi-run, browser validation) | Complete |
 | 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | Complete |
 | 6 | Documentation & demo (+ `buffer-size` attribute for AudioWorklet) | In progress |
-| 7 | npm publishing (`@hi-audio/latency-test`) — see `agents/CLAUDE_REVIEW.md` Phase 7 checklist | Pending |
+| 7 | npm publishing (`@adasp/latency-test`) — see `agents/CLAUDE_REVIEW.md` Phase 7 checklist | Complete |
 | 8 | Signal types (chirp logarithmic sweep, Golay complementary sequences) | Pending |
 | 9 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
 
-TypeScript declaration files (`src/index.d.ts`, typed events) are planned after
-a stable component build exists. Phase 7 item.
+TypeScript declaration file (`src/index.d.ts`, typed events) ships with the package as of v1.0.0.
 
 ## Resolved design decisions
 

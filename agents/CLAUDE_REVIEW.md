@@ -341,10 +341,10 @@ Cross-correlate ch1 against ch0 — worker contract unchanged: `{ command: 'corr
 
 **1. Create the npm organisation**
 
-The package name `@hi-audio/latency-test` requires an `hi-audio` org on npmjs.com.
+The package name `@adasp/latency-test` requires an `adasp` org on npmjs.com.
 
 - Go to https://www.npmjs.com and log in (or create an account).
-- Create the organisation `hi-audio` at https://www.npmjs.com/org/create.
+- Create the organisation `adasp` at https://www.npmjs.com/org/create.
 - Add any collaborators who should be able to publish.
 
 **2. Update `package.json` for publishing**
@@ -353,7 +353,7 @@ Before the first publish, verify the following fields are present in `package.js
 
 ```json
 {
-  "name": "@hi-audio/latency-test",
+  "name": "@adasp/latency-test",
   "version": "1.0.0",
   "description": "...",
   "type": "module",
@@ -362,9 +362,9 @@ Before the first publish, verify the following fields are present in `package.js
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/latency-test.esm.js",
-      "default": "./dist/latency-test.esm.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/latency-test.esm.js"
     }
   },
   "unpkg": "dist/latency-test.iife.js",
@@ -386,9 +386,9 @@ Before the first publish, verify the following fields are present in `package.js
 ```
 
 Key points:
-- No CJS exports — Web Components are browser-only APIs. `require('@hi-audio/latency-test')` would have no meaningful use. The `main` field points to the IIFE (for CDM) and `module` points to ESM (for bundlers).
+- No CJS exports — Web Components are browser-only APIs. `require('@adasp/latency-test')` would have no meaningful use. The `main` field points to the ESM bundle and `module` mirrors it; `unpkg`/`jsdelivr` fields point to the IIFE for CDN consumers.
 - `types` / `exports["types"]` points to the TypeScript declaration file — consumers get full IntelliSense with no manual setup.
-- `unpkg` / `jsdelivr` fields point to the IIFE bundle — so `unpkg.com/@hi-audio/latency-test` serves the script-tag-compatible version.
+- `unpkg` / `jsdelivr` fields point to the IIFE bundle — so `unpkg.com/@adasp/latency-test` serves the script-tag-compatible version.
 - `files` controls what gets included in the published package — only the built output, README, and LICENSE. Everything else (`src/`, `docs/`, `assets/`, config files) is excluded automatically.
 - `sideEffects: true` prevents bundler tree-shaking from removing the `customElements.define()` side effect.
 - `prepublishOnly` ensures the build runs before every publish, preventing a stale `dist/` from being published.
@@ -557,7 +557,7 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 > **Non-blocking:** This phase is a separate project that consumes the published component.
 > It does not modify the core element and is not a prerequisite for any other phase.
 
-- [ ] Create a standalone HTML page (or mini-app) that imports `@hi-audio/latency-test` and adds rich visualizations:
+- [ ] Create a standalone HTML page (or mini-app) that imports `@adasp/latency-test` and adds rich visualizations:
   - Autocorrelation graph: render the correlation array as a chart (canvas or SVG)
   - Audio waveform: display captured mic + reference signals as waveform graphs
   - Latency histogram: aggregate results across multiple runs and render a distribution chart

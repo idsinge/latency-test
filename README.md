@@ -1,10 +1,6 @@
-# @hi-audio/latency-test web component
+# @adasp/latency-test web component
 
 A Web Component for measuring browser round-trip audio latency in Web Audio applications.
-
-## Status
-
-> **Work in progress.** The `@hi-audio/latency-test` package is not yet published. The API described below is the intended design. The current codebase contains a working prototype (`npm run dev`) and the full package planning is underway.
 
 ## What it does
 
@@ -15,14 +11,14 @@ A Web Component for measuring browser round-trip audio latency in Web Audio appl
 - Headless-first API: `start()` / `stop()` methods and custom events — no built-in UI
 - Reports latency in milliseconds and a reliability ratio in dB (values above `18 dB` indicate a trustworthy measurement)
 
-## Planned usage (draft)
+## Usage
 
 ```html
 <latency-test id="lt"></latency-test>
 <button onclick="document.getElementById('lt').start()">Test</button>
 
 <script type="module">
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
 
   document.getElementById('lt').addEventListener('latency-result', (e) => {
     console.log(e.detail.latency, 'ms — ratio:', e.detail.ratio, 'dB')
@@ -37,7 +33,7 @@ Multiple consecutive tests with aggregate statistics:
 <button id="btn">Run 5 tests</button>
 
 <script type="module">
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
 
   const lt = document.getElementById('lt')
 
@@ -101,7 +97,7 @@ This repository contains the prototype implementation, full package planning (se
 - [x] Web Component refactor: `<latency-test>` Custom Element, Shadow DOM, instance-based architecture
 - [x] AudioWorklet backend: `recording-mode="audioworklet"` — dual-channel raw PCM capture via dedicated AudioWorklet processor
 - [ ] `recording-mode="mediarecorder-2ch"`: dual-channel MediaRecorder path removing start-timing bias (Phase 3b)
-- [ ] npm package publication as `@hi-audio/latency-test`
+- [x] npm package publication as `@adasp/latency-test`
 - [ ] Additional signal types: chirp (logarithmic sine sweep), Golay complementary sequences
 
 ## Research origin

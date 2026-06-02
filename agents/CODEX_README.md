@@ -62,7 +62,7 @@ For example:
 <button onclick="document.getElementById('lt').start()">Test</button>
 
 <script type="module">
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
 
   document.getElementById('lt').addEventListener('latency-result', (e) => {
     console.log(e.detail.latency, e.detail.ratio)

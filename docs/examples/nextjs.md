@@ -3,7 +3,6 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">Next.js Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 ---
 
@@ -16,7 +15,7 @@
 ## Setup
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 ---
@@ -30,12 +29,12 @@ Use a Client Component with a `useEffect` lazy import. The `'use client'` direct
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import type { LatencyTestElement, LatencyResultDetail, LatencyErrorDetail } from '@hi-audio/latency-test'
+import type { LatencyTestElement, LatencyResultDetail, LatencyErrorDetail } from '@adasp/latency-test'
 
 // Registers the custom element client-side only
 function useLatencyTest() {
   useEffect(() => {
-    import('@hi-audio/latency-test')
+    import('@adasp/latency-test')
   }, [])
 }
 
@@ -120,18 +119,17 @@ export default function Home() {
 
 ## TypeScript
 
-TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, cast the ref manually:
+Types ship with the package. Import `LatencyTestElement` directly:
 
 ```ts
-const el = ltRef.current as HTMLElement & {
-  start(): void
-  stop(): void
-  audioContext: AudioContext
-}
+import type { LatencyTestElement } from '@adasp/latency-test'
+
+const el = ltRef.current as LatencyTestElement
 el?.start()
+el?.audioContext  // ✅ typed
 ```
 
-**React 19+** — once declarations ship, `<latency-test>` in JSX will pick up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
+**React 19+** — `<latency-test>` in JSX picks up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
 
 **React < 19** (most current Next.js projects) — add a JSX namespace declaration:
 

@@ -3,20 +3,19 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">Vue 3 Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 ---
 
 ## Setup
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 Import once in `main.js` / `main.ts` to register the custom element globally:
 
 ```js
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 ```
 
 Tell Vue to treat `latency-test` as a custom element so it does not try to resolve it as a Vue component. In `vite.config.js`:
@@ -165,18 +164,14 @@ onMounted(() => {
 
 ## TypeScript
 
-TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a minimal local type:
+Types ship with the package. Import `LatencyTestElement` directly:
 
 ```ts
-type LatencyTestElement = HTMLElement & {
-  start(): void
-  stop(): void
-  audioContext: AudioContext
-}
+import type { LatencyTestElement } from '@adasp/latency-test'
 
 const ltRef = ref<LatencyTestElement | null>(null)
 ltRef.value?.start()
-ltRef.value?.audioContext
+ltRef.value?.audioContext  // ✅ typed
 ```
 
 To prevent Vue from warning about an unknown element, mark it as a custom element in `vite.config.ts`:
