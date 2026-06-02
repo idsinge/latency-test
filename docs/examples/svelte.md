@@ -3,14 +3,13 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">Svelte / SvelteKit Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 ---
 
 ## Setup
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 Svelte works natively with custom elements — no special configuration needed. Import the package in the component that uses it.
@@ -21,7 +20,7 @@ Svelte works natively with custom elements — no special configuration needed. 
 
 ```svelte
 <script>
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
   import { onMount, onDestroy } from 'svelte'
 
   let lt
@@ -61,7 +60,7 @@ Svelte works natively with custom elements — no special configuration needed. 
 
 ```svelte
 <script>
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
   import { onMount, onDestroy } from 'svelte'
 
   export let numberOfTests = 5
@@ -116,7 +115,7 @@ Svelte works natively with custom elements — no special configuration needed. 
 
 ```svelte
 <script>
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
   import { onMount } from 'svelte'
 
   export let audioContext
@@ -148,7 +147,7 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
 
   onMount(async () => {
     if (browser) {
-      await import('@hi-audio/latency-test')
+      await import('@adasp/latency-test')
     }
   })
 </script>
@@ -163,18 +162,14 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
 
 ## TypeScript
 
-TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a local type:
+Types ship with the package. Import `LatencyTestElement` directly:
 
 ```ts
-type LatencyTestElement = HTMLElement & {
-  start(): void
-  stop(): void
-  audioContext: AudioContext
-}
+import type { LatencyTestElement } from '@adasp/latency-test'
 
 let lt: LatencyTestElement
 // <latency-test bind:this={lt} />
 
 lt?.start()
-lt?.audioContext
+lt?.audioContext  // ✅ typed
 ```

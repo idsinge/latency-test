@@ -1,5 +1,5 @@
-import { mkdirSync, readFileSync, readdirSync, rmSync } from 'fs'
-import { resolve } from 'path'
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { resolve } from 'node:path'
 import * as esbuild from 'esbuild'
 
 // Usage: node scripts/build-component.mjs [--dev]
@@ -76,4 +76,5 @@ const iifeConfig = {
 
 await esbuild.build(esmConfig)
 await esbuild.build(iifeConfig)
+copyFileSync('src/index.d.ts', 'dist/index.d.ts')
 console.log('Build complete.')

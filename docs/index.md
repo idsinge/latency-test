@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "@hi-audio/latency-test"
+  name: "@adasp/latency-test"
   text: "Round-trip audio latency measurement"
   tagline: "Web Component powered by Web Audio API. Headless API, multiple signal types, easy to embed in any Web Audio project."
   actions:
@@ -30,12 +30,10 @@ features:
     details: Works with Vanilla JS, React, Vue, Svelte, Angular, and Next.js. Zero dependencies at runtime.
 ---
 
-> **Work in progress.** The `<latency-test>` web component is currently in development. The API and examples described here reflect the planned interface. See [agents/CLAUDE_REVIEW.md](https://github.com/idsinge/latency-test/blob/main/agents/CLAUDE_REVIEW.md) for migration status.
-
 ## Quick start
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 ```html
@@ -43,7 +41,7 @@ npm install @hi-audio/latency-test
 <button onclick="document.getElementById('lt').start()">Test</button>
 
 <script type="module">
-  import '@hi-audio/latency-test'
+  import '@adasp/latency-test'
 
   document.getElementById('lt').addEventListener('latency-result', (e) => {
     console.log(`${e.detail.latency} ms — ratio: ${e.detail.ratio.toFixed(2)} dB`)

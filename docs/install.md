@@ -1,6 +1,4 @@
-# Installation & Setup — `@hi-audio/latency-test`
-
-> **Draft.** The package is not yet published to npm. This document describes the intended installation workflow once it is.
+# Installation & Setup — `@adasp/latency-test`
 
 ---
 
@@ -15,13 +13,13 @@
 ## npm
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 Then import in your entry point:
 
 ```js
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 ```
 
 This registers the `<latency-test>` custom element globally. After the import, use the element anywhere in your HTML or component templates.
@@ -34,12 +32,20 @@ Choose the approach that fits your project:
 
 **ESM (modern browsers — recommended):**
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
+<!-- jsDelivr -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
+
+<!-- unpkg -->
+<script type="module" src="https://unpkg.com/@adasp/latency-test/dist/latency-test.esm.js"></script>
 ```
 
 **IIFE (universal — no module support required):**
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.iife.js"></script>
+<!-- jsDelivr -->
+<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.iife.js"></script>
+
+<!-- unpkg -->
+<script src="https://unpkg.com/@adasp/latency-test/dist/latency-test.iife.js"></script>
 ```
 
 Both register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
@@ -52,7 +58,7 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <latency-test></latency-test>
@@ -85,7 +91,7 @@ If your application already has an `AudioContext` (e.g. a DAW or audio workstati
 ```html
 <!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
 <script type="module">
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 
 const el = document.querySelector('latency-test')
 el.audioContext = myExistingAudioContext

@@ -3,7 +3,6 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">Vanilla JS Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 No framework required. Import the package and use the element directly in HTML.
 
@@ -15,7 +14,7 @@ No framework required. Import the package and use the element directly in HTML.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@hi-audio/latency-test/dist/latency-test.esm.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <button id="btn">Test Latency</button>
@@ -75,7 +74,7 @@ No framework required. Import the package and use the element directly in HTML.
 ```html
 <!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
 <script type="module">
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 
 const ac = new AudioContext()
 const lt = document.querySelector('latency-test')
@@ -106,11 +105,10 @@ document.getElementById('stopBtn').addEventListener('click', () => {
 
 ## TypeScript
 
-Types are planned for a future release (Phase 7 — pre-publish).  
-Once available, `querySelector` returns the correct type automatically:
+Types ship with the package. `querySelector` returns the correct type automatically:
 
 ```ts
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 
 const el = document.querySelector('latency-test') // → LatencyTestElement
 el?.start()        // ✅ typed

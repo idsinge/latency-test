@@ -3,20 +3,19 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">React Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 ---
 
 ## Setup
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 Import once at your app entry point (e.g. `main.jsx` or `index.js`) to register the custom element globally:
 
 ```js
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 ```
 
 ---
@@ -142,18 +141,17 @@ export function LatencyTesterWithContext({ audioContext }) {
 
 ## TypeScript
 
-TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, cast the ref manually:
+Types ship with the package. Import `LatencyTestElement` directly:
 
 ```ts
-const el = ltRef.current as HTMLElement & {
-  start(): void
-  stop(): void
-  audioContext: AudioContext
-}
+import type { LatencyTestElement } from '@adasp/latency-test'
+
+const el = ltRef.current as LatencyTestElement
 el?.start()
+el?.audioContext  // ✅ typed
 ```
 
-**React 19+** — once declarations ship, `<latency-test>` in JSX will pick up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
+**React 19+** — `<latency-test>` in JSX picks up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
 
 **React < 19** — add a JSX namespace declaration to avoid template type errors:
 

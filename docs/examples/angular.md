@@ -3,20 +3,19 @@
 <span style="font-size:2rem;font-weight:700;line-height:1">Angular Integration</span>
 </div>
 
-> **Draft.** The component is not yet published. See [install.md](../install.md) for setup instructions once it is.
 
 ---
 
 ## Setup
 
 ```bash
-npm install @hi-audio/latency-test
+npm install @adasp/latency-test
 ```
 
 Import the package once in `main.ts`:
 
 ```ts
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 ```
 
 Add `CUSTOM_ELEMENTS_SCHEMA` to every Angular module or standalone component that uses `<latency-test>`, otherwise Angular will throw a template error on the unknown element.
@@ -169,22 +168,17 @@ export class AppModule {}
 
 ## TypeScript
 
-TypeScript declarations are not yet published with the package (planned for a pre-publish phase). Until then, define a local type:
+Types ship with the package. Import `LatencyTestElement` directly:
 
 ```ts
-type LatencyTestElement = HTMLElement & {
-  start(): void
-  stop(): void
-  audioContext: AudioContext
-}
-
+import type { LatencyTestElement } from '@adasp/latency-test'
 import { ViewChild, ElementRef, AfterViewInit } from '@angular/core'
 
 @ViewChild('lt') ltRef!: ElementRef<LatencyTestElement>
 
 ngAfterViewInit() {
   this.ltRef.nativeElement.start()
-  this.ltRef.nativeElement.audioContext
+  this.ltRef.nativeElement.audioContext  // ✅ typed
 }
 ```
 

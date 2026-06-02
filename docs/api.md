@@ -1,4 +1,4 @@
-# API Reference — `@hi-audio/latency-test`
+# API Reference — `@adasp/latency-test`
 
 > **Draft.** This document describes the API for `<latency-test>`.
 > Items marked `(implemented)` are active in the current version.
@@ -15,7 +15,7 @@
 Register the element by importing the package:
 
 ```js
-import '@hi-audio/latency-test'
+import '@adasp/latency-test'
 ```
 
 ---

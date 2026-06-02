@@ -39,7 +39,7 @@ Main modules:
   VitePress documentation site describing installation, API, and integration examples for the planned web component package.
 
 - `package.json`
-  Now reflects the intended npm package identity `@hi-audio/latency-test`, while still serving current demo-app development.
+  Now reflects the intended npm package identity `@adasp/latency-test`, while still serving current demo-app development.
 
 Repo simplification delta observed in the current state:
 
