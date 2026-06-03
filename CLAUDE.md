@@ -46,8 +46,8 @@ Ignore `dist/` and `node_modules/` — they are build artifacts.
 src/
   index.html              — Dev entry point: navigation hub to local test pages (not deployed)
   scripts/                — Component source only (compiled into dist/ — do not add dev-only files here)
-    latency-test-element.js — <latency-test> Custom Element: lifecycle, attribute reflection, getUserMedia, AudioContext, event dispatch
-    test.js               — LatencyTestController: MLS generation, pre-roll, mediarecorder/audioworklet capture, worker messaging, result callbacks
+    latency-test-element.js — <latency-test> Custom Element: lifecycle, attribute reflection, host resource validation, event dispatch
+    test.js               — LatencyTestController: MLS generation, mediarecorder/audioworklet capture, worker messaging, result callbacks
     mls.js                — MLS signal generation (LFSR algorithm, tap tables for bits 2–16)
     recorder-processor.js — AudioWorkletProcessor: dual-channel mic+reference capture, posts { mic, ref } Float32 arrays on stop
     worker.js             — Web Worker: cross-correlation and peak detection (off main thread)
@@ -98,18 +98,16 @@ tests/
 ```
 <latency-test> element (latency-test-element.js)
   └─ start()
-        └─ new AudioContext({ latencyHint: 0 })   [if no host-provided context]
-        └─ getUserMedia() → stream                 [if no host-provided stream]
+        └─ validates host-provided audioContext and inputStream — emits latency-error if either missing
         └─ emits latency-start
+        └─ creates Web Worker (worker.js) — lazy, reused across runs, terminated on stop/error/disconnect
         └─ new LatencyTestController()
         └─ controller.initialize(ac, stream, { recordingMode, mlsBits, maxLagMs, ... })
-              └─ creates Web Worker (worker.js)
               └─ generateMLS(mlsBits) → binary sequence
               └─ generateAudio() → AudioBuffer (+1.0 / -1.0 samples)
         └─ controller.onAudioSetupFinished()
               └─ prepareAudioToPlayAndRecord()
                     └─ silence buffer (cwilso keepalive — prevents Firefox scheduler relaxing between runs)
-                    └─ 300 ms currentTime-based pre-roll
                     └─ recordingMode === "audioworklet"      → startWorkletCapture()
                     └─ recordingMode === "mediarecorder-2ch" → onError (not yet implemented)
                     └─ else                                  → startMediaRecorderCapture()

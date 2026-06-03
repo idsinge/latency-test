@@ -33,7 +33,7 @@ export class LatencyTestController {
     stopped = false
     debug = false
     
-    async initialize(ac, stream, { recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, bufferSize = 0, debug = false, onResult, onError, onReady, onRecording, onProcessing } = {}) {
+    async initialize(ac, stream, { worker, recordingMode = 'mediarecorder', mlsBits = 15, maxLagMs = 600, bufferSize = 0, debug = false, onResult, onError, onReady, onRecording, onProcessing } = {}) {
 
         this.recordingMode = recordingMode
         this.mlsBits = mlsBits
@@ -45,22 +45,19 @@ export class LatencyTestController {
         this.onReady = onReady
         this.onRecording = onRecording
         this.onProcessing = onProcessing
-        
-        this.worker = new Worker(
-            new URL('worker.js', import.meta.url),
-            {type: 'module'}
-        )
-        this.worker.addEventListener('message', (message) => {
+
+        this.worker = worker
+        this.worker.onmessage = (message) => {
             this.workerMessageHandler(message)
-        })
-        this.worker.addEventListener('error', (e) => {
+        }
+        this.worker.onerror = (e) => {
             this.#log('worker error', { message: e.message })
             if (!this.stopped) this.onError?.(`Worker error: ${e.message ?? 'unknown'}`)
-        })
-        this.worker.addEventListener('messageerror', (e) => {
+        }
+        this.worker.onmessageerror = (e) => {
             this.#log('worker messageerror', { message: e.message })
             if (!this.stopped) this.onError?.('Worker message deserialization error')
-        })
+        }
             
         this.audioContext = ac
         this.onAudioPermissionGranted(stream)
@@ -264,7 +261,9 @@ export class LatencyTestController {
             this.micSource = null
         }
         if (this.worker) {
-            this.worker.terminate()
+            this.worker.onmessage = null
+            this.worker.onerror = null
+            this.worker.onmessageerror = null
             this.worker = null
         }
     }

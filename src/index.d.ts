@@ -33,7 +33,9 @@ export interface LatencyTestEventMap extends HTMLElementEventMap {
 export interface LatencyTestElement extends HTMLElement {
   start(): Promise<void>
   stop(): void
+  /** Must be assigned by the host before calling start(). The component never closes this context — the host owns the lifetime. */
   audioContext: AudioContext | null
+  /** Must be assigned by the host before calling start(). The component never stops these tracks — the host owns the lifetime. */
   inputStream: MediaStream | null
   numberOfTests: number
   mlsBits: number

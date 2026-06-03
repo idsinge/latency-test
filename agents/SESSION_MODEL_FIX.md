@@ -15,7 +15,9 @@ Original `main` branch created `getUserMedia` stream and `AudioContext` once on 
 
 ## Fix
 
-Move all audio session setup (getUserMedia + AudioContext) to `index.js`. The component already handles host-provided resources correctly: when `element.inputStream` is set via the JS setter, `#hostProvidedStream` is set to `true` and `#emitComplete()` skips stream teardown entirely. No component code changes needed.
+Move all audio session setup (getUserMedia + AudioContext) to `index.js`. The component requires host-provided `inputStream` and `audioContext` — it never creates audio resources itself and emits `latency-error` if either is missing. No component code changes needed.
+
+> **Historical note:** An earlier design used a private `#hostProvidedStream` flag to distinguish host vs. self-created streams. That flag and the self-created stream path were removed. The current component is host-only.
 
 ---
 
@@ -123,6 +125,6 @@ The fix in `index.js` follows the same order as the original `main` branch: `get
 
 ## Notes for LLMs
 
-- The component's `#hostProvidedStream` flag is set when `element.inputStream` is assigned via the JS setter. When true, `#emitComplete()` skips `getTracks().forEach(t => t.stop())`. This is the mechanism that preserves the stream across test runs — no component change needed.
+- The component requires host-provided `inputStream` and `audioContext` — it never acquires or releases them. Stream lifetime is fully host-controlled. (`#hostProvidedStream` was an earlier intermediate field that no longer exists.)
 - `debug` removed from the HTML element means `console.debug` is inactive during measurements. It can still be toggled at runtime via `tester.debug = true` in DevTools for debugging specific sessions.
 - The silence buffer (cwilso keepalive) is not related to preRollMs. It prevents Firefox's audio scheduler from relaxing between runs and must be kept.

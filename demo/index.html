@@ -52,7 +52,10 @@
         <pre><code>&lt;latency-test id="minimal-tester"&gt;&lt;/latency-test&gt;
 
 &lt;script&gt;
+  // inputStream and audioContext must be set by the host before start()
   const tester = document.querySelector('#minimal-tester')
+  tester.inputStream = hostStream         // host-managed MediaStream
+  tester.audioContext = hostAudioContext  // host-managed AudioContext
 
   tester.addEventListener('latency-result', e =&gt; {
     console.log(`Latency: ${e.detail.latency} ms`)
@@ -85,11 +88,15 @@
     <latency-test id="multi-tester"></latency-test>
     <details class="config-snippet">
         <summary>Configuration</summary>
-        <pre><code>&lt;!-- Option 1: HTML attribute --&gt;
+        <pre><code>&lt;!-- inputStream and audioContext must be set by the host before start() --&gt;
+
+&lt;!-- Option 1: HTML attribute --&gt;
 &lt;latency-test id="multi-tester" number-of-tests="5"&gt;&lt;/latency-test&gt;
 
 &lt;script&gt;
   const tester = document.querySelector('#multi-tester')
+  tester.inputStream = hostStream
+  tester.audioContext = hostAudioContext
   tester.addEventListener('latency-complete', e =&gt; {
     console.log(`Mean: ${e.detail.mean} ms (${e.detail.results.length} runs)`)
   })
@@ -100,6 +107,8 @@
 &lt;latency-test id="multi-tester"&gt;&lt;/latency-test&gt;
 &lt;script&gt;
   const tester = document.querySelector('#multi-tester')
+  tester.inputStream = hostStream
+  tester.audioContext = hostAudioContext
   tester.numberOfTests = 5
   tester.addEventListener('latency-complete', e =&gt; {
     console.log(`Mean: ${e.detail.mean} ms (${e.detail.results.length} runs)`)
@@ -217,7 +226,10 @@
         <pre><code>&lt;latency-test id="lifecycle-tester"&gt;&lt;/latency-test&gt;
 
 &lt;script&gt;
+  // inputStream and audioContext must be set by the host before start()
   const tester = document.querySelector('#lifecycle-tester')
+  tester.inputStream = hostStream
+  tester.audioContext = hostAudioContext
 
   tester.addEventListener('latency-start', e =&gt; console.log('start'))
   tester.addEventListener('latency-recording', e =&gt; console.log('recording'))
@@ -254,11 +266,15 @@
     <latency-test id="debug-tester"></latency-test>
     <details class="config-snippet">
         <summary>Configuration</summary>
-        <pre><code>&lt;!-- Option 1: HTML attribute (debug on from page load) --&gt;
+        <pre><code>&lt;!-- inputStream and audioContext must be set by the host before start() --&gt;
+
+&lt;!-- Option 1: HTML attribute (debug on from page load) --&gt;
 &lt;latency-test id="tester" debug&gt;&lt;/latency-test&gt;
 
 &lt;script&gt;
   const tester = document.querySelector('#tester')
+  tester.inputStream = hostStream
+  tester.audioContext = hostAudioContext
 
   tester.addEventListener('latency-result', e =&gt; {
     // [latency-test] lines appear in DevTools console
@@ -272,6 +288,8 @@
 &lt;latency-test id="tester"&gt;&lt;/latency-test&gt;
 &lt;script&gt;
   const tester = document.querySelector('#tester')
+  tester.inputStream = hostStream
+  tester.audioContext = hostAudioContext
   tester.debug = true   // enable before start() to capture all checkpoints
   tester.start()
 &lt;/script&gt;</code></pre>

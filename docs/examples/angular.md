@@ -24,6 +24,8 @@ Add `CUSTOM_ELEMENTS_SCHEMA` to every Angular module or standalone component tha
 
 ## Standalone component (Angular 15+)
 
+The recommended pattern is a two-step flow: connect audio first, then run tests. This keeps the mic stream warm between repeated clicks and avoids cold-start instability.
+
 ```ts
 import {
   Component,
@@ -34,84 +36,44 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   Input
 } from '@angular/core'
+import { NgIf, DecimalPipe } from '@angular/common'
+
+const MIC_CONSTRAINTS = {
+  audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+}
 
 @Component({
   selector: 'app-latency-tester',
   standalone: true,
+  imports: [NgIf, DecimalPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <latency-test #lt [attr.number-of-tests]="numberOfTests"></latency-test>
-    <button (click)="start()">Test Latency</button>
-    <button (click)="stop()">Stop</button>
-    <p *ngIf="result">{{ result.latency }} ms — ratio: {{ result.ratio | number:'1.2-2' }} dB</p>
-    <p *ngIf="error" style="color:red">Error: {{ error }}</p>
+    <button *ngIf="!isConnected" (click)="connect()">Connect Audio</button>
+    <button *ngIf="isConnected" (click)="start()">Test Latency</button>
+    <p *ngIf="result">{{ result.latency.toFixed(2) }} ms — ratio: {{ result.ratio | number:'1.2-2' }} dB</p>
+    <p *ngIf="stats && stats.results?.length > 1">
+      Mean: {{ stats.mean | number:'1.2-2' }} ms | SD: {{ stats.std | number:'1.2-2' }} |
+      Min: {{ stats.min | number:'1.2-2' }} | Max: {{ stats.max | number:'1.2-2' }}
+    </p>
+    <p *ngIf="error" style="color:red">{{ error }}</p>
   `
 })
 export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
-  @Input() numberOfTests = 1
-  @ViewChild('lt') ltRef!: ElementRef<HTMLElement>
-
-  result: { latency: number; ratio: number; timestamp: number } | null = null
-  error: string | null = null
-
-  private onResult = (e: Event) => {
-    this.result = (e as CustomEvent).detail
-  }
-
-  private onError = (e: Event) => {
-    this.error = (e as CustomEvent).detail.message
-  }
-
-  ngAfterViewInit() {
-    const el = this.ltRef.nativeElement
-    el.addEventListener('latency-result', this.onResult)
-    el.addEventListener('latency-error', this.onError)
-  }
-
-  ngOnDestroy() {
-    const el = this.ltRef.nativeElement
-    el.removeEventListener('latency-result', this.onResult)
-    el.removeEventListener('latency-error', this.onError)
-  }
-
-  start() { (this.ltRef.nativeElement as any).start() }
-  stop() { (this.ltRef.nativeElement as any).stop() }
-}
-```
-
----
-
-## Multiple tests with aggregate results
-
-```ts
-@Component({
-  selector: 'app-multi-latency',
-  standalone: true,
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  template: `
-    <latency-test #lt [attr.number-of-tests]="numberOfTests"></latency-test>
-    <button (click)="runTests()">Run {{ numberOfTests }} Tests</button>
-    <ul>
-      <li *ngFor="let r of runs">{{ r.latency }} ms (ratio: {{ r.ratio | number:'1.2-2' }} dB)</li>
-    </ul>
-    <p *ngIf="stats">
-      Mean: {{ stats.mean | number:'1.2-2' }} ms |
-      Std: {{ stats.std | number:'1.2-2' }} |
-      Min: {{ stats.min | number:'1.2-2' }} |
-      Max: {{ stats.max | number:'1.2-2' }}
-    </p>
-  `
-})
-export class MultiLatencyComponent implements AfterViewInit, OnDestroy {
   @Input() numberOfTests = 5
   @ViewChild('lt') ltRef!: ElementRef<HTMLElement>
 
-  runs: any[] = []
+  isConnected = false
+  result: any = null
   stats: any = null
+  error: string | null = null
 
-  private onResult = (e: Event) => { this.runs = [...this.runs, (e as CustomEvent).detail] }
+  private micStream: MediaStream | null = null
+  private audioCtx: AudioContext | null = null
+
+  private onResult = (e: Event) => { this.result = (e as CustomEvent).detail }
   private onComplete = (e: Event) => { this.stats = (e as CustomEvent).detail }
-  private onError = (e: Event) => { console.error((e as CustomEvent).detail.message) }
+  private onError = (e: Event) => { this.error = (e as CustomEvent).detail.message }
 
   ngAfterViewInit() {
     const el = this.ltRef.nativeElement
@@ -125,26 +87,42 @@ export class MultiLatencyComponent implements AfterViewInit, OnDestroy {
     el.removeEventListener('latency-result', this.onResult)
     el.removeEventListener('latency-complete', this.onComplete)
     el.removeEventListener('latency-error', this.onError)
+    this.micStream?.getTracks().forEach(t => t.stop())
+    this.audioCtx?.close()
   }
 
-  runTests() {
-    this.runs = []
-    this.stats = null
-    ;(this.ltRef.nativeElement as any).start()
+  async connect() {
+    try {
+      this.micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+      this.audioCtx = new AudioContext({ latencyHint: 0 })
+      ;(this.ltRef.nativeElement as any).inputStream = this.micStream
+      ;(this.ltRef.nativeElement as any).audioContext = this.audioCtx
+      this.isConnected = true
+    } catch (e: any) {
+      this.micStream?.getTracks().forEach(t => t.stop())
+      this.micStream = null
+      this.error = `Could not access mic: ${e.message}`
+    }
   }
+
+  start() { (this.ltRef.nativeElement as any).start() }
+  stop() { (this.ltRef.nativeElement as any).stop() }
 }
 ```
 
+> **Real-world use:** In an application that already manages a mic stream and `AudioContext` (e.g. a Web Audio DAW), pass both directly — no Connect Audio step needed. See [Sharing audio resources from a host app](#sharing-audio-resources-from-a-host-app).
+
 ---
 
-## Sharing an existing AudioContext
+## Sharing audio resources from a host app
+
+When your application already owns a mic stream and `AudioContext`, pass both to the element. The component will not stop the stream or close the context — the host owns both lifetimes.
 
 ```ts
 ngAfterViewInit() {
   const el = this.ltRef.nativeElement as any
-  if (this.audioContext) {
-    el.audioContext = this.audioContext
-  }
+  if (this.audioContext) el.audioContext = this.audioContext
+  if (this.inputStream) el.inputStream = this.inputStream
 }
 ```
 

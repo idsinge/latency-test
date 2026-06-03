@@ -204,10 +204,10 @@ TypeScript declaration file (`src/index.d.ts`, typed events) ships with the pack
 
 Do not re-open these unless the user explicitly asks:
 
-- `audioContext`: lazy creation on first `start()`, or host-provided via property.
-  The component never closes an active `AudioContext`.
-- `inputStream`: same ownership model — host-provided streams are never stopped
-  by the component; self-created streams are acquired on `start()` and released on end.
+- `audioContext`: host-required. Must be set via `element.audioContext = ac` before calling `start()`.
+  The component never creates or closes an `AudioContext`. Emits `latency-error` if missing.
+- `inputStream`: host-required. Must be set via `element.inputStream = stream` before calling `start()`.
+  The component never calls `getUserMedia()` or stops the stream. Emits `latency-error` if missing.
 - Shadow DOM: open mode, empty root by default. No built-in visible UI in v1 (headless-first).
 - `recording-mode` attribute: `"mediarecorder"` (v1 default) | `"audioworklet"` (v2 default).
 - Lifecycle events emitted: `latency-start`, `latency-recording`, `latency-processing`,
@@ -219,9 +219,9 @@ Do not re-open these unless the user explicitly asks:
   idealized setup. The host's `AudioContext`, stream constraints, and capture backend
   define the measurement context. System buffers (e.g. Safari's ~30ms `MediaStreamSource`
   bridge) are correctly included in the result — they're part of the host's real pipeline.
-- Mic constraints are the host's responsibility when using host-provided streams.
-  Self-created streams use conservative defaults (`echoCancellation: false`,
-  `channelCount: 1`). Hosts with specific needs pass their own stream.
+- Mic constraints are the host's responsibility. The component only accepts host-provided streams;
+  it never calls `getUserMedia()`. Hosts with specific needs (sample rate, gain, channelCount)
+  create and pass their own stream.
 
 ## Review priorities
 

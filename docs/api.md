@@ -32,7 +32,7 @@ Attributes can be set in HTML or via JavaScript property assignment. Setting an 
 | `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
 | `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
 | `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
-| `debug` | `debug` | `boolean` | `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints — stream acquisition, pre-roll, recording start, worker messages, and result computation. **For development and debugging only; has no effect on measurement output.** Caution: `startPairSpanMs` in the log output is an upper-bound span that includes both `mediaRecorder.start()` and `noiseSource.start()` execution time — it is not a pure inter-call gap. Additionally, debug logging elsewhere (and DevTools being open) can perturb console and scheduling performance. Do not use debug mode for measurements you intend to record. Toggle at runtime without page reload: `element.debug = true`. | implemented |
+| `debug` | `debug` | `boolean` | `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints — host resource validation, recording start, worker messages, and result computation. **For development and debugging only; has no effect on measurement output.** Caution: `startPairSpanMs` in the log output is an upper-bound span that includes both `mediaRecorder.start()` and `noiseSource.start()` execution time — it is not a pure inter-call gap. Additionally, debug logging elsewhere (and DevTools being open) can perturb console and scheduling performance. Do not use debug mode for measurements you intend to record. Toggle at runtime without page reload: `element.debug = true`. | implemented |
 
 ### Example
 
@@ -67,6 +67,8 @@ Reference: [superpoweredSDK/WebBrowserAudioLatencyMeasurement](https://github.co
 
 The `debug` attribute enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. It is intended for development and troubleshooting only.
 
+> **Chrome / Edge:** `console.debug` is a Verbose-level log. Open DevTools Console, click the log-level dropdown (defaults to **Default levels**), and check **Verbose** — otherwise no `[latency-test]` entries will appear.
+
 ### Enabling
 
 ```html
@@ -86,8 +88,8 @@ element.debug = true
 
 Each line is prefixed `[latency-test]` with a timestamp in ms — main-thread logs use `performance.now()` (relative to page load); worker logs use `performance.timeOrigin + performance.now()` (absolute wall-clock ms). Checkpoints include:
 
-- Stream acquisition and track settings (`getUserMedia`)
-- `AudioContext` creation or reuse (sample rate, state)
+- Host resource validation (stream and context state at `start()` time)
+- `AudioContext` state and sample rate at start
 - Recording start — mode, MIME type, MLS buffer length
 - Worker message sends (correlation command, `maxLag`, buffer sizes)
 - Worker results (peak index, ratio, mode)
@@ -105,8 +107,8 @@ These are set via JavaScript, not HTML attributes.
 
 | Property | Type | Description |
 |---|---|---|
-| `audioContext` | `AudioContext` | Optional. Pass an existing `AudioContext` from the host. If not set, the component creates one lazily on the first `start()` call and exposes it via this getter so the host can reuse it. The component never calls `.close()` — the host always owns cleanup. |
-| `inputStream` | `MediaStream` | Optional. Pass an existing mic stream. If not set, the component calls `getUserMedia` lazily on the first `start()` call and stops the tracks when the test ends. When host-provided, the component never stops the tracks. |
+| `audioContext` | `AudioContext` | Required before calling `start()`. Assign the host's `AudioContext` to this property. If not set when `start()` is called, a `latency-error` is emitted immediately. The component never calls `.close()` — the host owns the lifetime. **Sample rate:** create the `AudioContext` without specifying `sampleRate` so the browser matches the output device — this gives the best MLS playback accuracy. If the input device runs at a different rate the browser resamples the mic transparently; the component logs a `console.warn` but the measurement remains correct. **Suspend:** browsers may auto-suspend an idle `AudioContext`; the component logs a `console.warn` if suspended at `start()` time. Call `audioContext.resume()` from a user gesture before `start()` if the context may have been idle. |
+| `inputStream` | `MediaStream` | Required before calling `start()`. Assign the host's mic `MediaStream` to this property. If not set when `start()` is called, a `latency-error` is emitted immediately. The component never stops the tracks — the host owns the lifetime. |
 
 ### Example
 
@@ -123,7 +125,7 @@ element.audioContext = existingAudioContext
 
 Begins a latency measurement. If `number-of-tests` > 1, runs that many consecutive measurements automatically.
 
-Requests microphone access (`getUserMedia`) on the first call if a stream has not already been acquired.
+Requires `inputStream` and `audioContext` to be assigned before calling. Emits `latency-error` immediately if either is missing.
 
 ```js
 element.start()
@@ -176,7 +178,7 @@ element.addEventListener('latency-complete', (e) => {
 
 ### `latency-error`
 
-Fired when the measurement cannot proceed (e.g. microphone access denied, AudioContext creation failed).
+Fired when the measurement cannot proceed (e.g. `inputStream` or `audioContext` not set, controller initialisation failed).
 
 ```js
 element.addEventListener('latency-error', (e) => {
@@ -191,7 +193,7 @@ These fire with no meaningful payload (`e.detail` is an empty object `{}`). Use 
 
 | Event | When fired | Notes |
 |---|---|---|
-| `latency-start` | Mic acquired; test is about to begin | Always fires during `start()`, followed by `latency-recording` when signal playback begins. |
+| `latency-start` | Host resources validated; test is about to begin | Always fires during `start()`, followed by `latency-recording` when signal playback begins. |
 | `latency-recording` | Signal playback started; capture is running | |
 | `latency-processing` | Recording stopped; cross-correlation worker is running | |
 
@@ -206,7 +208,7 @@ These values are fixed by the research methodology and are not configurable:
 | Reliability threshold | `18 dB` | Minimum correlation ratio for a trustworthy measurement — empirically chosen in the WAC 2025 experiments |
 | MLS amplitude | `±1.0` | Binary MLS sequence mapped to `+1.0` / `−1.0` float samples |
 | Chirp frequency range | `1500–8000 Hz` | Bandlimited to avoid input aliasing above 12 kHz present on some iOS devices |
-| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Applied when the component calls `getUserMedia`. Not applied to host-provided streams — the host is responsible for setting constraints on streams passed via `element.inputStream`. |
+| Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Recommended constraints for the host to apply when acquiring the mic stream. The component does not call `getUserMedia` — the host is responsible for setting constraints on the stream passed via `element.inputStream`. |
 
 ---
 
