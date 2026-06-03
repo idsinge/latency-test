@@ -37,14 +37,27 @@ npm install @adasp/latency-test
 ```
 
 ```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
+
 <latency-test id="lt"></latency-test>
-<button onclick="document.getElementById('lt').start()">Test</button>
+<button id="btn">Test</button>
 
 <script type="module">
-  import '@adasp/latency-test'
+  const lt = document.getElementById('lt')
 
-  document.getElementById('lt').addEventListener('latency-result', (e) => {
+  lt.addEventListener('latency-result', (e) => {
     console.log(`${e.detail.latency} ms — ratio: ${e.detail.ratio.toFixed(2)} dB`)
+  })
+
+  // audioContext and inputStream must be assigned before start() — create them from a user gesture
+  document.getElementById('btn').addEventListener('click', async () => {
+    if (!lt.audioContext) {
+      lt.inputStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      })
+      lt.audioContext = new AudioContext({ latencyHint: 0 })
+    }
+    lt.start()
   })
 </script>
 ```
@@ -54,8 +67,7 @@ npm install @adasp/latency-test
 - The component is **headless by default** — it exposes `start()` / `stop()` and fires events. No built-in button or result display.
 - Results are delivered via the `latency-result` CustomEvent (`{ latency, ratio, reliable, timestamp, mode }`).
 - A reliability ratio above **18 dB** indicates a trustworthy measurement.
-- Microphone access is requested on the first `start()` call.
-- For DAW or multi-context applications, pass your existing `AudioContext` via `element.audioContext = ac` before calling `start()`.
+- Before calling `start()`, assign `element.inputStream` (a `MediaStream`) and `element.audioContext` (an `AudioContext`) — the component never creates audio resources itself. If your app already has an `AudioContext`, pass it directly to avoid creating a second one.
 - Use `recording-mode` to select the capture backend: `"mediarecorder"` (v1 default, implemented) or `"audioworklet"` (v2 default, implemented). `"mediarecorder-2ch"` is planned (Phase 3b).
 - `signal-type` is `"mls"` in v1. `"chirp"` and `"golay"` are planned for v2.
 - `input-gain` is reserved for a future gain multiplier — it is not yet wired in the current version.

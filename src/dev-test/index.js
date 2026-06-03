@@ -19,6 +19,7 @@ const btn = document.getElementById('start-btn')
 const results = document.getElementById('results')
 const aggregate = document.getElementById('aggregate')
 const runCount = document.getElementById('run-count')
+const debugToggle = document.getElementById('debug-toggle')
 
 // --- Audio session setup ---
 
@@ -71,6 +72,8 @@ tester.addEventListener('latency-error', (e) => {
     btn.textContent = 'TEST LATENCY'
     btn.disabled = false
 })
+
+debugToggle.addEventListener('change', () => { tester.debug = debugToggle.checked })
 
 btn.onclick = () => {
     btn.disabled = true

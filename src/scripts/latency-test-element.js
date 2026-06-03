@@ -1,20 +1,10 @@
 import { LatencyTestController } from './test.js'
 
-const MIC_CONSTRAINTS = {
-    audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        latency: 0,
-        channelCount: 1
-    }
-}
-
 class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : class {}) {
     #controller = null
+    #worker = null
     #audioContext = null
     #inputStream = null
-    #hostProvidedStream = false
     #pendingRuns = 0
     #allResults = []
     #stopped = false
@@ -51,7 +41,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this[prop] = newValue
     }
 
-    // Property: audioContext (read-write)
+    // Property: audioContext — must be set by the host before calling start()
     get audioContext() {
         return this.#audioContext
     }
@@ -60,13 +50,13 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this.#audioContext = context
     }
 
+    // Property: inputStream — must be set by the host before calling start()
     get inputStream() {
         return this.#inputStream
     }
 
     set inputStream(stream) {
         this.#inputStream = stream
-        this.#hostProvidedStream = !!stream
     }
 
     get debug() {
@@ -81,62 +71,46 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         if (this.debug) console.debug('[latency-test]', performance.now().toFixed(2), label, data ?? '')
     }
 
-    // Method: start the test
     async start() {
         if (this.#controller) this.stop()
+        if (!this.#inputStream) {
+            this.#emitEvent('latency-error', { message: 'inputStream is required — assign a MediaStream to element.inputStream before calling start()' })
+            return
+        }
+        if (!this.#audioContext) {
+            this.#emitEvent('latency-error', { message: 'audioContext is required — assign an AudioContext to element.audioContext before calling start()' })
+            return
+        }
+        if (this.#audioContext.state === 'suspended') {
+            console.warn('[latency-test] AudioContext is suspended — call audioContext.resume() from a user gesture before start()')
+        }
+        const inputSampleRate = this.#inputStream.getAudioTracks()[0]?.getSettings()?.sampleRate
+        if (inputSampleRate && inputSampleRate !== this.#audioContext.sampleRate) {
+            console.warn(`[latency-test] Sample rate mismatch — input device: ${inputSampleRate} Hz, AudioContext: ${this.#audioContext.sampleRate} Hz. The AudioContext rate matches the output device (correct for MLS playback). Input resampling is handled transparently.`)
+        }
         this.#stopped = false
-        let streamState = 'none'
-        if (this.#hostProvidedStream) streamState = 'host-provided'
-        else if (this.#inputStream) streamState = 'reused'
-        this.#log('start', { recordingMode: this.recordingMode || 'mediarecorder', numberOfTests: this.numberOfTests || 1, streamState })
+        this.#log('start', { recordingMode: this.recordingMode || 'mediarecorder', numberOfTests: this.numberOfTests || 1 })
+        if (this.debug) {
+            const track = this.#inputStream.getAudioTracks()[0]
+            this.#log('inputStream', { readyState: track?.readyState, settings: track?.getSettings() })
+            this.#log('audioContext', { sampleRate: this.#audioContext.sampleRate, state: this.#audioContext.state, baseLatency: this.#audioContext.baseLatency?.toFixed(4), outputLatency: this.#audioContext.outputLatency?.toFixed(4) })
+        }
+        this.#emitEvent('latency-start', {})
+        this.#pendingRuns = Number.parseInt(this.numberOfTests, 10) || 1
+        this.#allResults = []
         try {
-            this.#setupAudioContext()
-            await this.#acquireMic()
-            this.#pendingRuns = Number.parseInt(this.numberOfTests, 10) || 1
-            this.#allResults = []
+            if (!this.#worker) {
+                this.#worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })
+            }
             await this.#runNextTest()
         } catch (error) {
             this.#controller?.stop()
             this.#controller = null
             this.#pendingRuns = 0
             this.#stopped = true
-            if (!this.#hostProvidedStream && this.#inputStream) {
-                this.#inputStream.getTracks().forEach(t => t.stop())
-                this.#inputStream = null
-            }
+            this.#worker?.terminate()
+            this.#worker = null
             this.#emitEvent('latency-error', { message: error.message })
-        }
-    }
-
-    async #acquireMic() {
-        if (this.#hostProvidedStream) {
-            this.#log('#acquireMic', { streamState: 'host-provided' })
-            this.#emitEvent('latency-start', {}); return
-        }
-        if (this.#inputStream) {
-            this.#log('#acquireMic', { streamState: 'reused' })
-            this.#emitEvent('latency-start', {}); return
-        }
-        this.#log('#acquireMic', { streamState: 'calling getUserMedia' })
-        const t0 = performance.now()
-        try {
-            this.#inputStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-        } catch (e) {
-            this.#log('#acquireMic getUserMedia failure', { error: e.name + ': ' + e.message })
-            throw e
-        }
-        const track = this.#inputStream.getAudioTracks()[0]
-        const s = track?.getSettings() ?? {}
-        this.#log('#acquireMic getUserMedia success', { elapsedMs: (performance.now() - t0).toFixed(2), readyState: track?.readyState, enabled: track?.enabled, muted: track?.muted, sampleRate: s.sampleRate, channelCount: s.channelCount, echoCancellation: s.echoCancellation })
-        this.#emitEvent('latency-start', {})
-    }
-
-    #setupAudioContext() {
-        if (this.#audioContext) {
-            this.#log('#setupAudioContext reused', { sampleRate: this.#audioContext.sampleRate, state: this.#audioContext.state })
-        } else {
-            this.#audioContext = new AudioContext({ latencyHint: 0 })
-            this.#log('#setupAudioContext created', { sampleRate: this.#audioContext.sampleRate, state: this.#audioContext.state })
         }
     }
 
@@ -144,6 +118,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this.#log('#runNextTest', { pendingRuns: this.#pendingRuns })
         this.#controller = new LatencyTestController()
         await this.#controller.initialize(this.#audioContext, this.#inputStream, {
+            worker: this.#worker,
             mlsBits: Number.parseInt(this.mlsBits, 10) || 15,
             maxLagMs: Number.parseInt(this.maxLagMs, 10) || 600,
             bufferSize: Number.parseInt(this.bufferSize, 10) || 0,
@@ -171,14 +146,10 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     #emitComplete(aborted) {
-        this.#log('#emitComplete', { resultCount: this.#allResults.length, streamWillStop: !this.#hostProvidedStream && !!this.#inputStream, aborted: !!aborted })
+        this.#log('#emitComplete', { resultCount: this.#allResults.length, aborted: !!aborted })
         const results = [...this.#allResults]
         const l = results.map(r => r.latency)
         const mean = l.length > 0 ? l.reduce((a, b) => a + b, 0) / l.length : 0
-        if (!this.#hostProvidedStream && this.#inputStream) {
-            this.#inputStream.getTracks().forEach(t => t.stop())
-            this.#inputStream = null
-        }
         this.#emitEvent('latency-complete', {
             results,
             mean,
@@ -191,15 +162,17 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
 
     #handleError(message) {
         this.#log('#handleError', { message })
-        this.#emitEvent('latency-error', { message })
         this.#controller?.stop()
         this.#controller = null
+        this.#worker?.terminate()
+        this.#worker = null
         const hadPending = this.#pendingRuns
         this.#pendingRuns = 0
         this.#stopped = true
         if (hadPending > 0) {
             this.#emitComplete(true)
         }
+        this.#emitEvent('latency-error', { message })
     }
 
     stop() {
@@ -210,12 +183,10 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         this.#controller = null
         const hadPending = this.#pendingRuns
         this.#pendingRuns = 0
+        this.#worker?.terminate()
+        this.#worker = null
         if (hadPending > 0) {
             this.#emitComplete(true)
-        }
-        if (!this.#hostProvidedStream && this.#inputStream) {
-            this.#inputStream.getTracks().forEach(t => t.stop())
-            this.#inputStream = null
         }
     }
 

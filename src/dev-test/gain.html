@@ -14,7 +14,8 @@
             <a href="mediarecorder.html">MediaRecorder →</a> ·
             <a href="audioworklet.html">AudioWorklet →</a>
         </nav>
-        <h1>Host Gain Test</h1>
+        <h1>Host Gain Test (MediaRecorder)</h1>
+        <p id="config-info"><code>recording-mode="mediarecorder"</code> · input: host gain chain → component</p>
         <div id="connect-section">
             <button id="connect-btn">Connect Audio</button>
             <p id="connect-status"></p>
@@ -27,6 +28,7 @@
             <label>Number of runs:
                 <input type="number" id="run-count" value="1" min="1" max="20">
             </label>
+            <label><input type="checkbox" id="debug-toggle"> Debug mode (set before test)</label>
             <latency-test id="tester" recording-mode="mediarecorder"></latency-test>
             <button id="start-btn">TEST LATENCY</button>
             <div id="results"></div>

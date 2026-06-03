@@ -18,66 +18,42 @@ Svelte works natively with custom elements — no special configuration needed. 
 
 ## Basic usage
 
+The recommended pattern is a two-step flow: connect audio first, then run tests. This keeps the mic stream warm between repeated clicks and avoids cold-start instability.
+
 ```svelte
 <script>
   import '@adasp/latency-test'
   import { onMount, onDestroy } from 'svelte'
 
+  const MIC_CONSTRAINTS = {
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+  }
+
   let lt
+  let micStream = null
+  let audioCtx = null
+  let isConnected = false
   let result = null
+  let stats = null
   let error = null
 
-  function onResult(e) { result = e.detail }
-  function onError(e) { error = e.detail.message }
-
-  onMount(() => {
-    lt.addEventListener('latency-result', onResult)
-    lt.addEventListener('latency-error', onError)
-  })
-
-  onDestroy(() => {
-    lt.removeEventListener('latency-result', onResult)
-    lt.removeEventListener('latency-error', onError)
-  })
-</script>
-
-<latency-test bind:this={lt} />
-<button on:click={() => lt.start()}>Test Latency</button>
-<button on:click={() => lt.stop()}>Stop</button>
-
-{#if result}
-  <p>{result.latency} ms — ratio: {result.ratio.toFixed(2)} dB</p>
-{/if}
-
-{#if error}
-  <p style="color: red">Error: {error}</p>
-{/if}
-```
-
----
-
-## Multiple tests with aggregate results
-
-```svelte
-<script>
-  import '@adasp/latency-test'
-  import { onMount, onDestroy } from 'svelte'
-
-  export let numberOfTests = 5
-
-  let lt
-  let runs = []
-  let stats = null
-
-  function onResult(e) { runs = [...runs, e.detail] }
-  function onComplete(e) { stats = e.detail }
-  function onError(e) { console.error(e.detail.message) }
-
-  function runTests() {
-    runs = []
-    stats = null
-    lt.start()
+  async function connect() {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+      audioCtx = new AudioContext({ latencyHint: 0 })
+      lt.inputStream = micStream
+      lt.audioContext = audioCtx
+      isConnected = true
+    } catch (e) {
+      micStream?.getTracks().forEach(t => t.stop())
+      micStream = null
+      error = `Could not access mic: ${e.message}`
+    }
   }
+
+  function onResult(e) { result = e.detail }
+  function onComplete(e) { stats = e.detail }
+  function onError(e) { error = e.detail.message }
 
   onMount(() => {
     lt.addEventListener('latency-result', onResult)
@@ -89,29 +65,42 @@ Svelte works natively with custom elements — no special configuration needed. 
     lt.removeEventListener('latency-result', onResult)
     lt.removeEventListener('latency-complete', onComplete)
     lt.removeEventListener('latency-error', onError)
+    micStream?.getTracks().forEach(t => t.stop())
+    audioCtx?.close()
   })
 </script>
 
-<latency-test bind:this={lt} number-of-tests={numberOfTests} />
-<button on:click={runTests}>Run {numberOfTests} Tests</button>
+<latency-test bind:this={lt} number-of-tests="5" />
 
-<ul>
-  {#each runs as r, i}
-    <li>{r.latency} ms (ratio: {r.ratio.toFixed(2)} dB)</li>
-  {/each}
-</ul>
+{#if !isConnected}
+  <button on:click={connect}>Connect Audio</button>
+{:else}
+  <button on:click={() => lt.start()}>Test Latency</button>
+{/if}
 
-{#if stats}
+{#if result}
+  <p>{result.latency.toFixed(2)} ms — ratio: {result.ratio.toFixed(2)} dB{result.reliable ? '' : ' ⚠️ unreliable'}</p>
+{/if}
+
+{#if stats && stats.results?.length > 1}
   <p>
-    Mean: {stats.mean.toFixed(2)} ms | Std: {stats.std.toFixed(2)} |
+    Mean: {stats.mean.toFixed(2)} ms | SD: {stats.std.toFixed(2)} |
     Min: {stats.min.toFixed(2)} | Max: {stats.max.toFixed(2)}
   </p>
 {/if}
+
+{#if error}
+  <p style="color: red">{error}</p>
+{/if}
 ```
+
+> **Real-world use:** In an application that already manages a mic stream and `AudioContext` (e.g. a Web Audio DAW), pass both directly — no Connect Audio step needed. See [Sharing audio resources from a host app](#sharing-audio-resources-from-a-host-app).
 
 ---
 
-## Sharing an existing AudioContext
+## Sharing audio resources from a host app
+
+When your application already owns a mic stream and `AudioContext`, pass both to the element. The component will not stop the stream or close the context — the host owns both lifetimes.
 
 ```svelte
 <script>
@@ -119,14 +108,17 @@ Svelte works natively with custom elements — no special configuration needed. 
   import { onMount } from 'svelte'
 
   export let audioContext
+  export let inputStream
 
   let lt
 
   onMount(() => {
     if (audioContext) lt.audioContext = audioContext
+    if (inputStream) lt.inputStream = inputStream
   })
 
   $: if (lt && audioContext) lt.audioContext = audioContext
+  $: if (lt && inputStream) lt.inputStream = inputStream
 </script>
 
 <latency-test bind:this={lt} />
@@ -141,20 +133,53 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
 ```svelte
 <script>
   import { browser } from '$app/environment'
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
 
   let lt
+  let micStream = null
+  let audioCtx = null
+  let isReady = false
+  let isConnected = false
+
+  const MIC_CONSTRAINTS = {
+    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+  }
 
   onMount(async () => {
     if (browser) {
       await import('@adasp/latency-test')
+      await customElements.whenDefined('latency-test')
+      isReady = true
     }
   })
+
+  onDestroy(() => {
+    micStream?.getTracks().forEach(t => t.stop())
+    audioCtx?.close()
+  })
+
+  async function connect() {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+      audioCtx = new AudioContext({ latencyHint: 0 })
+      lt.inputStream = micStream
+      lt.audioContext = audioCtx
+      isConnected = true
+    } catch (e) {
+      micStream?.getTracks().forEach(t => t.stop())
+      micStream = null
+      console.error('Could not access mic:', e.message)
+    }
+  }
 </script>
 
-{#if browser}
+{#if browser && isReady}
   <latency-test bind:this={lt} />
-  <button on:click={() => lt?.start()}>Test Latency</button>
+  {#if !isConnected}
+    <button on:click={connect}>Connect Audio</button>
+  {:else}
+    <button on:click={() => lt.start()}>Test Latency</button>
+  {/if}
 {/if}
 ```
 

@@ -8,7 +8,9 @@ No framework required. Import the package and use the element directly in HTML.
 
 ---
 
-## Single test
+## Basic usage
+
+The recommended pattern is a two-step flow: connect audio first, then run tests. This keeps the mic stream warm between repeated clicks and avoids cold-start instability.
 
 ```html
 <!DOCTYPE html>
@@ -17,74 +19,97 @@ No framework required. Import the package and use the element directly in HTML.
   <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
-  <button id="btn">Test Latency</button>
-  <p id="result"></p>
+  <button id="connect-btn">Connect Audio</button>
 
-  <latency-test id="lt"></latency-test>
+  <div id="test-ui" hidden>
+    <button id="start-btn">Test Latency</button>
+    <p id="result"></p>
+    <p id="stats"></p>
+  </div>
+
+  <latency-test id="lt" number-of-tests="5"></latency-test>
 
   <script>
     const lt = document.getElementById('lt')
-    const btn = document.getElementById('btn')
+    const connectBtn = document.getElementById('connect-btn')
+    const testUi = document.getElementById('test-ui')
+    const startBtn = document.getElementById('start-btn')
     const result = document.getElementById('result')
+    const stats = document.getElementById('stats')
+
+    const MIC_CONSTRAINTS = {
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+    }
+
+    let micStream = null
+    let audioCtx = null
+
+    connectBtn.addEventListener('click', async () => {
+      connectBtn.disabled = true
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+        audioCtx = new AudioContext({ latencyHint: 0 })
+        lt.inputStream = micStream
+        lt.audioContext = audioCtx
+        connectBtn.hidden = true
+        testUi.hidden = false
+      } catch (e) {
+        micStream?.getTracks().forEach(t => t.stop())
+        micStream = null
+        connectBtn.disabled = false
+        result.textContent = `Could not access mic: ${e.message}`
+      }
+    })
+
+    window.addEventListener('beforeunload', () => {
+      micStream?.getTracks().forEach(t => t.stop())
+      audioCtx?.close()
+    })
+
+    startBtn.addEventListener('click', () => lt.start())
 
     lt.addEventListener('latency-result', (e) => {
-      const { latency, ratio } = e.detail
-      result.textContent = `${latency} ms — ratio: ${ratio.toFixed(2)} dB`
+      const { latency, ratio, reliable } = e.detail
+      result.textContent = `${latency.toFixed(2)} ms — ratio: ${ratio.toFixed(2)} dB${reliable ? '' : ' ⚠️ unreliable'}`
+    })
+
+    lt.addEventListener('latency-complete', (e) => {
+      const { results, mean, std, min, max } = e.detail
+      if (results.length > 1)
+        stats.textContent = `Mean: ${mean.toFixed(2)} ms | SD: ${std.toFixed(2)} | Min: ${min.toFixed(2)} | Max: ${max.toFixed(2)}`
     })
 
     lt.addEventListener('latency-error', (e) => {
       result.textContent = `Error: ${e.detail.message}`
     })
-
-    btn.addEventListener('click', () => lt.start())
   </script>
 </body>
 </html>
 ```
 
----
-
-## Multiple consecutive tests with statistics
-
-```html
-<latency-test id="lt" number-of-tests="10"></latency-test>
-<button id="btn">Run 10 tests</button>
-
-<script>
-  const lt = document.getElementById('lt')
-
-  lt.addEventListener('latency-result', (e) => {
-    console.log(`Run result: ${e.detail.latency} ms`)
-  })
-
-  lt.addEventListener('latency-complete', (e) => {
-    const { mean, std, min, max } = e.detail
-    console.log(`Mean: ${mean.toFixed(2)} ms | Std: ${std.toFixed(2)} | Min: ${min.toFixed(2)} | Max: ${max.toFixed(2)}`)
-  })
-
-  // Must be called from a user gesture — AudioContext requires it
-  document.getElementById('btn').addEventListener('click', () => lt.start())
-</script>
-```
+> **Real-world use:** In an application that already manages a mic stream and `AudioContext` (e.g. a Web Audio DAW), pass both directly — no Connect Audio step needed. See [Sharing audio resources from a host app](#sharing-audio-resources-from-a-host-app).
 
 ---
 
-## Sharing an existing AudioContext
+## Sharing audio resources from a host app
+
+When your application already owns a mic stream and `AudioContext`, pass both to the element. The component will not stop the stream or close the context — the host owns both lifetimes.
 
 ```html
-<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
+<latency-test id="lt"></latency-test>
+
 <script type="module">
 import '@adasp/latency-test'
 
-const ac = new AudioContext()
-const lt = document.querySelector('latency-test')
-lt.audioContext = ac
+// Host already has a stream and AudioContext (e.g. a DAW)
+const lt = document.getElementById('lt')
+lt.inputStream = existingStream
+lt.audioContext = existingAudioContext
 
 lt.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-// Must be called from a user gesture — getUserMedia requires it
 document.getElementById('startBtn').addEventListener('click', () => lt.start())
 </script>
 ```

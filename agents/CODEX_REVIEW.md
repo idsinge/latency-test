@@ -304,10 +304,10 @@ The following points were clarified in discussion and should be treated as curre
 3. Consumers should be able to choose their preferred integration style. Both **npm import** and **CDN/script-tag** usage are first-class goals.
 4. The GitHub Pages site should eventually include a **live showcase/demo** of the web component in action, not just static documentation.
 5. The future live demo should show **multiple usage patterns**, with different code snippets and the corresponding working element rendered nearby (below, side by side, or similar).
-6. `audioContext` ownership follows a **read-write property model**: the host may provide one, or the component creates one lazily on first `start()`. The component never closes the active `AudioContext`.
+6. `audioContext` ownership: **host-required**. Must be set via `element.audioContext = ac` before `start()`. The component never creates or closes an `AudioContext` — emits `latency-error` if missing.
 7. The component uses **open Shadow DOM with an empty shadow root by default**. No built-in visible UI is required in v1.
 8. v1 should emit lifecycle + result events: `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, and `latency-complete`.
-9. `inputStream` ownership mirrors the `audioContext` model: host-provided streams are never stopped by the component; self-created streams are acquired lazily on `start()` and stopped when the test ends.
+9. `inputStream` ownership: **host-required**. Must be set via `element.inputStream = stream` before `start()`. The component never calls `getUserMedia` or stops tracks — emits `latency-error` if missing.
 10. Safari-specific automatic browser detection should be removed from the component. Gain compensation becomes a host-controlled/general `input-gain` behavior instead of an internal Safari-only workaround.
 
 ## Ongoing Review Notes

@@ -15,13 +15,24 @@ A Web Component for measuring browser round-trip audio latency in Web Audio appl
 
 ```html
 <latency-test id="lt"></latency-test>
-<button onclick="document.getElementById('lt').start()">Test</button>
+<button id="btn">Test</button>
 
 <script type="module">
-  import '@adasp/latency-test'
+  import '@adasp/latency-test' // npm / bundler — for CDN usage see docs/install.md
 
-  document.getElementById('lt').addEventListener('latency-result', (e) => {
+  const lt = document.getElementById('lt')
+
+  lt.addEventListener('latency-result', (e) => {
     console.log(e.detail.latency, 'ms — ratio:', e.detail.ratio, 'dB')
+  })
+
+  // audioContext and inputStream must be assigned before start() — create them from a user gesture
+  document.getElementById('btn').addEventListener('click', async () => {
+    if (!lt.audioContext) {
+      lt.inputStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+      lt.audioContext = new AudioContext({ latencyHint: 0 })
+    }
+    lt.start()
   })
 </script>
 ```
@@ -33,7 +44,7 @@ Multiple consecutive tests with aggregate statistics:
 <button id="btn">Run 5 tests</button>
 
 <script type="module">
-  import '@adasp/latency-test'
+  import '@adasp/latency-test' // npm / bundler — for CDN usage see docs/install.md
 
   const lt = document.getElementById('lt')
 
@@ -46,7 +57,13 @@ Multiple consecutive tests with aggregate statistics:
     console.log(`mean ${mean.toFixed(2)} ms · std ${std.toFixed(2)} · min ${min.toFixed(2)} · max ${max.toFixed(2)}`)
   })
 
-  document.getElementById('btn').addEventListener('click', () => lt.start())
+  document.getElementById('btn').addEventListener('click', async () => {
+    if (!lt.audioContext) {
+      lt.inputStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
+      lt.audioContext = new AudioContext({ latencyHint: 0 })
+    }
+    lt.start()
+  })
 </script>
 ```
 

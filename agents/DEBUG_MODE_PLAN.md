@@ -32,15 +32,15 @@ Add a `debug` boolean attribute/property to the `<latency-test>` element. When e
 Every log line: `[latency-test] <performance.now()> <label>: <data>`
 
 - **Primary timestamp:** `performance.now().toFixed(2)` for local elapsed timings within each context (main thread or worker). Note: `performance.now()` is relative to `performance.timeOrigin`, which can differ between the main thread and worker contexts — values are **not directly comparable across contexts**. For cross-context comparison, log `(performance.timeOrigin + performance.now()).toFixed(2)` as an absolute wall-clock timestamp.
-- **Audio time as additional field:** include `audioTime=<currentTime.toFixed(4)>` where relevant (scheduling, pre-roll) — not as the primary timestamp.
+- **Audio time as additional field:** include `audioTime=<currentTime.toFixed(4)>` where relevant (scheduling) — not as the primary timestamp.
 - Label: method or checkpoint name
 - Data: key-value pairs inline
 
 Example:
 ```
-[latency-test] 1234.56 prepareAudioToPlayAndRecord: mode=mediarecorder preRollMs=300 audioTime=1.2340
-[latency-test] 1534.12 pre-roll complete: audioTime=1.5341 elapsed=299.56ms
-[latency-test] 1534.20 mediaRecorder.start: mimeType=audio/webm;codecs=opus
+[latency-test] 1234.56 prepareAudioToPlayAndRecord: mode=mediarecorder audioTime=1.2340
+[latency-test] 1234.60 silence started: audioTime=1.2341
+[latency-test] 1234.70 mediaRecorder.start: mimeType=audio/webm;codecs=opus
 [latency-test] 1534.31 noiseSource.start: audioTime=1.5343 gapFromMRStart=0.11ms
 [latency-test] 2291.04 mediaRecorder.stop: chunks=3
 [latency-test] 2310.02 decodeAudioData: channels=1 duration=0.742s sampleRate=48000
@@ -57,38 +57,33 @@ Example:
 
 | Checkpoint | What to log |
 |---|---|
-| `start()` entry | recording mode, `numberOfTests`, stream state (host-provided / self-created / null) |
-| `#setupAudioContext()` | whether context was created or reused, `sampleRate`, `state` |
-| `#acquireMic()` — before `getUserMedia` | — |
-| `#acquireMic()` — after `getUserMedia` | elapsed ms since call started, track `readyState`/`enabled`/`muted`, `getSettings()` fields (`sampleRate`, `channelCount`, `echoCancellation`), `#streamIsWarm` state. **Do not log track label** — it exposes mic/device names (privacy-sensitive in a public package). |
-| `#startSilence()` entry *(if/when implemented)* | `audioContext.currentTime`, silence buffer duration |
-| `#startSilence()` complete *(if/when implemented)* | `currentTime` after warmup, elapsed ms |
-| `#runNextTest()` entry | run number (internal), visible run number, `#pendingRuns` remaining, `#streamIsWarm` state |
+| `start()` entry | `recordingMode`, `numberOfTests` |
+| `inputStream` state *(only when `debug` is true)* | track `readyState`, `getSettings()` result |
+| `audioContext` state *(only when `debug` is true)* | `sampleRate`, `state`, `baseLatency`, `outputLatency` |
+| `#runNextTest()` entry | `pendingRuns` remaining |
 | `#emitEvent()` | event name, shallow detail (no buffers) — single instrumentation point covering `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error` |
-| `#emitComplete()` | results count, whether stream was stopped or kept, `keepInputStream` state |
-| `#handleError()` | error message, source |
-| `stop()` called | `#stopped` state, whether test was in progress |
+| `#emitComplete()` | result count, `aborted` flag |
+| `#handleError()` | error message |
+| `stop()` called | `wasInProgress` (bool — whether a controller was active) |
 | `disconnectedCallback()` | — |
 | `attributeChangedCallback()` | attribute name, old value, new value |
-| `getUserMedia` failure | error name and message |
 
 ### `test.js` — `LatencyTestController`
 
 | Checkpoint | What to log |
 |---|---|
 | `initialize()` | `recordingMode`, `mlsBits`, `maxLagMs`, `sampleRate`, `debug` |
-| `prepareAudioToPlayAndRecord()` entry | `recordingMode`, `preRollMs`, `audioContext.currentTime`, stream warm state |
-| Silence node started | `audioTime`, silence buffer duration |
-| Pre-roll start | `targetAudioTime`, `wallDeadline` |
-| Pre-roll complete | actual `audioTime`, wall-clock elapsed ms |
+| `prepareAudioToPlayAndRecord()` entry | `recordingMode`, `audioContext.currentTime` |
+| Silence node started | `audioTime` |
 | `startMediaRecorderCapture()` — `mediaRecorder.start()` | `mimeType`, `performance.now()` |
 | `startMediaRecorderCapture()` — `noiseSource.start()` | `audioTime`, gap from `mediaRecorder.start()` in ms — **key timing bias data point** |
-| `mediaRecorder.onstop` | chunk count, total blob size if available |
+| `mediaRecorder.onstop` | chunk count |
 | `decodeAudioData` result | `numberOfChannels`, `duration`, `sampleRate`, `length` |
 | `MediaRecorder` constructor/start failure | error message |
 | `decodeAudioData` failure | error message |
-| `loadRecorderProcessor()` — start | `audioContext.audioWorklet` state |
-| `loadRecorderProcessor()` — complete or cache-hit | elapsed ms, whether module was already loaded |
+| `loadRecorderProcessor()` — start | *(no data fields)* |
+| `loadRecorderProcessor()` — cache-hit | *(no data fields — label signals already loaded)* |
+| `loadRecorderProcessor()` — complete | `elapsedMs` |
 | `loadRecorderProcessor()` — failure (`AudioWorklet.addModule` throws) | error message |
 | `startWorkletCapture()` — mic source connected | `audioTime` |
 | `startWorkletCapture()` — reference source connected | `audioTime` |
@@ -97,11 +92,11 @@ Example:
 | `startWorkletCapture()` — `workletNode.port.postMessage({ command: 'stop' })` | `audioTime` |
 | Worklet message received (final) | `mic` length, `ref` length |
 | Worker `postMessage` sent — `correlation` | `maxLag`, `data1` length, `data2` length, `channel`, `debug` |
-| Worker `postMessage` sent — `findpeak` (if separate) | `debug` — must also carry the flag |
-| `workerMessageHandler` — final result only | `peakIndex`, `peakValuePow`, `mean`, computed `ratio` dB, computed `latency` ms, `reliable` |
-| Warmup run discarded (Fix C) | internal run number, visible run number, `peakIndex`, `ratio`, `#streamIsWarm` was false |
+| Worker `postMessage` sent — `findpeak` | `correlationLen` |
+| `workerMessageHandler` — findpeak result (`worker result` log) | `peakIndex`, `channel` |
+| `displayresults` | computed `latency` ms, `ratio` dB, `reliable`, `mode` |
 | Worker `error` / `messageerror` | error message |
-| `stop()` called | whether recording was in progress |
+| `stop()` called | `alreadyStopped`, `hasRecorder`, `hasWorklet` |
 
 ### `worker.js`
 

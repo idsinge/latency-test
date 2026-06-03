@@ -15,12 +15,12 @@ This file tracks open questions and the planned action plan for converting `webl
 | 5 | **Live demo: dedicated GitHub Pages page, not an embedded sandbox** | The component requires real `getUserMedia` access. Sandboxed iframes (CodeSandbox, StackBlitz) frequently block audio APIs and would give a broken first impression. A standalone `demo/index.html` served at `https://idsinge.github.io/latency-test/demo/` over HTTPS is the right approach. The docs site links to it prominently. This is a Phase 5 deliverable — it cannot exist before the component bundle does. |
 | 6 | **npm and CDN are both first-class distribution targets** | Some consumers use bundlers (npm import); others drop in a `<script>` tag. Both paths must be validated before publishing. The component bundle must work in both contexts. |
 | 7 | **Root README stays short and repo-oriented once the docs site is live** | The VitePress docs site becomes the canonical integration reference. The README covers repo purpose, origin, run-locally instructions, and research context — not component API details. |
-| 8 | **AudioContext ownership: read-write property, component never closes it** | `element.audioContext` is a read-write JS property. Setter: host provides an existing context — component uses it and never closes it. Getter: always returns the active context, whether host-provided or internally created. If no context was set, the component creates one lazily on the first `start()` call and exposes it via the getter so the host can grab it for other audio work. The component never calls `.close()` on the AudioContext in either case — the host owns cleanup. This solves the edge case where the component is the first thing to touch audio: the host calls `start()`, then reads `element.audioContext` to get the context and continue building their audio graph. |
+| 8 | **AudioContext ownership: host-provided, component never closes it** | `element.audioContext` is a write-once JS property set by the host before calling `start()`. The component never creates or closes an `AudioContext`. If `audioContext` is not set before `start()`, the element emits `latency-error`. The host owns the full lifecycle — create, resume, close. |
 | 9 | **Shadow DOM (open mode), empty root by default** | A shadow root is attached in the constructor but nothing is rendered into it initially (headless). This is the standard custom element pattern, is future-proof if optional UI is added later, and ensures event retargeting works correctly. Open mode is used so host apps can inspect internals when debugging; no CSS custom properties are exposed in v1 since there is no visible UI. |
 | 10 | **Lifecycle events: fire `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, `latency-complete`** | Host apps need state transitions to update their own UI (disable buttons, show spinners). Events are low-cost to emit and high-value for consumers. `latency-start` fires after permission is granted; `latency-recording` when MLS playback and capture begin; `latency-processing` when recording ends and the worker starts; `latency-result` with `{ latency, ratio, reliable, timestamp, mode }`; `latency-error` with `{ message }`; `latency-complete` when all N tests finish (immediately after the single result in v1). |
 | 11 | **AudioWorklet: `numberOfOutputs: 1`, Blob URL, no `buffer-size`** | Zero-output node risks input starvation — `numberOfOutputs: 1` with unconnected output is the known workaround. Blob URL inlining makes the processor self-contained for npm/CDN. `buffer-size` deferred — for ~1 second MLS captures, accumulating and posting once on stop is simpler. |
 | 12 | **Measurement inherits the host's audio environment** | The component does not create an idealized measurement environment. It inherits the host's `AudioContext` (sample rate, latency hint, buffer chain) and mic stream (constraints, backend). The latency result reflects the host's actual recording pipeline — system buffers included. If the host uses `recording-mode="audioworklet"` on Safari, the ~30ms system buffer IS part of the correct measurement. MediaRecorder path gives an optimistic value because it bypasses system buffers. Both are valid; they measure different things. |
-| 13 | **Mic constraints are host's responsibility when using host-provided streams** | The component hardcodes conservative mic constraints (`echoCancellation: false`, `channelCount: 1`) for self-created streams. Hosts with specific requirements (sample rate, channel count, gain) should create and pass their own stream via the `inputStream` property. |
+| 13 | **Mic constraints are host's responsibility** | The component only accepts host-provided streams — it never calls `getUserMedia()`. The host is responsible for all stream constraints (`echoCancellation`, `channelCount`, `sampleRate`, etc.). |
 | 14 | **Three `recording-mode` values: `"mediarecorder"`, `"mediarecorder-2ch"`, `"audioworklet"`** | Each mode measures the latency of its own specific pipeline — they are not three ways to measure the same thing. `"mediarecorder"`: single-channel, mic stream used directly (`this.inputStream → MediaRecorder`), closest to the production DAW recording path, but has an unknown start-timing bias because `noiseSource.start()` and `mediaRecorder.start()` are on different clocks. `"mediarecorder-2ch"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias (both signals share one encoded stream), channel-relative timing is stable in practice but not a sample-accurate API guarantee; adds extra Web Audio nodes so measures a **different pipeline** than `"mediarecorder"` (the overhead direction is browser-dependent — treat as a hypothesis to measure, not an assumption). `"audioworklet"`: raw Float32 PCM, shared AudioContext clock, no codec round-trip — the accuracy reference. The *differences between modes* are the research finding: they expose the contribution of JS start-timing bias, codec overhead, and extra-node latency to the final measurement. This design targets both industrial calibration and research comparison. |
 
 ---
@@ -49,7 +49,7 @@ The current `MediaRecorder` approach captures audio as a compressed Blob, then d
 
 **Resolved — see Decision #8.**
 
-`element.audioContext` is a read-write property. The getter always returns the active context (host-provided or internally created). If no context was set before `start()`, the component creates one lazily and exposes it via the getter so the host can use it for other audio work afterward. The component never calls `.close()` — the host owns cleanup in both cases.
+`element.audioContext` must be set by the host before calling `start()`. The component never creates or closes an `AudioContext`. Emits `latency-error` if missing at `start()` time. The host owns the full lifecycle.
 
 ---
 
@@ -79,12 +79,12 @@ The headless-first decision shapes this directly. The primary interface is imper
 
 | Event | `detail` payload | Description |
 |---|---|---|
-| `latency-start` | `{}` | Permission granted and test is about to begin |
+| `latency-start` | `{}` | Host resources validated; test is about to begin |
 | `latency-recording` | `{}` | MLS playback started; capture is running |
 | `latency-processing` | `{}` | Recording stopped; cross-correlation worker is running |
 | `latency-result` | `{ latency, ratio, reliable, timestamp, mode }` | Result of one test run. `reliable` is `true` when `ratio > 18 dB`. `mode` is the `recording-mode` value that produced the result (`"mediarecorder"`, `"mediarecorder-2ch"`, or `"audioworklet"`) — essential for cross-mode comparison. |
 | `latency-complete` | `{ results[], mean, std, min, max }` | All N runs finished (fires immediately after the single result in v1). Each item in `results[]` is a full `LatencyResultDetail` — includes `mode`, so multi-run/multi-mode tooling retains provenance per result. |
-| `latency-error` | `{ message }` | getUserMedia, AudioContext, or worker failure |
+| `latency-error` | `{ message }` | Missing host resource, AudioContext, or worker failure |
 
 The demo `index.html` will own the button and result display, wiring them to `element.start()` and the `latency-result` event. This replaces what `displayStart()` and `displayresults()` currently do inside `test.js`.
 
@@ -172,14 +172,9 @@ All six events are emitted from v1. See the updated events table in Q3 above.
 
 ### 10. Stream Ownership / Permission Model
 
-**Resolved — same pattern as AudioContext (Decision #8), with one difference in cleanup.**
+**Resolved — host-required, same model as AudioContext (Decision #8).**
 
-`element.inputStream` is a read-write JS property:
-
-- **Host provides a stream** (`element.inputStream = existingStream` before `start()`): component uses it, never stops its tracks. Host owns the mic lifecycle.
-- **No stream provided**: component calls `getUserMedia` lazily on the first `start()` call, then stops the tracks when the test ends (not on `disconnectedCallback` — leaving the mic open unnecessarily triggers the browser's recording indicator). The stream is exposed via the getter for completeness, though hosts rarely need it back.
-
-`getUserMedia` is always called lazily on `start()`, never on `connectedCallback`. This is the correct model for embedded use where the host may not want a permission prompt on element insertion.
+`element.inputStream` must be set by the host before calling `start()`. The component never calls `getUserMedia` or stops stream tracks. Emits `latency-error` if missing at `start()` time. The host owns the full mic lifecycle.
 
 ---
 
@@ -199,7 +194,7 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [x] npm + CDN both first-class — Decision #6
 - [x] README scope — Decision #7
 - ~~Histogram/visualization approach~~ — resolved: emit `latency-complete` event, host renders
-- [x] Stream/permission model — Q10 resolved: same read-write property pattern as AudioContext; lazy getUserMedia on start(); component stops own tracks when done, never touches host-provided stream
+- [x] Stream/permission model — Q10 resolved: host-provided only; component never calls getUserMedia or stops tracks; emits latency-error if inputStream or audioContext missing at start()
 - [x] Safari gain workaround — Q5 resolved: input-gain attribute is general-purpose; getCorrectStreamForSafari() removed in Phase 1; host decides gain value; Safari AudioWorklet timing is Phase 4 best-effort
 - [ ] AudioWorklet recording strategy (SharedArrayBuffer + ringbuf.js vs MessagePort) — Q1 — still open, not a blocker for Phase 1–2
 - ~~Distribution format (Q7)~~ — deferred to Phase 5
@@ -215,10 +210,10 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [x] Create `src/scripts/latency-test-element.js` — the Custom Element class extending `HTMLElement`
 - [x] Attach shadow root (open mode) in constructor — leave it empty for now
 - [x] Expose `start()` and `stop()` as public methods
-- [x] Expose `audioContext` as a read-write JS property (Decision #8): setter accepts a host-provided context; getter always returns the active context (creating one lazily on first `start()` if needed); component never calls `.close()` on it
+- [x] Expose `audioContext` as a write-once JS property (Decision #8): host must assign before `start()`; component never creates or closes it; emits `latency-error` if missing
 - [x] Wire observed attributes (`number-of-tests`, `mls-bits`, `max-lag-ms`, `recording-mode`, `signal-type`, `input-gain`)
 - [x] Dispatch all six lifecycle + result events (Decision #10): `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
-- [x] Microphone permission (`getUserMedia`) is requested lazily on the first `start()` call — never on `connectedCallback`. This is the correct model for embedded use in host apps that may not want immediate permission prompts.
+- [x] The component never calls `getUserMedia()`. Host must assign `inputStream` before `start()`; component emits `latency-error` if missing.
 - [x] Handle `connectedCallback` and `disconnectedCallback`: on disconnect, stop any in-progress test, terminate the worker, and disconnect audio nodes — do not close the AudioContext (host always owns cleanup per Decision #8)
 - [x] Chrome first-run latency: mitigated by a silent AudioBuffer started inside `prepareAudioToPlayAndRecord()` in `test.js` on every test run. Based on Chris Wilson's metronome technique. Note: `#startSilence()` was never a separate method — the logic is inline.
 
@@ -578,5 +573,5 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 - **Three `recording-mode` values — each measures a different pipeline:** `"mediarecorder"` (single-channel, direct mic stream, has unknown start-timing *bias* — not just jitter — but is the closest to the production DAW recording path); `"mediarecorder-2ch"` (dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes the start-timing bias, channel-relative stable but not sample-accurate, measures a **different pipeline** due to extra Web Audio nodes — `createMediaStreamSource` is unavoidable; overhead direction is browser-dependent); `"audioworklet"` (raw PCM, shared AudioContext clock, accuracy reference). Do not flatten these into a single implementation — the mode differences are research data.
 - **Timing bias vs. jitter distinction:** the single-channel `"mediarecorder"` path has a *systematic timing bias* (the unknown JS start offset between `noiseSource.start()` and `mediaRecorder.start()` shifts the measured lag on every run). `maxLag` makes the correlation peak searchable but does not cancel this offset. Always use the word "bias" not "jitter" when describing this effect in docs or code comments.
 - **Debug logging mode** is implemented. `debug` boolean attribute gates `console.debug('[latency-test]', ...)` at key internal checkpoints. Full spec and task status in `agents/DEBUG_MODE_PLAN.md`. `latency-debug` custom event is explicitly NOT a target — do not add it.
-- **Firefox cold-start instability** is a known open issue with a dedicated plan in `agents/INSTABILITY_FIX_PLAN.md`. Two problems: (1) self-created stream is killed after every test cycle, causing cold-start on every manual click; (2) true cold-start — pre-roll silence warms AudioContext output side only, not the MediaRecorder capture path. Do not attempt to fix these without reading that file first.
+- **Firefox cold-start instability** — the stream-lifetime problem (self-created stream killed after each cycle) was resolved by moving audio session ownership to the host demo (`index.js`). The pre-roll (`preRollMs`) was removed. The cwilso silence-keepalive buffer inside `prepareAudioToPlayAndRecord()` remains as a scheduling guard. See `agents/INSTABILITY_FIX_PLAN.md` for full history.
 - Always ask the user before editing or modifying any existing file.

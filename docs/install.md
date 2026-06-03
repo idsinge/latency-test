@@ -61,11 +61,11 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
   <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
 </head>
 <body>
-  <latency-test></latency-test>
+  <latency-test id="el"></latency-test>
   <button id="start">Test Latency</button>
 
   <script>
-    const el = document.querySelector('latency-test')
+    const el = document.getElementById('el')
 
     el.addEventListener('latency-result', (e) => {
       console.log(`Latency: ${e.detail.latency} ms — Ratio: ${e.detail.ratio.toFixed(2)} dB`)
@@ -75,8 +75,16 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
       console.error('Test failed:', e.detail.message)
     })
 
-    // Must be called from a user gesture — AudioContext requires it
-    document.getElementById('start').addEventListener('click', () => el.start())
+    // audioContext and inputStream must be assigned before start() — create them from a user gesture
+    document.getElementById('start').addEventListener('click', async () => {
+      if (!el.audioContext) {
+        el.inputStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        })
+        el.audioContext = new AudioContext({ latencyHint: 0 })
+      }
+      el.start()
+    })
   </script>
 </body>
 </html>
@@ -84,25 +92,43 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 
 ---
 
-## Sharing an existing AudioContext
+## Providing AudioContext and stream
 
-If your application already has an `AudioContext` (e.g. a DAW or audio workstation), pass it to the element before calling `start()` to avoid creating a second context:
+Before calling `start()`, both `audioContext` and `inputStream` must be assigned. The component never creates audio resources itself — it emits `latency-error` if either is missing.
+
+Both must come from a user gesture (browsers require it for microphone access and AudioContext creation):
 
 ```html
-<!-- Assumes: <button id="startBtn">Test Latency</button> in your HTML -->
-<script type="module">
-import '@adasp/latency-test'
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
 
-const el = document.querySelector('latency-test')
-el.audioContext = myExistingAudioContext
+<latency-test id="el"></latency-test>
+<button id="startBtn">Test Latency</button>
+
+<script type="module">
+const el = document.getElementById('el')
 
 el.addEventListener('latency-result', (e) => {
   console.log(e.detail.latency, 'ms')
 })
 
-// Must be called from a user gesture — getUserMedia requires it
-document.getElementById('startBtn').addEventListener('click', () => el.start())
+document.getElementById('startBtn').addEventListener('click', async () => {
+  if (!el.audioContext) {
+    el.inputStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    })
+    el.audioContext = new AudioContext({ latencyHint: 0 })
+  }
+  el.start()
+})
 </script>
+```
+
+If your application already has an `AudioContext` (e.g. a DAW), pass it directly — no need to create a second one:
+
+```js
+el.inputStream = myExistingStream   // still required
+el.audioContext = myExistingAudioContext
+el.start()
 ```
 
 ---

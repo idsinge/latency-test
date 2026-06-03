@@ -19,6 +19,7 @@ const btn = document.getElementById('start-btn')
 const results = document.getElementById('results')
 const aggregate = document.getElementById('aggregate')
 const runCount = document.getElementById('run-count')
+const debugToggle = document.getElementById('debug-toggle')
 const gainInput = document.getElementById('gain-value')
 
 let source = null
@@ -111,7 +112,16 @@ tester.addEventListener('latency-error', (e) => {
     btn.disabled = false
 })
 
+debugToggle.addEventListener('change', () => { tester.debug = debugToggle.checked })
+
 btn.onclick = () => {
+    if (tester.debug) {
+        const gainChainActive = document.getElementById('gain-chain').checked
+        console.debug('[host-gain] start', {
+            gainChain: gainChainActive,
+            gainValue: gainChainActive ? clampGain(gainInput.value) : 'bypassed'
+        })
+    }
     btn.disabled = true
     aggregate.style.display = 'none'
     aggregate.innerHTML = ''

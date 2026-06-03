@@ -33,6 +33,18 @@ const inlinePlugin = {
             }
             return { contents: source, loader: 'js' }
         })
+        build.onLoad({ filter: /[/\\]latency-test-element\.js$/ }, (args) => {
+            if (args.path !== resolve('src/scripts/latency-test-element.js')) return
+            let source = readFileSync(args.path, 'utf-8')
+            source = source.replace(
+                /new URL\('\.\/worker\.js', import\.meta\.url\)/,
+                `URL.createObjectURL(new Blob([${JSON.stringify(workerSource)}], { type: 'application/javascript' }))`
+            )
+            if (/new URL\(['"`][./]*worker\.js['"`]/.test(source)) {
+                throw new Error('build: worker URL pattern was not inlined — check latency-test-element.js')
+            }
+            return { contents: source, loader: 'js' }
+        })
     }
 }
 
