@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- Node.js v18 or above (project pins v18.12.1 via `.nvmrc`)
+- Node.js v22 or above (project pins v22 via `.nvmrc`)
 - A browser with Web Audio API, AudioWorklet, and `getUserMedia` support
 - HTTPS or `localhost` (required for microphone access)
 
@@ -33,19 +33,19 @@ Choose the approach that fits your project:
 **ESM (modern browsers — recommended):**
 ```html
 <!-- jsDelivr -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.0.2/dist/latency-test.esm.js"></script>
 
 <!-- unpkg -->
-<script type="module" src="https://unpkg.com/@adasp/latency-test/dist/latency-test.esm.js"></script>
+<script type="module" src="https://unpkg.com/@adasp/latency-test@1.0.2/dist/latency-test.esm.js"></script>
 ```
 
 **IIFE (universal — no module support required):**
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.0.2/dist/latency-test.iife.js"></script>
 
 <!-- unpkg -->
-<script src="https://unpkg.com/@adasp/latency-test/dist/latency-test.iife.js"></script>
+<script src="https://unpkg.com/@adasp/latency-test@1.0.2/dist/latency-test.iife.js"></script>
 ```
 
 Both register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
@@ -58,7 +58,7 @@ Both register the `<latency-test>` element globally. Place either in the `<head>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.0.2/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <latency-test id="el"></latency-test>
@@ -99,7 +99,7 @@ Before calling `start()`, both `audioContext` and `inputStream` must be assigned
 Both must come from a user gesture (browsers require it for microphone access and AudioContext creation):
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test/dist/latency-test.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.0.2/dist/latency-test.esm.js"></script>
 
 <latency-test id="el"></latency-test>
 <button id="startBtn">Test Latency</button>
