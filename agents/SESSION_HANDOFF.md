@@ -24,6 +24,12 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Recently Completed (2026-06-05)
 
+### CI hardening + technical debt closure
+- `tsconfig.json` added at repo root — validates `src/index.d.ts` type correctness in isolation (`noEmit: true`, `strict: true`, `lib: ["dom", "es2020"]`). Validates declaration-file correctness only; does not catch implementation drift.
+- `typescript@^5` added as devDependency; `"typecheck": "tsc --noEmit"` added to `package.json` scripts.
+- `ci.yml` — `npm audit --audit-level=high` and `npm run typecheck` steps added after "Install dependencies".
+- `agents/KNOWN_ISSUES.md` — all previously open CI findings closed: Node version divergence documented as intentional, TypeScript check added, npm audit added, Firefox MLS closed (multi-device testing showed expected behavior), CDN pinning confirmed (`@1.0.2`, done in prior session), branch protection on `main` confirmed (done in prior session via GitHub Settings). Only open item remaining: framework examples end-to-end verification against published package.
+
 ### MediaRecorder 2ch experiment + dev pages on GitHub Pages (commit `bf0dc07`, PR #12)
 - `src/experiments/mr2ch.html` + `mr2ch.js` added — standalone research experiment proving whether `ChannelMergerNode` + `MediaStreamDestinationNode` preserves stereo capture through `MediaRecorder`, eliminating the unknown start-timing offset that biases single-channel measurements. Self-contained: no `<latency-test>` component, no `LatencyTestController`. Features: `DEBUG` flag, per-run `ac.state` reporting, mono-downmix detection and error, cwilso silence keepalive before each run.
 - `docs.yml` updated — `cp -R src docs/.vitepress/dist/dev` added to Pages deployment step; dev hub + experiments now live at `https://idsinge.github.io/latency-test/dev/`.
@@ -78,7 +84,7 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package (not local source). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
 
 ### Independent
-- [ ] **CI Node version consistency** — `.nvmrc` is now `22`, `docs.yml` uses Node 24. Both work; worth aligning to the same version in a future CI pass.
+- [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.
 
 ### Deferred to v2
 - `input-gain` GainNode wiring (attribute is observed and typed; currently no-op — use host-gain pattern in the meantime)
