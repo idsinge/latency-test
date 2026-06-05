@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — Current State Handoff
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 LLMs reading this file: read `CLAUDE.md`, `AGENTS.md`, and `agents/CLAUDE_REVIEW.md` first. Do not modify files without explicit user approval.
 
@@ -10,57 +10,48 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Current Repo State
 
-- Working branch: `webcomponent`. PR #8 (`webcomponent` → `main`) is open.
-- Phases 1–7 are complete. v1.0.1 is live on npm as `@adasp/latency-test`.
+- Working branch: `webcomponent`. All PRs merged — branch is ahead of `main` with active development.
+- Phases 1–7 complete. **v1.0.2** is live on npm as `@adasp/latency-test`.
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.iife.js`. Run with `npm run build:component && npm run demo`.
 - `src/dev-test/` contains local dev-only test pages served by `npm run dev` (no build needed).
 - GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
+- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.0.2`.
 
 ---
 
-## Recently Completed (this session)
+## Recently Completed (2026-06-04)
 
-### Phase 7 — npm publication
-- Package scope renamed from `@hi-audio` to `@adasp` across all files.
-- `src/index.d.ts` created with full TypeScript declarations (`LatencyTestElement`, `LatencyTestEventMap`, all detail interfaces). Ships as `dist/index.d.ts`.
-- `package.json`: `types`, `exports.types`, `prepublishOnly`, `publishConfig`, `engines` fields added.
-- `scripts/build-component.mjs`: copies `src/index.d.ts` → `dist/index.d.ts` after builds; updated to `node:fs`/`node:path`.
-- All Draft/unpublished notices removed from docs and framework examples.
-- Framework TypeScript sections updated to use `import type { LatencyTestElement } from '@adasp/latency-test'`.
-- Published `@adasp/latency-test@1.0.0` — live on npm, jsDelivr, unpkg (all confirmed).
+### Node version + CDN pinning (commit `b5ca800`)
+- `.nvmrc` bumped from `18.12.1` to `22` (Node 18 LTS ended April 2025).
+- All CDN URLs in `docs/install.md` pinned from unversioned to `@1.0.2` (6 occurrences, jsDelivr + unpkg).
+- `docs/install.md` requirements line updated to reflect Node 22.
 
-### v1.0.1 — truth and hardening patch
-- **Worker errors surfaced:** `worker.error` and `worker.messageerror` now route through `onError`, guarded with `if (!this.stopped)` to suppress late/stale errors.
-- **Startup cleanup:** `start()` catch block stops controller, resets `#pendingRuns = 0` and `#stopped = true`, stops self-owned stream. Prevents resource leaks and spurious `latency-complete(aborted)`.
-- **Property defaults:** class field defaults added to `LatencyTestElement` so all public properties return typed values before first assignment.
-- **Type accuracy:** `signalType` narrowed to `'mls'`; duplicate `inputGain` removed; JSDoc caveats on `inputGain` and `mediarecorder-2ch`; `aborted?: true` and `bufferSize` added.
-- **Docs accuracy:** "Multiple Signal Types" → "MLS-Based Measurement"; all remaining Draft notices removed; demo Mode Toggle `latency-complete` payload bug fixed (`e.detail.latency` → `e.detail.mean`); `dist/index.d.ts` added to build-output.md; demo instructions clarified; `engines` field added to `package.json`.
-- Published `@adasp/latency-test@1.0.1`. Tag `v1.0.1` pushed.
+### AudioWorklet pipeline validity documentation (commit `445884a`)
+- `docs/api.md`: `"audioworklet"` description qualified from "accuracy reference" to "accuracy reference for the component's own minimal capture graph".
+- `docs/api.md`: New subsection `### Recording mode and pipeline validity` added between the attributes table and `### Example`. Explains that `recording-mode` should match the host app's real capture pipeline; that the AudioWorklet path is a lower-bound estimate for complex host graphs; and names the three factors: render quantum / buffer size, graph topology, scheduling jitter.
+- `agents/CLAUDE_REVIEW.md`: Decision #15 added — "AudioWorklet results are representative only of the measured graph."
+- `agents/CLAUDE_REVIEW.md`: Phase 3 architecture note extended with an AudioWorklet representativeness caveat block.
+- `agents/CLAUDE_REVIEW.md`: Decision #11 corrected — `buffer-size` was incorrectly described as "deferred"; it is wired through to the processor, but nonzero flush behavior is not yet implemented. Default `0` accumulates and posts once on stop.
+
+### Browser verification matrix — complete
+- Manual testing completed across Chrome, Firefox, Safari (macOS), iOS Safari.
+- Both `mediarecorder` and `audioworklet` modes verified stable across repeated runs and multi-run sequences.
+- Phase 3b is now unblocked.
+
+### v1.0.2 (committed 2026-06-03, tag pushed)
+- Build fix: worker Blob URL inlining for IIFE (`import.meta.url` was unresolved in IIFE context).
+- `#handleError` race: cleanup runs before emit; `latency-complete` fires before `latency-error` on retry.
+- Worker construction moved inside try/catch.
+- All public docs and agent docs corrected for host-owned resource model.
+- Chrome/Edge Verbose note added to `docs/api.md` debug section.
 
 ---
 
 ## Pending Tasks (ordered by priority)
 
-### Immediate
-- [ ] Merge PR #8 (`webcomponent` → `main`)
-
-### Independent (no ordering dependency)
-- [ ] **CI workflow** — Add `.github/workflows/ci.yml` for PR/push: `npm ci` → `npm test` → `npm run build:component` → `npm run docs:build` → `npm pack --dry-run`. Currently only docs deployment workflow exists.
-- [ ] **Node version alignment in CI** — `.github/workflows/docs.yml` uses Node 24; `.nvmrc` pins 18.12.1; `package.json` now has `engines: >=18`. CI should be consistent (Node 20 LTS recommended as a neutral choice).
-- [ ] **CDN version pinning** (P3) — `docs/install.md` CDN examples use unversioned URLs. Consider adding a note recommending `@adasp/latency-test@1.0.1` pinned URLs alongside the latest examples.
-
-### Gates Phase 3b
-- [ ] **Browser verification matrix** — Manual testing needed before adding a third recording path. Scenarios to verify:
-  - MediaRecorder mode: repeated `number-of-tests=1` clicks (5–10×) → expect stable
-  - MediaRecorder mode: `number-of-tests=3` → expect all 3 runs stable
-  - AudioWorklet mode: repeated `number-of-tests=1` clicks → expect stable
-  - AudioWorklet mode: `number-of-tests=3` → expect all 3 runs stable
-  - Browsers: Chrome, Firefox, Safari (macOS); iOS Safari if available
-  - Rule: always call `getUserMedia` before `new AudioContext()` in demo/host code
-
-### Phase 3b (after verification matrix)
+### Phase 3b — next up, now unblocked
 - [ ] Implement `recording-mode="mediarecorder-2ch"` — full spec in `agents/CLAUDE_REVIEW.md` Phase 3b. Key points:
   - Route: MLS `AudioBufferSourceNode` → `ChannelMergerNode` input 0; `createMediaStreamSource(stream)` → input 1; merger → `MediaStreamDestinationNode` → `MediaRecorder`
   - After decode: `getChannelData(0)` = ref, `getChannelData(1)` = mic
@@ -72,10 +63,14 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [ ] Host-side histogram — `latency-complete` fires with `{ results[], mean, std, min, max }`. Demo page should render a simple histogram from the results array.
 
 ### Phase 6 remainder
-- [ ] Framework example end-to-end verification — CLAUDE_REVIEW.md gate: before removing the Draft label from any framework example, verify it works against the installed published package (not local source). Currently all Draft labels are removed; if examples are found to be wrong during verification, a patch would be needed.
+- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package (not local source). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
+
+### Independent
+- [ ] **CI Node version consistency** — `.nvmrc` is now `22`, `docs.yml` uses Node 24. Both work; worth aligning to the same version in a future CI pass.
 
 ### Deferred to v2
 - `input-gain` GainNode wiring (attribute is observed and typed; currently no-op — use host-gain pattern in the meantime)
+- `buffer-size` nonzero flush behavior (attribute is wired through; default `0` accumulates and posts once on stop; nonzero values have no effect in v1)
 - `signal-type="chirp"` and `"golay"` implementation
 - `recording-mode="audioworklet"` as the v2 default (breaking change — bump major)
 - Phase 8: experimentation toolkit (histogram, waveform, cross-correlation visualisation, config export)
@@ -89,8 +84,10 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - Always call `getUserMedia` before `new AudioContext()` in demos and host examples — required for correct Firefox macOS sample rate selection.
 - The component must not close a host-provided `AudioContext` or stop a host-provided `MediaStream`.
 - Three `recording-mode` values each measure a **different pipeline** — do not flatten them. The differences are research data.
+- `recording-mode` should match the host app's real capture pipeline. AudioWorklet mode measures a minimal direct graph and is a lower-bound estimate for hosts with more complex AudioWorklet graphs. See Decision #15 in `agents/CLAUDE_REVIEW.md`.
 - `signalType` is `'mls'` only in v1 — the attribute is observed but the controller never reads it. Do not implement chirp/Golay without updating the full algorithm path.
 - `input-gain` is observed and typed but intentionally has no effect in v1. Do not wire a GainNode without updating `src/index.d.ts` and the docs.
+- `buffer-size` is wired through but nonzero flush behavior is not implemented in v1. Do not add flush logic without updating `src/index.d.ts`, `docs/api.md`, and the agent docs.
 
 ---
 

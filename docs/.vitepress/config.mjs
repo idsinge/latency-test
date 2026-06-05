@@ -26,6 +26,7 @@ export default defineConfig({
     sidebar: [
       { text: 'Installation & Setup', link: '/install' },
       { text: 'API Reference', link: '/api' },
+      { text: 'Host-Controlled Gain', link: '/examples/host-gain' },
       {
         text: 'Integration Examples',
         items: [
@@ -34,8 +35,7 @@ export default defineConfig({
           { text: '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vuejs/vuejs-original.svg" width="16" height="16" style="vertical-align:-2px;margin-right:6px;display:inline;" alt=""> Vue 3', link: '/examples/vue' },
           { text: '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/svelte/svelte-original.svg" width="16" height="16" style="vertical-align:-2px;margin-right:6px;display:inline;" alt=""> Svelte / SvelteKit', link: '/examples/svelte' },
           { text: '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/angular/angular-original.svg" width="16" height="16" style="vertical-align:-2px;margin-right:6px;display:inline;" alt=""> Angular', link: '/examples/angular' },
-          { text: '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-original.svg" width="16" height="16" style="vertical-align:-2px;margin-right:6px;display:inline;" alt=""> Next.js', link: '/examples/nextjs' },
-          { text: 'Host-Controlled Gain', link: '/examples/host-gain' }
+          { text: '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-original.svg" width="16" height="16" style="vertical-align:-2px;margin-right:6px;display:inline;" alt=""> Next.js', link: '/examples/nextjs' }
         ]
       }
     ],

@@ -26,13 +26,21 @@ Attributes can be set in HTML or via JavaScript property assignment. Setting an 
 | Attribute | Property | Type | Default | Description | Status |
 |---|---|---|---|---|---|
 | `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | implemented |
-| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` — single-channel, mic stream used directly, closest to production DAW path, has an unknown start-timing bias (implemented). `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias, channel-relative stable but not sample-accurate; measures a different pipeline due to extra Web Audio nodes — overhead direction is browser-dependent (planned). `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference (implemented). Each mode measures the latency of its own pipeline — the differences between modes are intentional and informative. | implemented / planned |
+| `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` — single-channel, mic stream used directly, closest to production DAW path, has an unknown start-timing bias (implemented). `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias, channel-relative stable but not sample-accurate; measures a different pipeline due to extra Web Audio nodes — overhead direction is browser-dependent (planned). `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference for the component's own minimal capture graph (implemented). Each mode measures the latency of its own pipeline — the differences between modes are intentional and informative. | implemented / planned |
 | `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. Only `"mls"` is implemented. See signal types table below. | planned (v2) |
 | `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Attribute observed but gain node not yet wired. | planned (v2) |
 | `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
 | `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
 | `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
 | `debug` | `debug` | `boolean` | `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints — host resource validation, recording start, worker messages, and result computation. **For development and debugging only; has no effect on measurement output.** Caution: `startPairSpanMs` in the log output is an upper-bound span that includes both `mediaRecorder.start()` and `noiseSource.start()` execution time — it is not a pure inter-call gap. Additionally, debug logging elsewhere (and DevTools being open) can perturb console and scheduling performance. Do not use debug mode for measurements you intend to record. Toggle at runtime without page reload: `element.debug = true`. | implemented |
+
+### Recording mode and pipeline validity
+
+Choose `recording-mode` to match the host application's real capture pipeline. The component measures the latency of the selected pipeline, not an abstract browser latency value.
+
+For `recording-mode="audioworklet"`, the current implementation captures a minimal direct chain: mic stream → `MediaStreamAudioSourceNode` → component `AudioWorkletNode`, with the reference signal captured in the same `process()` call. This removes start-timing bias, but it is a lower-bound estimate for host apps with more complex AudioWorklet graphs.
+
+Three factors affect whether the result represents the host app's real latency: the render quantum / effective buffer size, the number and type of nodes between the mic source and the worklet, and scheduling jitter introduced by the host graph. `mediarecorder` and `mediarecorder-2ch` are less sensitive to host graph topology because MediaRecorder is a browser-managed capture pipeline.
 
 ### Example
 
@@ -207,7 +215,7 @@ These values are fixed by the research methodology and are not configurable:
 |---|---|---|
 | Reliability threshold | `18 dB` | Minimum correlation ratio for a trustworthy measurement — empirically chosen in the WAC 2025 experiments |
 | MLS amplitude | `±1.0` | Binary MLS sequence mapped to `+1.0` / `−1.0` float samples |
-| Chirp frequency range | `1500–8000 Hz` | Bandlimited to avoid input aliasing above 12 kHz present on some iOS devices |
+| Chirp frequency range | `1500–8000 Hz` | Planned — bandlimited to avoid input aliasing above 12 kHz present on some iOS devices. Not yet implemented. |
 | Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Recommended constraints for the host to apply when acquiring the mic stream. The component does not call `getUserMedia` — the host is responsible for setting constraints on the stream passed via `element.inputStream`. |
 
 ---
@@ -215,8 +223,9 @@ These values are fixed by the research methodology and are not configurable:
 ## Browser requirements
 
 - `getUserMedia` (microphone access)
-- Web Audio API (`AudioContext`, `AudioWorklet`)
+- Web Audio API (`AudioContext`)
 - Web Workers
 - HTTPS or `localhost`
+- `AudioWorklet` — required only for `recording-mode="audioworklet"`; the default `"mediarecorder"` mode does not use it
 
 Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.

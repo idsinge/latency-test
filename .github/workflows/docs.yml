@@ -36,10 +36,11 @@ jobs:
       - name: Build component bundle
         run: npm run build:component
 
-      - name: Copy demo and component bundle into Pages output
+      - name: Copy demo, component bundle, and dev pages into Pages output
         run: |
           cp -R demo docs/.vitepress/dist/demo
           cp -R dist docs/.vitepress/dist/dist
+          cp -R src docs/.vitepress/dist/dev
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

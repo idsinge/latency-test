@@ -22,7 +22,7 @@
 - Web Workers (off-main-thread cross-correlation computation)
 - esbuild (component bundle, ESM + IIFE outputs)
 - TypeScript declarations (`src/index.d.ts`) ship with the package as `dist/index.d.ts`
-- Unit tests: `node:test` + `node:assert/strict`, Node 18.12.1, no third-party test library
+- Unit tests: `node:test` + `node:assert/strict`, Node 22 (pinned via `.nvmrc`), no third-party test library
 
 **Dev commands:**
 ```
@@ -44,7 +44,7 @@ Ignore `dist/` and `node_modules/` — they are build artifacts.
 
 ```
 src/
-  index.html              — Dev entry point: navigation hub to local test pages (not deployed)
+  index.html              — Dev entry point: navigation hub to dev-test and experiment pages (also published to GitHub Pages under /dev/)
   scripts/                — Component source only (compiled into dist/ — do not add dev-only files here)
     latency-test-element.js — <latency-test> Custom Element: lifecycle, attribute reflection, host resource validation, event dispatch
     test.js               — LatencyTestController: MLS generation, mediarecorder/audioworklet capture, worker messaging, result callbacks
@@ -52,12 +52,15 @@ src/
     recorder-processor.js — AudioWorkletProcessor: dual-channel mic+reference capture, posts { mic, ref } Float32 arrays on stop
     worker.js             — Web Worker: cross-correlation and peak detection (off main thread)
     iife-entry.js         — IIFE bundle entry point (re-exports latency-test-element for UMD/IIFE consumers)
-  dev-test/               — Local development test pages (served by npm run dev, never deployed)
+  dev-test/               — Development test pages (served by npm run dev, also published to GitHub Pages under /dev/)
     index.js              — Shared UI wiring for mediarecorder.html and audioworklet.html
     gain.js               — UI wiring for host-gain test page; builds ChannelSplitter gain chain
     mediarecorder.html    — MediaRecorder mode test page
     audioworklet.html     — AudioWorklet mode test page
     gain.html             — Host-controlled gain test page
+  experiments/            — Research-only experiment pages (served by npm run dev, also published to GitHub Pages under /dev/)
+    mr2ch.html            — MediaRecorder 2ch stereo capture feasibility experiment
+    mr2ch.js              — Experiment logic (standalone, no component dependency)
 assets/
   ERC_logo.png
 docs/
@@ -179,7 +182,7 @@ Results are dispatched as `CustomEvent` from the element. The demo page renders 
 
 The web component refactor (Phases 1–3a) is complete. Previous design issues are resolved. Remaining known limitations:
 
-1. **`input-gain` not yet wired** — The attribute is observed and the property is settable, but no `GainNode` is created. Setting `input-gain` has no effect in the current code. Deferred to v2.
+1. **`input-gain` not yet wired** — The attribute is observed and the property is settable, but no `GainNode` is created. Setting `input-gain` has no effect in the current code. Use the host-gain pattern instead (see `docs/examples/host-gain.md`). Deferred to v2.
 
 2. **`signal-type` not yet wired** — Only `"mls"` is implemented. The attribute is observed but `signalType` is never read by `LatencyTestController`. Deferred to v2.
 
@@ -187,7 +190,7 @@ The web component refactor (Phases 1–3a) is complete. Previous design issues a
 
 4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is a Phase 4 item.
 
-5. **`input-gain` not yet wired** — The attribute is observed, the property is settable and typed, but no `GainNode` is created internally. Setting it has no effect. Use the host-gain pattern instead (see `docs/examples/host-gain.md`). Deferred to v2.
+5. **`buffer-size` flush not yet implemented** — The attribute is wired through to `recorder-processor.js` and the value reaches the processor, but nonzero values do not trigger intermediate flushes. Only the final stop flush is implemented. Deferred to v2.
 
 ---
 
