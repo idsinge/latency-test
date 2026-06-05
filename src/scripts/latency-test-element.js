@@ -88,8 +88,13 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
         if (inputSampleRate && inputSampleRate !== this.#audioContext.sampleRate) {
             console.warn(`[latency-test] Sample rate mismatch — input device: ${inputSampleRate} Hz, AudioContext: ${this.#audioContext.sampleRate} Hz. The AudioContext rate matches the output device (correct for MLS playback). Input resampling is handled transparently.`)
         }
+        const mode = this.recordingMode || 'mediarecorder'
+        if (!['mediarecorder', 'mediarecorder-1ch', 'audioworklet'].includes(mode)) {
+            this.#emitEvent('latency-error', { message: `Unknown recording-mode "${mode}" — valid values: mediarecorder, mediarecorder-1ch, audioworklet` })
+            return
+        }
         this.#stopped = false
-        this.#log('start', { recordingMode: this.recordingMode || 'mediarecorder', numberOfTests: this.numberOfTests || 1 })
+        this.#log('start', { recordingMode: mode, numberOfTests: this.numberOfTests || 1 })
         if (this.debug) {
             const track = this.#inputStream.getAudioTracks()[0]
             this.#log('inputStream', { readyState: track?.readyState, settings: track?.getSettings() })

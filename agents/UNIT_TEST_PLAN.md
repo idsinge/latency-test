@@ -252,7 +252,7 @@ Same swap pattern; assert at least one call.
 ### `worker.js` refactor
 - [x] Add `export` to `calculateCrossCorrelation` and `findPeakAndMean`
 - [x] Guard `addEventListener` call with `WorkerGlobalScope` check
-- [x] Verify `npm run dev` and `npm run build:component` still work after refactor (esbuild bundles the worker inline — confirm the export keywords don't break bundling). Build verified on 2026-05-29 after maxLag floor, error-routing, and mediarecorder-2ch guard changes. Subsequent source change was a comment removal only — no bundle impact.
+- [x] Verify `npm run dev` and `npm run build:component` still work after refactor (esbuild bundles the worker inline — confirm the export keywords don't break bundling). Build verified on 2026-05-29. Re-verify after Phase 3b implementation — new methods added to `test.js` but `worker.js` is unchanged.
 
 ### Test files
 - [x] Create `tests/mls.test.js` with all cases above

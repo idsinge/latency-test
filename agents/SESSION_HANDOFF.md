@@ -72,10 +72,10 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Pending Tasks (ordered by priority)
 
-### Phase 3b — experiment-first approach
-- [x] Standalone experiment built: `src/experiments/mr2ch.html` + `mr2ch.js` (PR #12)
-- [ ] Browser test the experiment across Chrome, Firefox, Safari, iOS — key question: does the browser preserve stereo through `MediaRecorder` + `decodeAudioData` or downmix to mono?
-- [ ] Based on results, decide whether to surface `recording-mode="mediarecorder-2ch"` as a public component API value or keep it as research-only. Full component spec still in `agents/CLAUDE_REVIEW.md` Phase 3b if the API route is chosen.
+### Phase 3b — complete ✅
+- [x] Standalone experiment built and browser-tested: `src/experiments/mr2ch.html` + `mr2ch.js` (left as historical reference)
+- [x] Decision: 2ch approach is now the default `recording-mode="mediarecorder"` behavior; old 1ch path available as `recording-mode="mediarecorder-1ch"` fallback for browsers that downmix stereo to mono; `"mediarecorder-2ch"` attribute value removed.
+- [x] `startMediaRecorder2chCapture()`, `#cleanup2chNodes()`, `displayAudioTagElem2ch()` implemented in `test.js`; TypeScript declarations and all docs updated.
 
 ### Phase 4 remainder
 - [ ] Host-side histogram — `latency-complete` fires with `{ results[], mean, std, min, max }`. Demo page should render a simple histogram from the results array.
