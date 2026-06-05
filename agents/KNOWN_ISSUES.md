@@ -25,9 +25,9 @@ Each entry records the source, severity, current status, and what would be neede
 
 ### CI — Node version inconsistency
 **Source:** DeepSeek CI review · **Severity:** Low  
-**Detail:** `.nvmrc` pins `18.12.1` (developers use Node 18), CI runs Node 20, `docs.yml` runs Node 24. `package.json` declares `engines: >=18`. This means a developer on Node 18 could use an API unavailable on 18.x without CI catching it (unlikely for this project since it is browser-side, but theoretically possible for build tools or test runner).  
-**Options:** (a) Keep Node 20 and accept the gap — low risk since the package is browser-side. (b) Add a Node version matrix `[18, 20]` to test the declared minimum alongside current LTS. (c) Align `.nvmrc` with CI (bump to 20).  
-**Current decision:** Keep Node 20, accepted as low risk.
+**Detail:** `.nvmrc` pins `22`, `docs.yml` runs Node 24. `package.json` declares `engines: >=18`. Developer and CI environments differ by two major versions; low risk since the package is browser-side.  
+**Options:** (a) Keep as-is and accept the gap. (b) Align `docs.yml` to Node 22 to match `.nvmrc`.  
+**Current decision:** Keep as-is, accepted as low risk.
 
 ---
 
