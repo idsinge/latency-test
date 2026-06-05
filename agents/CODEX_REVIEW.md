@@ -421,17 +421,18 @@ These questions remain useful to answer later:
 
 Following WAC 2025 peer review and dual-agent analysis (Claude + Codex), the `recording-mode` attribute now has three values. This is a settled decision — see Decision #14 in `agents/CLAUDE_REVIEW.md`.
 
-**Summary:**
+**Summary (Phase 3b complete):**
 
-- `"mediarecorder"` — single-channel, mic stream used directly. Has a systematic timing *bias* (not just jitter): `noiseSource.start()` and `mediaRecorder.start()` are on different clocks; the unknown JS start offset shifts every measurement. `maxLag` makes the peak searchable but does not cancel this bias. Closest to the actual production DAW recording path.
-- `"mediarecorder-2ch"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`. Routes both the MLS reference and mic into a single encoded stereo stream, removing the start-timing bias. Inter-channel timing is channel-relative stable in practice (same Opus/AAC codec frame) but is not a sample-accurate API contract. Requires `createMediaStreamSource` (unavoidable in standard Web APIs), which adds extra nodes to the chain — so this path measures a **different pipeline** than `"mediarecorder"` (the overhead direction is browser-dependent; treat as a hypothesis to measure, not an assumption). This is intentional.
+- `"mediarecorder"` (default) — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`. Routes both the MLS reference and mic into a single encoded stereo stream, removing the start-timing bias. Inter-channel timing is channel-relative stable in practice (same Opus/AAC codec frame) but is not a sample-accurate API contract. Requires `createMediaStreamSource` (unavoidable in standard Web APIs), which adds extra nodes to the chain — so this path measures a **different pipeline** than `"mediarecorder-1ch"` (the overhead direction is browser-dependent). Emits `latency-error` if the browser downmixes the stereo stream to mono.
+- `"mediarecorder-1ch"` — single-channel, mic stream used directly. Has a systematic timing *bias* (not just jitter): `noiseSource.start()` and `mediaRecorder.start()` are on different clocks; the unknown JS start offset shifts every measurement. Closest to the actual production DAW recording path. Use as fallback when `"mediarecorder"` fails due to mono downmix.
 - `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip. The accuracy reference.
+- `"mediarecorder-2ch"` as an attribute value no longer exists.
 
 **Key research insight:** the three modes each measure the latency of their own pipeline. The *differences* between mode results are the research finding — they expose the contribution of JS start-timing bias, codec overhead, and extra-node latency. Do not flatten these into a single implementation.
 
-**Implementation status:** `"mediarecorder"` and `"audioworklet"` are implemented. `"mediarecorder-2ch"` is specified in Phase 3b of `agents/CLAUDE_REVIEW.md` and is `[ ]` not yet implemented.
+**Implementation status:** All three values (`"mediarecorder"`, `"mediarecorder-1ch"`, `"audioworklet"`) are implemented. Phase 3b complete.
 
-**API change:** `latency-result` event payload now includes a `mode` field (`"mediarecorder"` | `"mediarecorder-2ch"` | `"audioworklet"`). TypeScript `LatencyResultDetail` and `LatencyTestElement.recordingMode` updated accordingly in `agents/CLAUDE_REVIEW.md` Phase 7.
+**API:** `latency-result` event payload `mode` field: `"mediarecorder"` | `"mediarecorder-1ch"` | `"audioworklet"`. TypeScript `LatencyResultDetail` and `LatencyTestElement.recordingMode` updated accordingly.
 
 ## Latest Feedback Notes
 

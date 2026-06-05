@@ -30,6 +30,8 @@ export class LatencyTestController {
     maxLagMs = 600
     recordingMode = 'mediarecorder'
     workletNode = null
+    merger = null
+    destNode = null
     stopped = false
     debug = false
     
@@ -107,11 +109,10 @@ export class LatencyTestController {
 
         if (this.recordingMode === 'audioworklet') {
             await this.startWorkletCapture()
-        } else if (this.recordingMode === 'mediarecorder-2ch') {
-            this.onError?.('recording-mode "mediarecorder-2ch" is not yet implemented')
-            return
-        } else {
+        } else if (this.recordingMode === 'mediarecorder-1ch') {
             this.startMediaRecorderCapture()
+        } else {
+            this.startMediaRecorder2chCapture()
         }
     }
 
@@ -152,6 +153,78 @@ export class LatencyTestController {
         this.noiseSource.onended = () => {
             this.mediaRecorder.stop()
             this.finishTest()
+        }
+    }
+
+    startMediaRecorder2chCapture() {
+        this.micSource = this.audioContext.createMediaStreamSource(this.inputStream)
+        this.merger = this.audioContext.createChannelMerger(2)
+        this.destNode = this.audioContext.createMediaStreamDestination()
+
+        this.micSource.connect(this.merger, 0, 0)
+        this.noiseSource.connect(this.merger, 0, 1)
+        this.noiseSource.connect(this.audioContext.destination)
+        this.merger.connect(this.destNode)
+
+        let chunks = []
+        let mediaRecorder
+        try {
+            mediaRecorder = new MediaRecorder(this.destNode.stream)
+        } catch (e) {
+            this.#log('MediaRecorder constructor failure (2ch)', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.mediaRecorder = mediaRecorder
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) chunks.push(event.data)
+        }
+
+        mediaRecorder.onerror = (event) => {
+            this.#log('mediaRecorder.onerror (2ch)', { error: event.error?.message })
+            this.#cleanup2chNodes()
+            if (!this.stopped) this.onError?.(event.error?.message || 'MediaRecorder error (2ch)')
+        }
+
+        mediaRecorder.onstop = async () => {
+            this.#log('mediaRecorder.onstop (2ch)', { chunks: chunks.length })
+            this.#cleanup2chNodes()
+            try {
+                await this.displayAudioTagElem2ch(chunks, mediaRecorder.mimeType)
+            } catch (e) {
+                this.onError?.(e.message)
+            }
+        }
+
+        try {
+            mediaRecorder.start()
+        } catch (e) {
+            this.#log('mediaRecorder.start failure (2ch)', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.noiseSource.start()
+        this.#log('mediaRecorder.start (2ch)', { mimeType: mediaRecorder.mimeType, audioTime: this.audioContext.currentTime.toFixed(4) })
+        this.onRecording?.()
+
+        this.noiseSource.onended = () => {
+            if (mediaRecorder.state !== 'inactive') mediaRecorder.stop()
+            this.finishTest()
+        }
+    }
+
+    #cleanup2chNodes() {
+        if (this.micSource) {
+            try { this.micSource.disconnect() } catch (e) {}
+            this.micSource = null
+        }
+        if (this.merger) {
+            try { this.merger.disconnect() } catch (e) {}
+            this.merger = null
+        }
+        if (this.destNode) {
+            for (const track of this.destNode.stream.getTracks()) track.stop()
+            try { this.destNode.disconnect() } catch (e) {}
+            this.destNode = null
         }
     }
 
@@ -256,10 +329,7 @@ export class LatencyTestController {
             this.workletNode.disconnect()
             this.workletNode = null
         }
-        if (this.micSource) {
-            this.micSource.disconnect()
-            this.micSource = null
-        }
+        this.#cleanup2chNodes()
         if (this.worker) {
             this.worker.onmessage = null
             this.worker.onerror = null
@@ -309,6 +379,36 @@ export class LatencyTestController {
             command: 'correlation',
             data1: this.signalrecorded.getChannelData(0),
             data2: this.noiseBuffer.getChannelData(0),
+            maxLag,
+            channel: 0,
+            debug: this.debug
+        })
+    }
+
+    async displayAudioTagElem2ch(chunks, mimeType) {
+        const recordedAudio = new Blob(chunks, { type: mimeType })
+        let decoded
+        try {
+            decoded = await this.blobToAudioBuffer(this.audioContext, recordedAudio)
+        } catch (e) {
+            this.#log('decodeAudioData failure (2ch)', { error: e.name + ': ' + e.message })
+            throw e
+        }
+        this.#log('decodeAudioData result (2ch)', { channels: decoded.numberOfChannels, duration: decoded.duration.toFixed(3) + 's' })
+
+        if (decoded.numberOfChannels < 2) {
+            this.onError?.('Browser downmixed stereo to mono — use recording-mode="mediarecorder-1ch" as fallback.')
+            return
+        }
+
+        this.signalrecorded = decoded
+        const maxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
+        this.#log('worker postMessage correlation (2ch)', { maxLag, ch0Len: decoded.getChannelData(0).length, ch1Len: decoded.getChannelData(1).length, channel: 0, debug: this.debug })
+        this.correlation = null
+        this.worker.postMessage({
+            command: 'correlation',
+            data1: decoded.getChannelData(0),
+            data2: decoded.getChannelData(1),
             maxLag,
             channel: 0,
             debug: this.debug
