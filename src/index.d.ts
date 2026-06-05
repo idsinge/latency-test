@@ -3,7 +3,7 @@ export interface LatencyResultDetail {
   ratio: number
   reliable: boolean
   timestamp: number
-  mode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'
+  mode: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
 }
 
 export interface LatencyCompleteDetail {
@@ -41,8 +41,8 @@ export interface LatencyTestElement extends HTMLElement {
   mlsBits: number
   maxLagMs: number
   bufferSize: number
-  /** `'mediarecorder-2ch'` is reserved for Phase 3b — emits `latency-error` in v1. */
-  recordingMode: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'
+  /** `'mediarecorder'` (default) uses 2-channel capture — emits `latency-error` if the browser downmixes to mono; use `'mediarecorder-1ch'` as fallback in that case. */
+  recordingMode: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
   /** Only `'mls'` is implemented in v1. `'chirp'` and `'golay'` are planned for v2. */
   signalType: 'mls'
   /** Observed and settable, but has no effect in v1. Use the host-gain pattern instead — see docs/examples/host-gain.md. */

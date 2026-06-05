@@ -111,15 +111,24 @@ tests/
         └─ controller.onAudioSetupFinished()
               └─ prepareAudioToPlayAndRecord()
                     └─ silence buffer (cwilso keepalive — prevents Firefox scheduler relaxing between runs)
-                    └─ recordingMode === "audioworklet"      → startWorkletCapture()
-                    └─ recordingMode === "mediarecorder-2ch" → onError (not yet implemented)
-                    └─ else                                  → startMediaRecorderCapture()
+                    └─ recordingMode === "audioworklet"     → startWorkletCapture()
+                    └─ recordingMode === "mediarecorder-1ch" → startMediaRecorderCapture()
+                    └─ else (default "mediarecorder")        → startMediaRecorder2chCapture()
 
-  [mediarecorder path]
+  [mediarecorder path — default 2ch]
+        └─ micSource = createMediaStreamSource(inputStream) → ChannelMerger input 0
+        └─ noiseSource → ChannelMerger input 1 + audioContext.destination
+        └─ ChannelMerger → MediaStreamDestinationNode
+        └─ MediaRecorder(destNode.stream).start() + noiseSource.start()
+        └─ noiseSource.onended → mediaRecorder.stop()
+        └─ onstop → #cleanup2chNodes() → decodeAudioData → check numberOfChannels ≥ 2
+        └─ worker.postMessage({ command: 'correlation', data1: ch0 (mic), data2: ch1 (ref), maxLag })
+
+  [mediarecorder-1ch path — fallback]
         └─ noiseSource → audioContext.destination
         └─ MediaRecorder(inputStream).start() + noiseSource.start()
         └─ noiseSource.onended → mediaRecorder.stop()
-        └─ onstop → decodeAudioData → worker.postMessage({ command: 'correlation', data1: mic, data2: ref, maxLag })
+        └─ onstop → decodeAudioData → worker.postMessage({ command: 'correlation', data1: mic, data2: noiseBuffer, maxLag })
 
   [audioworklet path]
         └─ loads recorder-processor.js as Blob URL → audioWorklet.addModule()
@@ -186,7 +195,7 @@ The web component refactor (Phases 1–3a) is complete. Previous design issues a
 
 2. **`signal-type` not yet wired** — Only `"mls"` is implemented. The attribute is observed but `signalType` is never read by `LatencyTestController`. Deferred to v2.
 
-3. **`recording-mode="mediarecorder-2ch"` not yet implemented** — Emits `latency-error` with "not yet implemented" if selected. Phase 3b.
+3. **`recording-mode="mediarecorder"` is now 2-channel (Phase 3b complete)** — Default mode uses `ChannelMergerNode` + `MediaStreamDestinationNode` to capture mic and reference in one stereo stream, removing start-timing bias. Emits `latency-error` if the browser downmixes to mono. **`recording-mode="mediarecorder-1ch"`** is the single-channel fallback (direct mic stream, start-timing bias present) — use when the default fails due to mono downmix, or to deliberately measure the direct-mic pipeline. `"mediarecorder-2ch"` as an attribute value no longer exists.
 
 4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is a Phase 4 item.
 
@@ -201,18 +210,18 @@ Phases 1–3a are complete. The `<latency-test>` Custom Element is implemented w
 - Shadow DOM (open mode, empty — headless-first)
 - `start()` / `stop()` public methods
 - All six events: `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-complete`, `latency-error`
-- `recording-mode="mediarecorder"` (default) and `recording-mode="audioworklet"` both working
-- `worker.js` cross-correlates two buffers: in the audioworklet path these are captured `{ mic, ref }` Float32 PCM; in the mediarecorder path they are the decoded recording vs the pre-generated MLS AudioBuffer
+- `recording-mode="mediarecorder"` (default, 2-channel), `recording-mode="mediarecorder-1ch"` (1-channel fallback), and `recording-mode="audioworklet"` all working
+- `worker.js` cross-correlates two buffers: in the audioworklet path these are `{ mic, ref }` Float32 PCM; in the mediarecorder (2ch) path these are `ch0` (mic) and `ch1` (reference) from the decoded stereo recording; in the mediarecorder-1ch path these are the decoded mono recording vs the pre-generated MLS AudioBuffer
 
 **Still in progress:**
-- Phase 3b: `recording-mode="mediarecorder-2ch"` (dual-channel MediaRecorder, removes start-timing bias)
-- Phase 4: histogram, browser verification matrix
+- Phase 3b: complete ✅
+- Phase 4: histogram, browser verification matrix across all three modes
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 
 | Attribute | Values | Description |
 |---|---|---|
-| `recording-mode` | `"mediarecorder"` \| `"mediarecorder-2ch"` \| `"audioworklet"` | Selects the capture backend. `"mediarecorder"`: single-channel, direct mic stream, v1 default (implemented). `"mediarecorder-2ch"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, removes start-timing bias (planned). `"audioworklet"`: raw Float32 PCM, v2 default (implemented). Each mode measures a different pipeline — see Decision #14 in agents/CLAUDE_REVIEW.md. |
+| `recording-mode` | `"mediarecorder"` \| `"mediarecorder-1ch"` \| `"audioworklet"` | Selects the capture backend. `"mediarecorder"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, no start-timing bias, v1 default (implemented). `"mediarecorder-1ch"`: single-channel, direct mic stream, start-timing bias present; use as fallback when browser downmixes stereo to mono (implemented). `"audioworklet"`: raw Float32 PCM, v2 default (implemented). Each mode measures a different pipeline — see Decision #14 in agents/CLAUDE_REVIEW.md. |
 | `signal-type` | `"mls"` \| `"chirp"` \| `"golay"` | Selects the test signal. `"mls"` is default. `"chirp"` is a logarithmic sine sweep. `"golay"` uses Golay complementary sequence pairs for high-SNR impulse response measurement. |
 | `input-gain` | number \| `0` | Intended to apply a gain multiplier to the input stream before capture. **Not yet wired** — the attribute is observed and the property is settable, but no GainNode is created. Setting it has no effect in the current code. Deferred to v2. |
 | `debug` | boolean \| `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. Development/debugging only — no effect on measurement output. Do not use during measurements you intend to record — `startPairSpanMs` is an upper-bound diagnostic span, not a pure inter-call gap, and DevTools being open can perturb scheduling generally. Implemented. |

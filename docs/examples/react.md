@@ -144,7 +144,7 @@ declare namespace JSX {
       'number-of-tests'?: number
       'mls-bits'?: number
       'max-lag-ms'?: number
-      'recording-mode'?: 'mediarecorder' | 'mediarecorder-2ch' | 'audioworklet'
+      'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
       'signal-type'?: 'mls'
       'input-gain'?: number
     }

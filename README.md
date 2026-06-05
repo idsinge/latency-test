@@ -122,7 +122,7 @@ This repository contains the prototype implementation, full package planning (se
 - [x] Prototype: MLS signal generation, cross-correlation via Web Worker, MediaRecorder capture
 - [x] Web Component refactor: `<latency-test>` Custom Element, Shadow DOM, instance-based architecture
 - [x] AudioWorklet backend: `recording-mode="audioworklet"` — dual-channel raw PCM capture via dedicated AudioWorklet processor
-- [ ] `recording-mode="mediarecorder-2ch"`: dual-channel MediaRecorder path removing start-timing bias (Phase 3b)
+- [x] `recording-mode="mediarecorder"` upgraded to 2-channel (ChannelMergerNode + MediaStreamDestinationNode, no start-timing bias); `recording-mode="mediarecorder-1ch"` available as 1-channel fallback for browsers that downmix stereo to mono (Phase 3b complete)
 - [x] npm package publication as `@adasp/latency-test`
 - [ ] Additional signal types: chirp (logarithmic sine sweep), Golay complementary sequences
 
