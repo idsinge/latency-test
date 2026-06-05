@@ -215,7 +215,7 @@ These values are fixed by the research methodology and are not configurable:
 |---|---|---|
 | Reliability threshold | `18 dB` | Minimum correlation ratio for a trustworthy measurement — empirically chosen in the WAC 2025 experiments |
 | MLS amplitude | `±1.0` | Binary MLS sequence mapped to `+1.0` / `−1.0` float samples |
-| Chirp frequency range | `1500–8000 Hz` | Bandlimited to avoid input aliasing above 12 kHz present on some iOS devices |
+| Chirp frequency range | `1500–8000 Hz` | Planned — bandlimited to avoid input aliasing above 12 kHz present on some iOS devices. Not yet implemented. |
 | Mic constraints | `echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false` | Recommended constraints for the host to apply when acquiring the mic stream. The component does not call `getUserMedia` — the host is responsible for setting constraints on the stream passed via `element.inputStream`. |
 
 ---
@@ -223,8 +223,9 @@ These values are fixed by the research methodology and are not configurable:
 ## Browser requirements
 
 - `getUserMedia` (microphone access)
-- Web Audio API (`AudioContext`, `AudioWorklet`)
+- Web Audio API (`AudioContext`)
 - Web Workers
 - HTTPS or `localhost`
+- `AudioWorklet` — required only for `recording-mode="audioworklet"`; the default `"mediarecorder"` mode does not use it
 
 Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.

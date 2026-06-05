@@ -75,6 +75,7 @@ Full integration docs are published via VitePress (see `docs/`):
 - **Framework examples** — Vanilla JS, React, Vue, Svelte, Angular, Next.js: `docs/examples/`
 - **Installation** — npm, CDN, AudioContext sharing: `docs/install.md`
 - **Live demo:** https://idsinge.github.io/latency-test/demo/
+- **Dev & research pages:** https://idsinge.github.io/latency-test/dev/ (test pages and experiments, including the MediaRecorder 2ch stereo capture feasibility experiment)
 
 ## Local development
 
