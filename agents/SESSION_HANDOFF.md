@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — Current State Handoff
 
-Last updated: 2026-06-04
+Last updated: 2026-06-05
 
 LLMs reading this file: read `CLAUDE.md`, `AGENTS.md`, and `agents/CLAUDE_REVIEW.md` first. Do not modify files without explicit user approval.
 
@@ -14,10 +14,31 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - Phases 1–7 complete. **v1.0.2** is live on npm as `@adasp/latency-test`.
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.iife.js`. Run with `npm run build:component && npm run demo`.
-- `src/dev-test/` contains local dev-only test pages served by `npm run dev` (no build needed).
-- GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`.
+- `src/dev-test/` contains development test pages served by `npm run dev` (no build needed), also published to GitHub Pages under `/dev/`.
+- `src/experiments/` contains research-only experiment pages (not part of the component test suite), also published to GitHub Pages under `/dev/`.
+- GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`. `src/` is also copied to `dist/dev/` — dev and experiment pages accessible at `https://idsinge.github.io/latency-test/dev/`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
 - `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.0.2`.
+
+---
+
+## Recently Completed (2026-06-05)
+
+### CI hardening + technical debt closure
+- `tsconfig.json` added at repo root — validates `src/index.d.ts` type correctness in isolation (`noEmit: true`, `strict: true`, `lib: ["dom", "es2020"]`). Validates declaration-file correctness only; does not catch implementation drift.
+- `typescript@^5` added as devDependency; `"typecheck": "tsc --noEmit"` added to `package.json` scripts.
+- `ci.yml` — `npm audit --audit-level=high` and `npm run typecheck` steps added after "Install dependencies".
+- `agents/KNOWN_ISSUES.md` — all previously open CI findings closed: Node version divergence documented as intentional, TypeScript check added, npm audit added, Firefox MLS closed (multi-device testing showed expected behavior), CDN pinning confirmed (`@1.0.2`, done in prior session), branch protection on `main` confirmed (done in prior session via GitHub Settings). Only open item remaining: framework examples end-to-end verification against published package.
+
+### MediaRecorder 2ch experiment + dev pages on GitHub Pages (commit `bf0dc07`, PR #12)
+- `src/experiments/mr2ch.html` + `mr2ch.js` added — standalone research experiment proving whether `ChannelMergerNode` + `MediaStreamDestinationNode` preserves stereo capture through `MediaRecorder`, eliminating the unknown start-timing offset that biases single-channel measurements. Self-contained: no `<latency-test>` component, no `LatencyTestController`. Features: `DEBUG` flag, per-run `ac.state` reporting, mono-downmix detection and error, cwilso silence keepalive before each run.
+- `docs.yml` updated — `cp -R src docs/.vitepress/dist/dev` added to Pages deployment step; dev hub + experiments now live at `https://idsinge.github.io/latency-test/dev/`.
+- `src/index.html` — Experiments section added; text updated to reference GitHub Pages URL.
+- `README.md` — dev & research pages link added alongside the live demo link.
+- `docs/.vitepress/config.mjs` — Host-Controlled Gain moved from Integration Examples to top-level sidebar.
+- `docs/index.md`, `docs/examples/vanilla-js.md` — CDN URLs pinned to `@1.0.2`.
+- `docs/api.md` — AudioWorklet requirement clarified as `audioworklet` mode only; chirp frequency range row marked as planned.
+- `CLAUDE.md` — Node version corrected to 22; `experiments/` added to file map; duplicate `input-gain` entry replaced with `buffer-size` flush deferred note.
 
 ---
 
@@ -51,13 +72,10 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Pending Tasks (ordered by priority)
 
-### Phase 3b — next up, now unblocked
-- [ ] Implement `recording-mode="mediarecorder-2ch"` — full spec in `agents/CLAUDE_REVIEW.md` Phase 3b. Key points:
-  - Route: MLS `AudioBufferSourceNode` → `ChannelMergerNode` input 0; `createMediaStreamSource(stream)` → input 1; merger → `MediaStreamDestinationNode` → `MediaRecorder`
-  - After decode: `getChannelData(0)` = ref, `getChannelData(1)` = mic
-  - Guard against mono downmix: emit `latency-error` if `numberOfChannels < 2`
-  - MIME type: use `MediaRecorder.isTypeSupported()` to select stereo-capable type
-  - Cleanup: disconnect `micSource`, `channelMerger`, `destNode` on stop
+### Phase 3b — experiment-first approach
+- [x] Standalone experiment built: `src/experiments/mr2ch.html` + `mr2ch.js` (PR #12)
+- [ ] Browser test the experiment across Chrome, Firefox, Safari, iOS — key question: does the browser preserve stereo through `MediaRecorder` + `decodeAudioData` or downmix to mono?
+- [ ] Based on results, decide whether to surface `recording-mode="mediarecorder-2ch"` as a public component API value or keep it as research-only. Full component spec still in `agents/CLAUDE_REVIEW.md` Phase 3b if the API route is chosen.
 
 ### Phase 4 remainder
 - [ ] Host-side histogram — `latency-complete` fires with `{ results[], mean, std, min, max }`. Demo page should render a simple histogram from the results array.
@@ -66,7 +84,7 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package (not local source). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
 
 ### Independent
-- [ ] **CI Node version consistency** — `.nvmrc` is now `22`, `docs.yml` uses Node 24. Both work; worth aligning to the same version in a future CI pass.
+- [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.
 
 ### Deferred to v2
 - `input-gain` GainNode wiring (attribute is observed and typed; currently no-op — use host-gain pattern in the meantime)
