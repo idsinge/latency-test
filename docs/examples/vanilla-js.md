@@ -16,7 +16,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.0.2/dist/latency-test.esm.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.1.0/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <button id="connect-btn">Connect Audio</button>
