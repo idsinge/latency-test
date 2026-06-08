@@ -6,3 +6,4 @@ docs/.vitepress/cache
 docs/.vitepress/.temp
 .agents
 .claude
+.opencode

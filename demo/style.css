@@ -1,5 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+[hidden] { display: none !important; }
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 15px;
@@ -52,6 +54,15 @@ header p {
     to   { opacity: 1;   transform: scale(1.15); }
 }
 
+.intro-note {
+    background: #f0f0ff;
+    border-left: 3px solid #6c63ff;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
+    color: #333;
+    line-height: 1.6;
+}
+
 #connect-section {
     display: flex;
     flex-direction: column;
@@ -66,50 +77,11 @@ header p {
     min-height: 1.25rem;
 }
 
-.tablist {
-    display: flex;
-    gap: 0;
-    background: #1a1a2e;
-    padding: 0 1.5rem;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    overflow-x: auto;
-}
-
-.tablist button {
-    background: none;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    font: inherit;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.55);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
-    white-space: nowrap;
-}
-
-.tablist button:hover { color: rgba(255,255,255,0.85); }
-
-.tablist button[aria-selected="true"] {
-    color: #fff;
-    border-bottom-color: #6c63ff;
-}
-
-.tablist button:focus-visible {
-    outline: 2px solid #6c63ff;
-    outline-offset: -2px;
-}
-
-.btn:focus-visible {
-    outline: 2px solid #6c63ff;
-    outline-offset: 2px;
-}
-
 .skip-link {
     position: absolute;
     top: -100%;
     left: 0;
-    background: #6c63ff;
+    background: #5a52e0;
     color: #fff;
     padding: 0.5rem 1rem;
     z-index: 100;
@@ -121,22 +93,125 @@ header p {
     top: 0;
 }
 
-.tabpanel {
-    display: none;
-    padding: 1.5rem;
-    max-width: 780px;
+/* ── Audio info table ── */
+
+#audio-info {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e8e8e8;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fafafa;
 }
 
-.tabpanel[aria-hidden="false"] { display: block; }
+#audio-info summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #5a52e0;
+    user-select: none;
+    padding: 0.25rem 0;
+}
 
-.tabpanel h2 {
+#audio-info table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+}
+
+#audio-info th,
+#audio-info td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid #e8e8e8;
+    vertical-align: top;
+    text-align: left;
+}
+
+#audio-info th {
+    color: #555;
+    white-space: nowrap;
+    width: 45%;
+    font-weight: 500;
+}
+
+#audio-info td code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    word-break: break-all;
+    font-size: inherit;
+}
+
+#audio-info tr:nth-child(even) th,
+#audio-info tr:nth-child(even) td {
+    background: #f0f0ff;
+}
+
+/* ── Card grid ── */
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.demo-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.demo-card:hover {
+    border-color: #6c63ff;
+}
+
+.demo-card:focus-visible {
+    outline: 2px solid #6c63ff;
+    outline-offset: 2px;
+}
+
+.demo-card.is-active {
+    border-color: #6c63ff;
+    box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+}
+
+.card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+.card-desc {
+    font-size: 0.78rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* ── Demo panels ── */
+
+#demo-panel-area {
+    padding: 0 1.5rem 1.5rem;
+}
+
+.demo-panel {
+    max-width: 780px;
+    padding-top: 1rem;
+}
+
+.demo-panel h2 {
     font-size: 1.05rem;
     font-weight: 600;
     margin-bottom: 1rem;
     color: #1a1a2e;
 }
 
-.tabpanel p.desc {
+.demo-panel p.desc {
     font-size: 0.85rem;
     color: #666;
     margin-bottom: 1.25rem;
@@ -193,6 +268,11 @@ header p {
     color: #333;
 }
 .btn-secondary:hover { background: #d0d0d0; }
+
+.btn:focus-visible {
+    outline: 2px solid #6c63ff;
+    outline-offset: 2px;
+}
 
 .result-box {
     background: #fff;
@@ -281,7 +361,7 @@ latency-test { display: none; }
 
 .config-snippet summary {
     cursor: pointer;
-    color: #6c63ff;
+    color: #5a52e0;
     font-weight: 500;
     font-size: 0.8rem;
 }
@@ -310,4 +390,39 @@ latency-test { display: none; }
     font-size: 0.85rem;
     color: #7a5800;
     margin-bottom: 1rem;
+}
+
+.badge-v2 {
+    display: inline-block;
+    background: #6c63ff;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1em 0.45em;
+    border-radius: 99px;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 480px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    #audio-info th {
+        white-space: normal;
+        width: 40%;
+    }
 }

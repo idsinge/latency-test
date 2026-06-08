@@ -90,6 +90,24 @@ tests/
   worker.test.js          — unit tests for calculateCrossCorrelation() and findPeakAndMean() (node:test)
 ```
 
+```
+demo/
+  index.html              — Public integration showcase: loads dist/latency-test.iife.js; grid of 8 demo panels
+  style.css               — Demo-only styles: card grid, panels, result boxes, event log, audio info table
+  js/
+    common.js             — Shared setup: getUserMedia + AudioContext (created once), card-grid toggle, audio info
+                            table (AC properties, track settings/constraints/capabilities, stream info, browser),
+                            activity indicator, startTest() helper, resultHTML() formatter
+    minimal.js            — Panel: Minimal — single run, simplest integration
+    multi-run.js          — Panel: Multi-Run — configurable run count with mean/std/min/max aggregates
+    context-share.js      — Panel: Context Share — demonstrates host-managed AudioContext & MediaStream pattern
+    mode-toggle.js        — Panel: Mode Toggle — runs MediaRecorder then AudioWorklet sequentially for A/B comparison
+    audioworklet.js       — Panel: AudioWorklet — recording-mode="audioworklet", multi-run, aggregate stats
+    lifecycle.js          — Panel: Lifecycle — logs all six latency-* events with timestamps
+    debug.js              — Panel: Debug Mode — intercepts console.debug to surface [latency-test] lines on-page
+    host-gain.js          — Panel: Host Gain — ChannelSplitter + GainNode chain for low-level mics (e.g. Safari)
+```
+
 **Deleted files (no longer in repo):**
 - `src/style.css` — removed
 - `src/scripts/helper.js` — removed (contained all canvas drawing: waveform, cross-correlation, histogram)

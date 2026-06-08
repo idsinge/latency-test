@@ -10,7 +10,7 @@
 <body>
 
 <header>
-    <a href="#panel-minimal" class="skip-link">Skip to demo</a>
+    <a href="#card-grid" class="skip-link">Skip to demos</a>
     <h1>@adasp/latency-test · Demo</h1>
     <p>Validates the built IIFE bundle — load component via <code>&lt;script&gt;</code> tag</p>
     <span id="activity-indicator" class="activity-idle"></span>
@@ -22,20 +22,59 @@
 </div>
 
 <div id="demo-section" hidden>
-<div class="tablist" role="tablist" aria-label="Demo patterns">
-    <button role="tab" id="tab-minimal" aria-selected="true" aria-controls="panel-minimal" tabindex="0">Minimal</button>
-    <button role="tab" id="tab-multi" aria-selected="false" aria-controls="panel-multi" tabindex="-1">Multi-Run</button>
-    <button role="tab" id="tab-context" aria-selected="false" aria-controls="panel-context" tabindex="-1">Context Share</button>
-    <button role="tab" id="tab-mode" aria-selected="false" aria-controls="panel-mode" tabindex="-1">Mode Toggle</button>
-    <button role="tab" id="tab-lifecycle" aria-selected="false" aria-controls="panel-lifecycle" tabindex="-1">Lifecycle</button>
-    <button role="tab" id="tab-debug" aria-selected="false" aria-controls="panel-debug" tabindex="-1">Debug Mode</button>
-    <button role="tab" id="tab-gain" aria-selected="false" aria-controls="panel-gain" tabindex="-1">Host Gain</button>
+
+<details id="audio-info" hidden>
+    <summary>Audio Session Info</summary>
+    <table>
+        <thead class="sr-only">
+            <tr>
+                <th scope="col">Property</th>
+                <th scope="col">Value</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</details>
+
+<div id="card-grid" class="card-grid">
+    <button class="demo-card" data-panel="panel-minimal" aria-controls="panel-minimal" aria-expanded="false">
+        <span class="card-title">Minimal</span>
+        <span class="card-desc">Single test run, simplest integration</span>
+    </button>
+    <button class="demo-card" data-panel="panel-multi" aria-controls="panel-multi" aria-expanded="false">
+        <span class="card-title">Multi-Run</span>
+        <span class="card-desc">Multiple runs with mean, std, min, max aggregates</span>
+    </button>
+    <button class="demo-card" data-panel="panel-context" aria-controls="panel-context" aria-expanded="false">
+        <span class="card-title">Context Share</span>
+        <span class="card-desc">Host-managed AudioContext and MediaStream</span>
+    </button>
+    <button class="demo-card" data-panel="panel-mode" aria-controls="panel-mode" aria-expanded="false">
+        <span class="card-title">Mode Toggle</span>
+        <span class="card-desc">MediaRecorder vs AudioWorklet A/B comparison</span>
+    </button>
+    <button class="demo-card" data-panel="panel-audioworklet" aria-controls="panel-audioworklet" aria-expanded="false">
+        <span class="card-title">AudioWorklet</span>
+        <span class="card-desc">Raw Float32 PCM capture — v2 default backend</span>
+    </button>
+    <button class="demo-card" data-panel="panel-lifecycle" aria-controls="panel-lifecycle" aria-expanded="false">
+        <span class="card-title">Lifecycle</span>
+        <span class="card-desc">All six lifecycle events logged in real-time</span>
+    </button>
+    <button class="demo-card" data-panel="panel-debug" aria-controls="panel-debug" aria-expanded="false">
+        <span class="card-title">Debug Mode</span>
+        <span class="card-desc">Internal checkpoint logging for development</span>
+    </button>
+    <button class="demo-card" data-panel="panel-gain" aria-controls="panel-gain" aria-expanded="false">
+        <span class="card-title">Host Gain</span>
+        <span class="card-desc">GainNode chain for low mic levels (e.g. Safari)</span>
+    </button>
 </div>
 
-<main>
+<div id="demo-panel-area">
 
-<!-- ─── Tab: Minimal ─── -->
-<div id="panel-minimal" class="tabpanel" role="tabpanel" aria-labelledby="tab-minimal" aria-hidden="false">
+<!-- ─── Panel: Minimal ─── -->
+<div id="panel-minimal" class="demo-panel" hidden>
     <h2>Minimal Integration</h2>
     <p class="desc">Single test run using the <code>mediarecorder</code> backend. The simplest way to validate the component works.</p>
     <div class="controls">
@@ -66,8 +105,8 @@
     </details>
 </div>
 
-<!-- ─── Tab: Multi-Run ─── -->
-<div id="panel-multi" class="tabpanel" role="tabpanel" aria-labelledby="tab-multi" aria-hidden="true">
+<!-- ─── Panel: Multi-Run ─── -->
+<div id="panel-multi" class="demo-panel" hidden>
     <h2>Multi-Run with Aggregates</h2>
     <p class="desc">Configure the number of test runs. Results are accumulated and displayed with mean, standard deviation, min, and max.</p>
     <div class="controls">
@@ -118,8 +157,8 @@
     </details>
 </div>
 
-<!-- ─── Tab: Context Share ─── -->
-<div id="panel-context" class="tabpanel" role="tabpanel" aria-labelledby="tab-context" aria-hidden="true">
+<!-- ─── Panel: Context Share ─── -->
+<div id="panel-context" class="demo-panel" hidden>
     <h2>Host-Managed AudioContext &amp; Stream</h2>
     <p class="desc">The host creates its own <code>AudioContext</code> and <code>MediaStream</code>, then passes them via properties. The component never closes or stops what it didn't create.</p>
     <div class="controls">
@@ -155,8 +194,8 @@
     </details>
 </div>
 
-<!-- ─── Tab: Mode Toggle ─── -->
-<div id="panel-mode" class="tabpanel" role="tabpanel" aria-labelledby="tab-mode" aria-hidden="true">
+<!-- ─── Panel: Mode Toggle ─── -->
+<div id="panel-mode" class="demo-panel" hidden>
     <h2>Capture Backend Comparison</h2>
     <p class="desc">Run <code>MediaRecorder</code> and <code>AudioWorklet</code> back-to-back on the same source stream for direct A/B comparison.</p>
     <div class="controls">
@@ -208,8 +247,50 @@
     </details>
 </div>
 
-<!-- ─── Tab: Lifecycle ─── -->
-<div id="panel-lifecycle" class="tabpanel" role="tabpanel" aria-labelledby="tab-lifecycle" aria-hidden="true">
+<!-- ─── Panel: AudioWorklet ─── -->
+<div id="panel-audioworklet" class="demo-panel" hidden>
+    <h2>AudioWorklet Backend</h2>
+    <p class="desc">Captures raw Float32 PCM directly in an <code>AudioWorkletProcessor</code> — no codec round-trip, sample-accurate timing. This is the v2 default backend. Use when you need the most accurate round-trip measurement.</p>
+    <div class="controls">
+        <label>Runs:
+            <input type="number" id="aw-count" value="5" min="1" max="50">
+        </label>
+        <button class="btn btn-primary" id="aw-start">Start</button>
+        <button class="btn btn-secondary" id="aw-stop" disabled>Stop</button>
+    </div>
+    <div id="aw-current" class="result-box" style="display:none">
+        <div class="latency" id="aw-current-latency">—</div>
+        <div class="detail" id="aw-current-detail"></div>
+    </div>
+    <div id="aw-aggregate" class="result-box aggregate" style="display:none">
+        <div class="stat" id="aw-mean">Mean: —</div>
+        <div class="stat" id="aw-stats">SD (Standard Deviation): — · Min: — · Max: —</div>
+    </div>
+    <latency-test id="aw-tester" recording-mode="audioworklet"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="aw-tester" recording-mode="audioworklet"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#aw-tester')
+  tester.inputStream = hostStream         // host-managed MediaStream
+  tester.audioContext = hostAudioContext  // host-managed AudioContext
+  tester.numberOfTests = 5
+
+  tester.addEventListener('latency-result', e =&gt; {
+    console.log(`${e.detail.latency.toFixed(2)} ms · ${e.detail.reliable ? 'reliable' : 'unreliable'}`)
+  })
+  tester.addEventListener('latency-complete', e =&gt; {
+    console.log(`AW mean: ${e.detail.mean.toFixed(2)} ms`)
+  })
+
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
+<!-- ─── Panel: Lifecycle ─── -->
+<div id="panel-lifecycle" class="demo-panel" hidden>
     <h2>Lifecycle Event Log</h2>
     <p class="desc">All six lifecycle events are logged in real-time with timestamps.</p>
     <div class="controls">
@@ -243,8 +324,8 @@
     </details>
 </div>
 
-<!-- ─── Tab: Debug Mode ─── -->
-<div id="panel-debug" class="tabpanel" role="tabpanel" aria-labelledby="tab-debug" aria-hidden="true">
+<!-- ─── Panel: Debug Mode ─── -->
+<div id="panel-debug" class="demo-panel" hidden>
     <h2>Debug Mode</h2>
     <div class="callout-warn">
         <strong>Development only.</strong> Debug mode enables <code>console.debug('[latency-test]', …)</code> logging at internal checkpoints. Having debug on — or DevTools open — can perturb browser scheduling and affect latency accuracy. Do not use for measurements you intend to record.
@@ -296,12 +377,12 @@
     </details>
 </div>
 
-<!-- ─── Tab: Host Gain ─── -->
-<div id="panel-gain" class="tabpanel" role="tabpanel" aria-labelledby="tab-gain" aria-hidden="true">
+<!-- ─── Panel: Host Gain ─── -->
+<div id="panel-gain" class="demo-panel" hidden>
     <h2>Host-Controlled Input Gain</h2>
     <p class="desc">The host builds a <code>GainNode</code> chain and passes the processed stream to the component. Use this when your recording setup has low mic levels — common on Safari ≥ 16 with <code>echoCancellation: false</code> (empirical value: 50×). A <code>ChannelSplitterNode</code> isolates the left channel, which also handles wired earpods on Safari that force a stereo stream with signal only on the left.</p>
     <div class="callout-warn">
-        This tab measures a different pipeline than direct-stream mode (an extra browser-managed Web Audio / MediaStream bridge). Results are self-consistent but should not be compared directly to other tabs.
+        This panel measures a different pipeline than direct-stream mode (an extra browser-managed Web Audio / MediaStream bridge). Results are self-consistent but should not be compared directly to other panels.
     </div>
     <div class="controls">
         <label><input type="checkbox" id="gain-chain-toggle" checked> Use gain chain</label>
@@ -346,7 +427,8 @@
     </details>
 </div>
 
-</main>
+</div><!-- #demo-panel-area -->
+
 </div><!-- #demo-section -->
 
 <script src="js/common.js"></script>
@@ -354,6 +436,7 @@
 <script src="js/multi-run.js"></script>
 <script src="js/context-share.js"></script>
 <script src="js/mode-toggle.js"></script>
+<script src="js/audioworklet.js"></script>
 <script src="js/lifecycle.js"></script>
 <script src="js/debug.js"></script>
 <script src="js/host-gain.js"></script>
