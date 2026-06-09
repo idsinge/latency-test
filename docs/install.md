@@ -5,7 +5,7 @@
 ## Requirements
 
 - Node.js v22 or above (project pins v22 via `.nvmrc`)
-- A browser with Web Audio API, AudioWorklet, and `getUserMedia` support
+- A browser with Web Audio API and `getUserMedia` support (AudioWorklet required only for `recording-mode="audioworklet"`)
 - HTTPS or `localhost` (required for microphone access)
 
 ---
@@ -48,7 +48,7 @@ Choose the approach that fits your project:
 <script src="https://unpkg.com/@adasp/latency-test@1.1.0/dist/latency-test.iife.js"></script>
 ```
 
-**Legacy IIFE (older MediaRecorder-capable browsers — Chrome 74–79, Firefox &lt; 72, Safari 14):**
+**Legacy IIFE (older MediaRecorder-capable browsers — Chrome 74–79, Firefox &lt; 72, Safari 14 — `recording-mode="mediarecorder"` only; `"audioworklet"` emits `latency-error` on Chrome 74–79):**
 ```html
 <!-- jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.1.0/dist/latency-test.legacy.iife.js"></script>
@@ -87,10 +87,10 @@ All three register the `<latency-test>` element globally. Place either in the `<
     // audioContext and inputStream must be assigned before start() — create them from a user gesture
     document.getElementById('start').addEventListener('click', async () => {
       if (!el.audioContext) {
+        el.audioContext = new AudioContext({ latencyHint: 0 })
         el.inputStream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
         })
-        el.audioContext = new AudioContext({ latencyHint: 0 })
       }
       el.start()
     })
@@ -122,10 +122,10 @@ el.addEventListener('latency-result', (e) => {
 
 document.getElementById('startBtn').addEventListener('click', async () => {
   if (!el.audioContext) {
+    el.audioContext = new AudioContext({ latencyHint: 0 })
     el.inputStream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     })
-    el.audioContext = new AudioContext({ latencyHint: 0 })
   }
   el.start()
 })
@@ -139,6 +139,19 @@ el.inputStream = myExistingStream   // still required
 el.audioContext = myExistingAudioContext
 el.start()
 ```
+
+---
+
+## Sample rate
+
+`new AudioContext()` without an explicit `sampleRate` uses the output device's native rate. On some configurations — observed on Chrome 124+ on macOS 15 with certain audio interfaces — the mic input track runs at a different native rate (for example, AC at 44100 Hz, mic at 96000 Hz). The browser resamples the input transparently via `createMediaStreamSource()`, so measurements remain valid, but the internal resampling may contribute to latency variance.
+
+Two workarounds were tested and are not recommended:
+
+- Passing `sampleRate: ac.sampleRate` as an ideal constraint to `navigator.mediaDevices.getUserMedia()` — Chrome reports the actual hardware rate and ignores this constraint.
+- Creating the `AudioContext` after `await getUserMedia()` using `track.getSettings().sampleRate` — did not produce correct results (not investigated further), and additionally breaks the Firefox user-gesture requirement: an `AudioContext` created after an `await` starts in `suspended` state in Firefox, making `outputLatency` unavailable.
+
+There is no reliable cross-browser API to force both devices to share the same sample rate from JavaScript. If you observe higher variance, check your operating system's audio settings and configure all devices to the same native rate.
 
 ---
 

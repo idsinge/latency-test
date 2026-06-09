@@ -117,7 +117,7 @@ These are set via JavaScript, not HTML attributes.
 
 | Property | Type | Description |
 |---|---|---|
-| `audioContext` | `AudioContext` | Required before calling `start()`. Assign the host's `AudioContext` to this property. If not set when `start()` is called, a `latency-error` is emitted immediately. The component never calls `.close()` — the host owns the lifetime. **Sample rate:** create the `AudioContext` without specifying `sampleRate` so the browser matches the output device — this gives the best MLS playback accuracy. If the input device runs at a different rate the browser resamples the mic transparently; the component logs a `console.warn` but the measurement remains correct. **Suspend:** browsers may auto-suspend an idle `AudioContext`; the component logs a `console.warn` if suspended at `start()` time. Call `audioContext.resume()` from a user gesture before `start()` if the context may have been idle. |
+| `audioContext` | `AudioContext` | Required before calling `start()`. Assign the host's `AudioContext` to this property. If not set when `start()` is called, a `latency-error` is emitted immediately. The component never calls `.close()` — the host owns the lifetime. **Suspend:** browsers may auto-suspend an idle `AudioContext`; call `audioContext.resume()` from a user gesture before `start()` if the context may have been idle. |
 | `inputStream` | `MediaStream` | Required before calling `start()`. Assign the host's mic `MediaStream` to this property. If not set when `start()` is called, a `latency-error` is emitted immediately. The component never stops the tracks — the host owns the lifetime. |
 
 ### Example

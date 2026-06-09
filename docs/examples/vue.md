@@ -61,8 +61,8 @@ const error = ref(null)
 
 async function connect() {
   try {
-    micStream.value = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
     audioCtx.value = new AudioContext({ latencyHint: 0 })
+    micStream.value = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
     ltRef.value.inputStream = micStream.value
     ltRef.value.audioContext = audioCtx.value
     isConnected.value = true

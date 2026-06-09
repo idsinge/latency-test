@@ -56,7 +56,7 @@
     </button>
     <button class="demo-card" data-panel="panel-audioworklet" aria-controls="panel-audioworklet" aria-expanded="false">
         <span class="card-title">AudioWorklet</span>
-        <span class="card-desc">Raw Float32 PCM capture — v2 default backend</span>
+        <span class="card-desc">Raw Float32 PCM capture — planned v2 default backend</span>
     </button>
     <button class="demo-card" data-panel="panel-lifecycle" aria-controls="panel-lifecycle" aria-expanded="false">
         <span class="card-title">Lifecycle</span>
@@ -181,10 +181,10 @@
 &lt;script&gt;
   const tester = document.querySelector('#context-tester')
 
+  const ac = new AudioContext({ latencyHint: 0 })
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
-  const ac = new AudioContext({ latencyHint: 0 })
 
   tester.audioContext = ac
   tester.inputStream = stream
@@ -228,10 +228,10 @@
   const mr = document.querySelector('#mode-mr')
   const aw = document.querySelector('#mode-aw')
 
+  const ac = new AudioContext({ latencyHint: 0 })
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, channelCount: 1 }
   })
-  const ac = new AudioContext({ latencyHint: 0 })
 
   mr.audioContext = aw.audioContext = ac
   mr.inputStream = aw.inputStream = stream
@@ -251,7 +251,7 @@
 <!-- ─── Panel: AudioWorklet ─── -->
 <div id="panel-audioworklet" class="demo-panel" hidden>
     <h2>AudioWorklet Backend</h2>
-    <p class="desc">Captures raw Float32 PCM directly in an <code>AudioWorkletProcessor</code> — no codec round-trip, sample-accurate timing. This is the v2 default backend. Use when you need the most accurate round-trip measurement.</p>
+    <p class="desc">Captures raw Float32 PCM directly in an <code>AudioWorkletProcessor</code> — no codec round-trip, sample-accurate timing. This is the planned v2 default backend. Use when you need the most accurate round-trip measurement.</p>
     <div class="controls">
         <label>Runs:
             <input type="number" id="aw-count" value="5" min="1" max="50">
@@ -402,11 +402,11 @@
         <pre><code>&lt;latency-test id="tester" recording-mode="mediarecorder"&gt;&lt;/latency-test&gt;
 
 &lt;script&gt;
+  const ac = new AudioContext({ latencyHint: 0 })
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, noiseSuppression: false,
              autoGainControl: false, channelCount: 1 }
   })
-  const ac = new AudioContext({ latencyHint: 0 })
 
   // Set gainValue to 50 for Safari &gt;= 16 with echoCancellation: false
   const gainValue = 1

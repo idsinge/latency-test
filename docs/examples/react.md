@@ -42,10 +42,10 @@ export function LatencyTester({ numberOfTests = 5 }) {
 
   async function connect() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-      micStreamRef.current = stream
       const ac = new AudioContext({ latencyHint: 0 })
       audioCtxRef.current = ac
+      const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
+      micStreamRef.current = stream
       ltRef.current.inputStream = stream
       ltRef.current.audioContext = ac
       setIsConnected(true)
