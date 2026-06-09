@@ -36,6 +36,18 @@ async function bundleWorker() {
 
 const workerIife = await bundleWorker()
 
+async function transpileProcessor(source) {
+    const result = await esbuild.transform(source, {
+        loader: 'js',
+        supported: legacySupported,
+    })
+    return result.code
+}
+
+const processorSourceForBundle = legacyMode
+    ? await transpileProcessor(processorSource)
+    : processorSource
+
 const inlinePlugin = {
     name: 'inline',
     setup(build) {
@@ -44,7 +56,7 @@ const inlinePlugin = {
             let source = readFileSync(args.path, 'utf-8')
             source = source.replace(
                 /const url = new URL\('\.\/recorder-processor\.js', import\.meta\.url\)\s*\n\s*const resp = await fetch\(url\)\s*\n\s*const source = await resp\.text\(\)/,
-                `const source = ${JSON.stringify(processorSource)}`
+                `const source = ${JSON.stringify(processorSourceForBundle)}`
             )
             if (/new URL\(['"`]\.\/recorder-processor\.js['"`]/.test(source)) {
                 throw new Error('build: processor fetch pattern was not inlined — check test.js')
