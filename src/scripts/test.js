@@ -255,6 +255,10 @@ export class LatencyTestController {
             const mic = concatFloat32(e.data.mic)
             const ref = concatFloat32(e.data.ref)
             this.#log('worklet message received', { micLen: mic.length, refLen: ref.length })
+            if (mic.length === 0 || ref.length === 0) {
+                this.onError?.(`AudioWorklet captured no audio (mic: ${mic.length} samples, ref: ${ref.length} samples) — recording-mode="audioworklet" may not be supported in this browser`)
+                return
+            }
             this.correlation = null
             const wMaxLag = Math.floor((this.maxLagMs / 1000) * this.audioContext.sampleRate)
             this.#log('worker postMessage correlation (worklet)', { maxLag: wMaxLag, data1Len: mic.length, data2Len: ref.length, channel: 0, debug: this.debug })
