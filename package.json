@@ -9,7 +9,9 @@
     "demo": "npx serve .",
     "build:component": "node scripts/build-component.mjs",
     "build:component:dev": "node scripts/build-component.mjs --dev",
-    "prepublishOnly": "npm run build:component",
+    "build:component:legacy": "node scripts/build-component.mjs --legacy",
+    "build:component:all": "npm run build:component && npm run build:component:legacy",
+    "prepublishOnly": "npm run build:component:all",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

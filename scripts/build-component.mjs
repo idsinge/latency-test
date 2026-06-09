@@ -2,14 +2,39 @@ import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node
 import { resolve } from 'node:path'
 import * as esbuild from 'esbuild'
 
-// Usage: node scripts/build-component.mjs [--dev]
+// Usage: node scripts/build-component.mjs [--dev] [--legacy]
 //   Default (no flag): minified ESM + IIFE (production)
 //   --dev:             unminified ESM + IIFE (debugging)
+//   --legacy:          transpile for Safari 14 / Chrome 78 (private fields, optional chaining, nullish coalescing)
+//                      outputs latency-test.legacy.esm.js + latency-test.legacy.iife.js
 
 const devMode = process.argv.includes('--dev')
+const legacyMode = process.argv.includes('--legacy')
 
-const workerSource = readFileSync('src/scripts/worker.js', 'utf-8')
+// Features absent in Safari 14 / Chrome 78 — esbuild lowers these to ES5-compatible equivalents.
+// Using `supported` rather than `target` avoids esbuild's unsupported destructuring-lowering path.
+const legacySupported = {
+    'class-private-field': false,
+    'class-private-method': false,
+    'optional-chain': false,
+    'nullish-coalescing': false,
+}
+
 const processorSource = readFileSync('src/scripts/recorder-processor.js', 'utf-8')
+
+async function bundleWorker() {
+    const result = await esbuild.build({
+        entryPoints: ['src/scripts/worker.js'],
+        bundle: true,
+        format: 'iife',
+        write: false,
+        minify: !devMode,
+        ...(legacyMode && { supported: legacySupported }),
+    })
+    return result.outputFiles[0].text
+}
+
+const workerIife = await bundleWorker()
 
 const inlinePlugin = {
     name: 'inline',
@@ -17,13 +42,6 @@ const inlinePlugin = {
         build.onLoad({ filter: /[/\\]test\.js$/ }, (args) => {
             if (args.path !== resolve('src/scripts/test.js')) return
             let source = readFileSync(args.path, 'utf-8')
-            source = source.replace(
-                /new URL\('worker\.js', import\.meta\.url\),/,
-                `URL.createObjectURL(new Blob([${JSON.stringify(workerSource)}], { type: 'application/javascript' })),`
-            )
-            if (/new URL\(['"`]worker\.js['"`]/.test(source)) {
-                throw new Error('build: worker URL pattern was not inlined — check test.js')
-            }
             source = source.replace(
                 /const url = new URL\('\.\/recorder-processor\.js', import\.meta\.url\)\s*\n\s*const resp = await fetch\(url\)\s*\n\s*const source = await resp\.text\(\)/,
                 `const source = ${JSON.stringify(processorSource)}`
@@ -37,11 +55,11 @@ const inlinePlugin = {
             if (args.path !== resolve('src/scripts/latency-test-element.js')) return
             let source = readFileSync(args.path, 'utf-8')
             source = source.replace(
-                /new URL\('\.\/worker\.js', import\.meta\.url\)/,
-                `URL.createObjectURL(new Blob([${JSON.stringify(workerSource)}], { type: 'application/javascript' }))`
+                /new Worker\(new URL\('\.\/worker\.js', import\.meta\.url\),\s*\{\s*type:\s*'module'\s*\}\)/,
+                `new Worker(URL.createObjectURL(new Blob([${JSON.stringify(workerIife)}], { type: 'application/javascript' })))`
             )
-            if (/new URL\(['"`][./]*worker\.js['"`]/.test(source)) {
-                throw new Error('build: worker URL pattern was not inlined — check latency-test-element.js')
+            if (/new Worker\(new URL\(/.test(source)) {
+                throw new Error('build: Worker module constructor was not replaced — check latency-test-element.js')
             }
             return { contents: source, loader: 'js' }
         })
@@ -54,6 +72,8 @@ function cleanDist() {
     const keep = new Set([
         'latency-test.esm.js', 'latency-test.esm.js.map',
         'latency-test.iife.js', 'latency-test.iife.js.map',
+        'latency-test.legacy.esm.js', 'latency-test.legacy.esm.js.map',
+        'latency-test.legacy.iife.js', 'latency-test.legacy.iife.js.map',
     ])
     for (const f of files) {
         if (!keep.has(f)) {
@@ -63,27 +83,33 @@ function cleanDist() {
     }
 }
 
-console.log(`Build mode: ${devMode ? 'development (unminified)' : 'production (minified)'}`)
+const modeLabel = [
+    devMode ? 'development (unminified)' : 'production (minified)',
+    legacyMode ? 'legacy (Safari 14 / Chrome 78)' : null,
+].filter(Boolean).join(', ')
+console.log(`Build mode: ${modeLabel}`)
 cleanDist()
 
 const esmConfig = {
     entryPoints: ['src/scripts/latency-test-element.js'],
     bundle: true,
     format: 'esm',
-    outfile: 'dist/latency-test.esm.js',
+    outfile: legacyMode ? 'dist/latency-test.legacy.esm.js' : 'dist/latency-test.esm.js',
     sourcemap: true,
     minify: !devMode,
     plugins: [inlinePlugin],
+    ...(legacyMode && { supported: legacySupported }),
 }
 
 const iifeConfig = {
     entryPoints: ['src/scripts/iife-entry.js'],
     bundle: true,
     format: 'iife',
-    outfile: 'dist/latency-test.iife.js',
+    outfile: legacyMode ? 'dist/latency-test.legacy.iife.js' : 'dist/latency-test.iife.js',
     sourcemap: true,
     minify: !devMode,
     plugins: [inlinePlugin],
+    ...(legacyMode && { supported: legacySupported }),
 }
 
 await esbuild.build(esmConfig)

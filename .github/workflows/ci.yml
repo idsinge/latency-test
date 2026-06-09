@@ -34,7 +34,7 @@ jobs:
         run: npm test
 
       - name: Build component bundle
-        run: npm run build:component
+        run: npm run build:component:all
 
       - name: Build VitePress docs
         run: npm run docs:build
