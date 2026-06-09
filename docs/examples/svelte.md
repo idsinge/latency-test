@@ -39,8 +39,8 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
 
   async function connect() {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       audioCtx = new AudioContext({ latencyHint: 0 })
+      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       lt.inputStream = micStream
       lt.audioContext = audioCtx
       isConnected = true
@@ -160,8 +160,8 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
 
   async function connect() {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       audioCtx = new AudioContext({ latencyHint: 0 })
+      micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       lt.inputStream = micStream
       lt.audioContext = audioCtx
       isConnected = true

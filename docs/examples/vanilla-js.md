@@ -47,8 +47,8 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
     connectBtn.addEventListener('click', async () => {
       connectBtn.disabled = true
       try {
-        micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
         audioCtx = new AudioContext({ latencyHint: 0 })
+        micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
         lt.inputStream = micStream
         lt.audioContext = audioCtx
         connectBtn.hidden = true

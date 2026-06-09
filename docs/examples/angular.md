@@ -93,8 +93,8 @@ export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
 
   async connect() {
     try {
-      this.micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       this.audioCtx = new AudioContext({ latencyHint: 0 })
+      this.micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
       ;(this.ltRef.nativeElement as any).inputStream = this.micStream
       ;(this.ltRef.nativeElement as any).audioContext = this.audioCtx
       this.isConnected = true
