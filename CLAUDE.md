@@ -26,12 +26,13 @@
 
 **Dev commands:**
 ```
-npm test                 # run unit tests (tests/mls.test.js + tests/worker.test.js)
-npm run dev              # static file server — serves src/ natively
-npm run build:component  # produces dist/latency-test.esm.js + .iife.js
-npm run docs:dev         # VitePress docs dev server (http://localhost:5173)
-npm run docs:build       # build VitePress docs
-npm run docs:preview     # preview built docs locally
+npm test                          # run unit tests (tests/mls.test.js + tests/worker.test.js)
+npm run dev                       # static file server — serves src/ natively
+npm run build:component           # produces dist/latency-test.esm.js + .iife.js
+npm run build:component:legacy    # legacy build → dist/latency-test.legacy.{esm,iife}.js (Safari 14 / Chrome 78)
+npm run docs:dev                  # VitePress docs dev server (http://localhost:5173)
+npm run docs:build                # build VitePress docs
+npm run docs:preview              # preview built docs locally
 ```
 
 **npm package publishing:** Published as `@adasp/latency-test`. The build pipeline produces both ESM and IIFE bundles (see `npm run build:component`). Distribution fields in `package.json` are set in Phase 5. Full publishing checklist is in agents/CLAUDE_REVIEW.md — Phase 7.
@@ -92,7 +93,7 @@ tests/
 
 ```
 demo/
-  index.html              — Public integration showcase: loads dist/latency-test.iife.js; grid of 8 demo panels
+  index.html              — Public integration showcase: loads dist/latency-test.legacy.iife.js; grid of 8 demo panels
   style.css               — Demo-only styles: card grid, panels, result boxes, event log, audio info table
   js/
     common.js             — Shared setup: getUserMedia + AudioContext (created once), card-grid toggle, audio info

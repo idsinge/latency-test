@@ -133,7 +133,7 @@
 
     function browserRows() {
         return [
-            ['browser · platform', String(navigator.userAgentData?.platform || navigator.platform)],
+            ['browser · platform', String((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform)],
             ['browser · userAgent', navigator.userAgent]
         ]
     }

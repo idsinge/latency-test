@@ -90,7 +90,7 @@ npm run dev
 Run the demo against the built bundle:
 
 ```bash
-npm run build:component  # build dist/ first
+npm run build:component:legacy  # demo uses the legacy build (Safari 14 / Chrome 78 compatible)
 npm run demo
 # open http://localhost:3000/demo/
 ```
@@ -105,10 +105,11 @@ npm run docs:dev
 Other commands:
 
 ```bash
-npm test                 # run unit tests (Node 18, no install needed)
-npm run build:component  # build the component bundle (dist/)
-npm run docs:build       # build VitePress docs
-npm run docs:preview     # preview built docs locally
+npm test                          # run unit tests (Node 18, no install needed)
+npm run build:component           # build the component bundle (dist/)
+npm run build:component:legacy    # legacy build: lowers private fields + optional chaining for Safari 14 / Chrome 78
+npm run docs:build                # build VitePress docs
+npm run docs:preview              # preview built docs locally
 ```
 
 **Requirement:** Node.js v18 or above (project pins v18.12.1 via `.nvmrc`).

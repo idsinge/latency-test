@@ -34,7 +34,7 @@ jobs:
         run: npm run docs:build
 
       - name: Build component bundle
-        run: npm run build:component
+        run: npm run build:component:all
 
       - name: Copy demo, component bundle, and dev pages into Pages output
         run: |
