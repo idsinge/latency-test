@@ -18,6 +18,7 @@
         startBtn.disabled = true
         stopBtn.disabled = false
         currentBox.style.display = 'block'
+        currentDetail.style.color = ''
         currentDetail.textContent = 'Recording…'
     })
     tester.addEventListener('latency-processing', () => {
@@ -40,6 +41,7 @@
     tester.addEventListener('latency-error', e => {
         startBtn.disabled = false
         stopBtn.disabled = true
+        currentBox.style.display = 'block'
         currentDetail.style.color = '#c62828'
         currentDetail.textContent = e.detail.message
     })
@@ -49,6 +51,7 @@
         runNum = 0
         aggregateBox.style.display = 'none'
         currentBox.style.display = 'none'
+        currentLatency.textContent = ''
         tester.numberOfTests = countInput.value
         await window.startTest(tester)
     })
