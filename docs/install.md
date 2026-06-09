@@ -5,7 +5,7 @@
 ## Requirements
 
 - Node.js v22 or above (project pins v22 via `.nvmrc`)
-- A browser with Web Audio API, AudioWorklet, and `getUserMedia` support
+- A browser with Web Audio API and `getUserMedia` support (AudioWorklet required only for `recording-mode="audioworklet"`)
 - HTTPS or `localhost` (required for microphone access)
 
 ---
@@ -48,7 +48,7 @@ Choose the approach that fits your project:
 <script src="https://unpkg.com/@adasp/latency-test@1.1.0/dist/latency-test.iife.js"></script>
 ```
 
-**Legacy IIFE (older MediaRecorder-capable browsers — Chrome 74–79, Firefox &lt; 72, Safari 14):**
+**Legacy IIFE (older MediaRecorder-capable browsers — Chrome 74–79, Firefox &lt; 72, Safari 14 — `recording-mode="mediarecorder"` only; `"audioworklet"` emits `latency-error` on Chrome 74–79):**
 ```html
 <!-- jsDelivr -->
 <script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.1.0/dist/latency-test.legacy.iife.js"></script>
