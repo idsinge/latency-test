@@ -228,7 +228,7 @@ These values are fixed by the research methodology and are not configurable:
 - Web Audio API (`AudioContext`)
 - Web Workers
 - HTTPS or `localhost`
-- `AudioWorklet` — required only for `recording-mode="audioworklet"`; the `"mediarecorder"` and `"mediarecorder-1ch"` modes do not use it
+- `AudioWorklet` — required only for `recording-mode="audioworklet"`; the `"mediarecorder"` and `"mediarecorder-1ch"` modes do not use it. Chrome 80+ is the practical minimum: earlier Chrome versions (66–79) may load the worklet without error but fail to deliver audio to multi-input `AudioWorkletNode` inputs, resulting in a `latency-error` event with an empty-capture message. Use `"mediarecorder"` as the fallback for older browsers.
 - Stereo `MediaRecorder` output — required for the default `recording-mode="mediarecorder"` (2-channel). If the browser downmixes to mono, the component emits `latency-error`; use `recording-mode="mediarecorder-1ch"` as fallback
 
 Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.
