@@ -39,9 +39,10 @@ function clampGain(value) {
 connectBtn.addEventListener('click', async () => {
     connectBtn.disabled = true
     connectStatus.textContent = 'Requesting mic access...'
+    let ac
     try {
+        ac = new AudioContext({ latencyHint: 0 })
         stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-        const ac = new AudioContext({ latencyHint: 0 })
 
         // Host-controlled gain chain: routes the left channel (output 0) through a
         // GainNode before passing the processed stream to the component.
@@ -64,6 +65,7 @@ connectBtn.addEventListener('click', async () => {
         connectSection.style.display = 'none'
         testSection.style.display = 'block'
     } catch (e) {
+        ac?.close()
         connectStatus.textContent = `Could not access mic: ${e.message}`
         connectBtn.disabled = false
     }

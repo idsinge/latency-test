@@ -26,14 +26,16 @@ const debugToggle = document.getElementById('debug-toggle')
 connectBtn.addEventListener('click', async () => {
     connectBtn.disabled = true
     connectStatus.textContent = 'Requesting mic access...'
+    let ac
     try {
+        ac = new AudioContext({ latencyHint: 0 })
         const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-        const ac = new AudioContext({ latencyHint: 0 })
         tester.inputStream = stream
         tester.audioContext = ac
         connectSection.style.display = 'none'
         testSection.style.display = 'block'
     } catch (e) {
+        ac?.close()
         connectStatus.textContent = `Could not access mic: ${e.message}`
         connectBtn.disabled = false
     }

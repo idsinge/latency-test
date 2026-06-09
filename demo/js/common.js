@@ -19,9 +19,10 @@
     connectBtn.addEventListener('click', async () => {
         connectBtn.disabled = true
         connectStatus.textContent = 'Requesting mic access…'
+        let ac
         try {
+            ac = new AudioContext({ latencyHint: 0 })
             const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
-            const ac = new AudioContext({ latencyHint: 0 })
             document.querySelectorAll('latency-test').forEach(el => {
                 el.inputStream = stream
                 el.audioContext = ac
@@ -32,6 +33,7 @@
             populateAudioInfo(ac, stream)
             document.dispatchEvent(new CustomEvent('latency-demo-session-ready', { detail: { stream, ac } }))
         } catch (e) {
+            ac?.close()
             connectStatus.textContent = `Could not access mic: ${e.message}`
             connectBtn.disabled = false
         }
@@ -145,7 +147,20 @@
             capabilities = track.getCapabilities()
         }
 
+        const trackRate = track.getSettings().sampleRate ?? null
+        const acRate = ac.sampleRate
+        let rateValue
+        if (trackRate === null) {
+            rateValue = `⚠️ AC: ${acRate} Hz / track: unknown`
+        } else if (trackRate === acRate) {
+            rateValue = `✅ ${acRate} Hz`
+        } else {
+            rateValue = `⚠️ AC: ${acRate} Hz / track: ${trackRate} Hz`
+        }
+        const rateMatch = ['diagnostic · sampleRate match', rateValue]
+
         const rows = [
+            rateMatch,
             ...acRows(ac),
             ...settingsRows(track.getSettings()),
             ...constraintsRows(track.getConstraints()),
