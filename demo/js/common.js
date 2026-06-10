@@ -33,7 +33,7 @@
             populateAudioInfo(ac, stream)
             document.dispatchEvent(new CustomEvent('latency-demo-session-ready', { detail: { stream, ac } }))
         } catch (e) {
-            ac?.close()
+            if (ac) ac.close()
             connectStatus.textContent = `Could not access mic: ${e.message}`
             connectBtn.disabled = false
         }
