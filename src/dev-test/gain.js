@@ -65,7 +65,7 @@ connectBtn.addEventListener('click', async () => {
         connectSection.style.display = 'none'
         testSection.style.display = 'block'
     } catch (e) {
-        ac?.close()
+        if (ac) ac.close()
         connectStatus.textContent = `Could not access mic: ${e.message}`
         connectBtn.disabled = false
     }

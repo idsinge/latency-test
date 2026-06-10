@@ -147,7 +147,8 @@
             capabilities = track.getCapabilities()
         }
 
-        const trackRate = track.getSettings().sampleRate ?? null
+        const settings = track.getSettings()
+        const trackRate = settings.sampleRate !== undefined ? settings.sampleRate : null
         const acRate = ac.sampleRate
         let rateValue
         if (trackRate === null) {
