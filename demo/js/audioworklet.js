@@ -18,7 +18,6 @@
         startBtn.disabled = true
         stopBtn.disabled = false
         currentBox.style.display = 'block'
-        currentLatency.textContent = ''
         currentDetail.style.color = ''
         currentDetail.textContent = 'Recording…'
     })
