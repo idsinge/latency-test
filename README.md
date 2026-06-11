@@ -4,7 +4,7 @@ A Web Component for measuring browser round-trip audio latency in Web Audio appl
 
 ## What it does
 
-<img src="./assets/MLS_Test.png" alt="MLS round-trip latency measurement diagram" width="700"/>
+<img src="https://raw.githubusercontent.com/idsinge/latency-test/main/assets/MLS_Test.png" alt="MLS round-trip latency measurement diagram" width="700"/>
 
 - Measures round-trip browser audio latency using an [MLS (Maximum Length Sequence)](https://en.wikipedia.org/wiki/Maximum_length_sequence) signal and cross-correlation
 - Designed for integration into Web Audio and DAW-like web applications
@@ -71,11 +71,12 @@ Multiple consecutive tests with aggregate statistics:
 
 Full integration docs are published via VitePress (see `docs/`):
 
+- **Docs site:** https://idsinge.github.io/latency-test/
 - **API reference** — attributes, methods, events, algorithm constants: `docs/api.md`
 - **Framework examples** — Vanilla JS, React, Vue, Svelte, Angular, Next.js: `docs/examples/`
 - **Installation** — npm, CDN, AudioContext sharing: `docs/install.md`
 - **Live demo:** https://idsinge.github.io/latency-test/demo/
-- **Dev & research pages:** https://idsinge.github.io/latency-test/dev/ (test pages and experiments, including the MediaRecorder 2ch stereo capture feasibility experiment)
+- **Dev & research pages:** https://idsinge.github.io/latency-test/dev/ (test pages and experiments, including the MediaRecorder 2ch and 1ch experiments)
 
 ## Local development
 
@@ -105,14 +106,14 @@ npm run docs:dev
 Other commands:
 
 ```bash
-npm test                          # run unit tests (Node 18, no install needed)
+npm test                          # run unit tests (Node 18+, no install needed)
 npm run build:component           # build the component bundle (dist/)
 npm run build:component:legacy    # legacy build: lowers private fields + optional chaining for Safari 14 / Chrome 78
 npm run docs:build                # build VitePress docs
 npm run docs:preview              # preview built docs locally
 ```
 
-**Requirement:** Node.js v18 or above (project pins v18.12.1 via `.nvmrc`).
+**Requirement:** Node.js v18 or above (minimum tested). Development is pinned to Node 22 via `.nvmrc`; the docs CI deploy uses Node 24.
 
 ## Repository scope
 
@@ -149,7 +150,7 @@ This project originates from research on browser round-trip audio latency presen
 
 This work is developed as part of the project *Hybrid and Interpretable Deep Neural Audio Machines*, funded by the **European Research Council (ERC)** under the European Union's Horizon Europe research and innovation programme (grant agreement No. 101052978).
 
-<img src="./assets/ERC_logo.png" alt="European Research Council logo" width="250"/>
+<img src="https://raw.githubusercontent.com/idsinge/latency-test/main/assets/ERC_logo.png" alt="European Research Council logo" width="250"/>
 
 We also thank [Louis Bahrman](https://github.com/Louis-Bahrman) for his collaboration on this project, including his contributions to the [Python/Google Colab notebook for MLS-based latency estimation](https://gist.github.com/gilpanal/f6a64a8fe797190bba22123dfea29611).
 

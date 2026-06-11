@@ -58,6 +58,10 @@
         <span class="card-title">AudioWorklet</span>
         <span class="card-desc">Raw Float32 PCM capture — planned v2 default backend</span>
     </button>
+    <button class="demo-card" data-panel="panel-mr1ch" aria-controls="panel-mr1ch" aria-expanded="false">
+        <span class="card-title">MediaRecorder 1ch</span>
+        <span class="card-desc">Single-channel fallback — direct mic stream, start-timing bias</span>
+    </button>
     <button class="demo-card" data-panel="panel-lifecycle" aria-controls="panel-lifecycle" aria-expanded="false">
         <span class="card-title">Lifecycle</span>
         <span class="card-desc">All six lifecycle events logged in real-time</span>
@@ -290,6 +294,51 @@
     </details>
 </div>
 
+<!-- ─── Panel: MediaRecorder 1ch ─── -->
+<div id="panel-mr1ch" class="demo-panel" hidden>
+    <h2>MediaRecorder 1ch Fallback</h2>
+    <p class="desc">Records the mic stream directly via <code>MediaRecorder</code>, without the dual-channel graph used by the default mode. Use as a fallback when the default <code>mediarecorder</code> mode fails because the browser downmixes the stereo capture to mono (it emits <code>latency-error</code> in that case), or to deliberately measure the direct-mic pipeline.</p>
+    <div class="callout-warn">
+        Measurements contain an unknown start-timing bias between <code>MediaRecorder.start()</code> and the reference playback start. Results are not directly comparable with the 2ch or AudioWorklet panels.
+    </div>
+    <div class="controls">
+        <label>Runs:
+            <input type="number" id="mr1ch-count" value="5" min="1" max="50">
+        </label>
+        <button class="btn btn-primary" id="mr1ch-start">Start</button>
+        <button class="btn btn-secondary" id="mr1ch-stop" disabled>Stop</button>
+    </div>
+    <div id="mr1ch-current" class="result-box" style="display:none">
+        <div class="latency" id="mr1ch-current-latency">—</div>
+        <div class="detail" id="mr1ch-current-detail"></div>
+    </div>
+    <div id="mr1ch-aggregate" class="result-box aggregate" style="display:none">
+        <div class="stat" id="mr1ch-mean">Mean: —</div>
+        <div class="stat" id="mr1ch-stats">SD (Standard Deviation): — · Min: — · Max: —</div>
+    </div>
+    <latency-test id="mr1ch-tester" recording-mode="mediarecorder-1ch"></latency-test>
+    <details class="config-snippet">
+        <summary>Configuration</summary>
+        <pre><code>&lt;latency-test id="mr1ch-tester" recording-mode="mediarecorder-1ch"&gt;&lt;/latency-test&gt;
+
+&lt;script&gt;
+  const tester = document.querySelector('#mr1ch-tester')
+  tester.inputStream = hostStream         // host-managed MediaStream
+  tester.audioContext = hostAudioContext  // host-managed AudioContext
+  tester.numberOfTests = 5
+
+  tester.addEventListener('latency-result', e =&gt; {
+    console.log(`${e.detail.latency.toFixed(2)} ms · ${e.detail.reliable ? 'reliable' : 'unreliable'}`)
+  })
+  tester.addEventListener('latency-error', e =&gt; {
+    console.error(e.detail.message)
+  })
+
+  tester.start()
+&lt;/script&gt;</code></pre>
+    </details>
+</div>
+
 <!-- ─── Panel: Lifecycle ─── -->
 <div id="panel-lifecycle" class="demo-panel" hidden>
     <h2>Lifecycle Event Log</h2>
@@ -438,6 +487,7 @@
 <script src="js/context-share.js"></script>
 <script src="js/mode-toggle.js"></script>
 <script src="js/audioworklet.js"></script>
+<script src="js/mr1ch.js"></script>
 <script src="js/lifecycle.js"></script>
 <script src="js/debug.js"></script>
 <script src="js/host-gain.js"></script>

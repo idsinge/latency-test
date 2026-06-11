@@ -52,10 +52,10 @@ npm install @adasp/latency-test
   // audioContext and inputStream must be assigned before start() — create them from a user gesture
   document.getElementById('btn').addEventListener('click', async () => {
     if (!lt.audioContext) {
+      lt.audioContext = new AudioContext({ latencyHint: 0 })
       lt.inputStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       })
-      lt.audioContext = new AudioContext({ latencyHint: 0 })
     }
     lt.start()
   })

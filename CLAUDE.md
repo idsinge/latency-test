@@ -10,7 +10,7 @@
 
 **weblatencytest** is a proof-of-concept web application that measures browser round-trip audio latency using an MLS (Maximum Length Sequence) signal and cross-correlation. It is a research tool associated with a WAC 2025 paper (see README.md for citation).
 
-**Future goal (in progress):** Convert this app into a reusable Web Component that can be embedded in other Web Audio projects. v1 ships with `MediaRecorder` as the default recording backend. v2 will switch the default to `AudioWorklet` for sample-accurate raw PCM capture.
+**Status:** The `<latency-test>` Web Component is live and published as `@adasp/latency-test` (v1.x). v1 ships with `MediaRecorder` (2-channel) as the default recording backend. v2 will switch the default to `AudioWorklet` for sample-accurate raw PCM capture.
 
 ---
 
@@ -62,6 +62,8 @@ src/
   experiments/            — Research-only experiment pages (served by npm run dev, also published to GitHub Pages under /dev/)
     mr2ch.html            — MediaRecorder 2ch stereo capture feasibility experiment
     mr2ch.js              — Experiment logic (standalone, no component dependency)
+    mr1ch.html            — MediaRecorder 1ch experiment: direct mic capture, exposes start-timing bias
+    mr1ch.js              — Experiment logic (standalone, no component dependency)
 assets/
   ERC_logo.png
 docs/
@@ -93,7 +95,7 @@ tests/
 
 ```
 demo/
-  index.html              — Public integration showcase: loads dist/latency-test.legacy.iife.js; grid of 8 demo panels
+  index.html              — Public integration showcase: loads dist/latency-test.legacy.iife.js; grid of 9 demo panels
   style.css               — Demo-only styles: card grid, panels, result boxes, event log, audio info table
   js/
     common.js             — Shared setup: getUserMedia + AudioContext (created once), card-grid toggle, audio info
@@ -104,6 +106,7 @@ demo/
     context-share.js      — Panel: Context Share — demonstrates host-managed AudioContext & MediaStream pattern
     mode-toggle.js        — Panel: Mode Toggle — runs MediaRecorder then AudioWorklet sequentially for A/B comparison
     audioworklet.js       — Panel: AudioWorklet — recording-mode="audioworklet", multi-run, aggregate stats
+    mr1ch.js              — Panel: MediaRecorder 1ch — recording-mode="mediarecorder-1ch" fallback, multi-run, aggregate stats
     lifecycle.js          — Panel: Lifecycle — logs all six latency-* events with timestamps
     debug.js              — Panel: Debug Mode — intercepts console.debug to surface [latency-test] lines on-page
     host-gain.js          — Panel: Host Gain — ChannelSplitter + GainNode chain for low-level mics (e.g. Safari)
@@ -208,7 +211,7 @@ Results are dispatched as `CustomEvent` from the element. The demo page renders 
 
 ## Current Implementation Notes
 
-The web component refactor (Phases 1–3a) is complete. Previous design issues are resolved. Remaining known limitations:
+Phases 1–3b are complete. Previous design issues are resolved. Remaining known limitations:
 
 1. **`input-gain` not yet wired** — The attribute is observed and the property is settable, but no `GainNode` is created. Setting `input-gain` has no effect in the current code. Use the host-gain pattern instead (see `docs/examples/host-gain.md`). Deferred to v2.
 
@@ -224,7 +227,7 @@ The web component refactor (Phases 1–3a) is complete. Previous design issues a
 
 ## Web Component Status
 
-Phases 1–3a are complete. The `<latency-test>` Custom Element is implemented with:
+Phases 1–3b are complete. The `<latency-test>` Custom Element is implemented with:
 
 - Shadow DOM (open mode, empty — headless-first)
 - `start()` / `stop()` public methods
@@ -233,7 +236,6 @@ Phases 1–3a are complete. The `<latency-test>` Custom Element is implemented w
 - `worker.js` cross-correlates two buffers: in the audioworklet path these are `{ mic, ref }` Float32 PCM; in the mediarecorder (2ch) path these are `ch0` (mic) and `ch1` (reference) from the decoded stereo recording; in the mediarecorder-1ch path these are the decoded mono recording vs the pre-generated MLS AudioBuffer
 
 **Still in progress:**
-- Phase 3b: complete ✅
 - Phase 4: histogram, browser verification matrix across all three modes
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**

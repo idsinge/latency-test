@@ -3,7 +3,7 @@ import { generateMLS } from '../scripts/mls.js'
 const DEBUG = true
 
 function debug(...args) {
-    if (DEBUG) console.debug('[mr2ch]', performance.now().toFixed(2), ...args)
+    if (DEBUG) console.debug('[mr1ch]', performance.now().toFixed(2), ...args)
 }
 
 const MIC_CONSTRAINTS = {
@@ -86,9 +86,6 @@ async function runExperimentOnce() {
     debug('run start', { acState })
 
     let noiseSource = null
-    let micSource = null
-    let merger = null
-    let destNode = null
 
     try {
         if (!inputStream || !ac || !noiseBuffer) {
@@ -108,38 +105,21 @@ async function runExperimentOnce() {
 
         noiseSource = ac.createBufferSource()
         noiseSource.buffer = noiseBuffer
-
-        micSource = ac.createMediaStreamSource(inputStream)
-        merger = ac.createChannelMerger(2)
-        destNode = ac.createMediaStreamDestination()
-
-        micSource.connect(merger, 0, 0)
-        noiseSource.connect(merger, 0, 1)
         noiseSource.connect(ac.destination)
-        merger.connect(destNode)
-        debug('audio graph wired', { merger: 'ChannelMerger(2)', destStreamId: destNode.stream.id })
+        debug('audio graph wired', { mode: '1ch direct mic' })
 
-        return await recordAndAnalyze(noiseSource, destNode, acState)
+        return await recordAndAnalyze(noiseSource, acState)
     } catch (error) {
         return { ok: false, error: error.message, acState }
     } finally {
         disconnectNode(noiseSource)
-        disconnectNode(micSource)
-        disconnectNode(merger)
-        disconnectNode(destNode)
-
-        if (destNode) {
-            for (const track of destNode.stream.getTracks()) {
-                track.stop()
-            }
-        }
     }
 }
 
-function recordAndAnalyze(noiseSource, destNode, acState) {
+function recordAndAnalyze(noiseSource, acState) {
     return new Promise((resolve, reject) => {
         const chunks = []
-        const mediaRecorder = new MediaRecorder(destNode.stream)
+        const mediaRecorder = new MediaRecorder(inputStream)
         let settled = false
 
         const settle = (result) => {
@@ -175,22 +155,12 @@ function recordAndAnalyze(noiseSource, destNode, acState) {
                 const decoded = await ac.decodeAudioData(await blob.arrayBuffer())
                 debug('decodeAudioData', { channels: decoded.numberOfChannels, duration: decoded.duration.toFixed(3) + 's', length: decoded.length })
 
-                if (decoded.numberOfChannels < 2) {
-                    settle({
-                        ok: false,
-                        error: 'Browser downmixed stereo to mono — 2ch approach not supported in this browser/config',
-                        channels: decoded.numberOfChannels,
-                        acState
-                    })
-                    return
-                }
-
                 const ch0 = decoded.getChannelData(0)
-                const ch1 = decoded.getChannelData(1)
+                const ch1 = noiseBuffer.getChannelData(0)
                 const maxLag = Math.floor((600 / 1000) * ac.sampleRate)
                 const analysis = await correlateAndFindPeak(ch0, ch1, maxLag)
 
-                settle({ ok: true, ...analysis, channels: decoded.numberOfChannels, duration: decoded.duration, acState })
+                settle({ ok: true, ...analysis, duration: decoded.duration, acState })
             } catch (error) {
                 settle({ ok: false, error: error.message, acState })
             }
@@ -300,7 +270,7 @@ function renderRunLine(line, runNumber, result) {
         return
     }
 
-    line.textContent = `Run ${runNumber}: ${result.latency.toFixed(2)} ms | ratio ${result.ratio.toFixed(2)} dB | reliable ${result.reliable ? 'yes' : 'no'} | ch ${result.channels} | ac: ${result.acState}`
+    line.textContent = `Run ${runNumber}: ${result.latency.toFixed(2)} ms | ratio ${result.ratio.toFixed(2)} dB | reliable ${result.reliable ? 'yes' : 'no'} | ac: ${result.acState}`
 }
 
 function renderAggregate(runResults) {
