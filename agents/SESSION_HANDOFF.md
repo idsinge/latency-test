@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — Current State Handoff
 
-Last updated: 2026-06-05
+Last updated: 2026-06-10
 
 LLMs reading this file: read `CLAUDE.md`, `AGENTS.md`, and `agents/CLAUDE_REVIEW.md` first. Do not modify files without explicit user approval.
 
@@ -11,14 +11,24 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 ## Current Repo State
 
 - Working branch: `webcomponent`. All PRs merged — branch is ahead of `main` with active development.
-- Phases 1–7 complete. **v1.0.2** is live on npm as `@adasp/latency-test`.
+- Phases 1–7 complete. **v1.1.0** is live on npm as `@adasp/latency-test`.
 - `dist/` remains gitignored — generated with `npm run build:component`.
-- `demo/` validates the built IIFE bundle via `../dist/latency-test.iife.js`. Run with `npm run build:component && npm run demo`.
+- `demo/` validates the built IIFE bundle via `../dist/latency-test.legacy.iife.js`. Run with `npm run build:component:legacy && npm run demo`.
 - `src/dev-test/` contains development test pages served by `npm run dev` (no build needed), also published to GitHub Pages under `/dev/`.
 - `src/experiments/` contains research-only experiment pages (not part of the component test suite), also published to GitHub Pages under `/dev/`.
 - GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`. `src/` is also copied to `dist/dev/` — dev and experiment pages accessible at `https://idsinge.github.io/latency-test/dev/`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
-- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.0.2`.
+- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.1.0`.
+
+---
+
+## Recently Completed (2026-06-10)
+
+### MediaRecorder 1ch experiment
+- `src/experiments/mr1ch.html` + `mr1ch.js` added — standalone 1ch MediaRecorder experiment for comparison against `mr2ch`. Records mic directly from `inputStream` via `MediaRecorder`; plays MLS reference to `ac.destination`; cross-correlates decoded mic recording (`getChannelData(0)`) against pre-generated `noiseBuffer.getChannelData(0)`. Intentionally exposes the start-timing bias between `MediaRecorder.start()` and `noiseSource.start()` — the bias that the 2ch experiment eliminates. Includes the Codex-recommended safety improvement: `MediaRecorder.stop()` called in the `catch` path if `noiseSource.start()` throws after recording has started.
+- `src/index.html` — link added under Experiments section.
+- `CLAUDE.md` — file map updated; "Future goal" wording replaced with current status; phase references corrected to 1–3b throughout.
+- `README.md` — dev & research pages description updated to mention both 2ch and 1ch experiments.
 
 ---
 
@@ -99,7 +109,7 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 - Do not commit `dist/` — keep it generated.
 - Do not move the interactive demo into `docs/public/` — `demo/` is an integration fixture, not VitePress source.
-- Always call `getUserMedia` before `new AudioContext()` in demos and host examples — required for correct Firefox macOS sample rate selection.
+- Create `new AudioContext()` before `getUserMedia()` in demos and host examples — ensures the AudioContext starts in running state in Firefox, making `outputLatency` available. The demos follow this order. See `agents/SESSION_MODEL_FIX.md` for historical context on why the order was previously reversed.
 - The component must not close a host-provided `AudioContext` or stop a host-provided `MediaStream`.
 - Three `recording-mode` values each measure a **different pipeline** — do not flatten them. The differences are research data.
 - `recording-mode` should match the host app's real capture pipeline. AudioWorklet mode measures a minimal direct graph and is a lower-bound estimate for hosts with more complex AudioWorklet graphs. See Decision #15 in `agents/CLAUDE_REVIEW.md`.
@@ -118,6 +128,6 @@ git push --follow-tags
 npm publish
 ```
 
-`prepublishOnly` auto-runs `npm run build:component` before every publish.
+`prepublishOnly` auto-runs `npm run build:component:all` before every publish.
 
 Version strategy: v1.x keeps `"mediarecorder"` as default; v2.0.0 switches default to `"audioworklet"` (breaking).

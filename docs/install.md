@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- Node.js v22 or above (project pins v22 via `.nvmrc`)
+- Node.js v18 or above (matches the package `engines` field; development pins Node 22 via `.nvmrc`)
 - A browser with Web Audio API and `getUserMedia` support (AudioWorklet required only for `recording-mode="audioworklet"`)
 - HTTPS or `localhost` (required for microphone access)
 

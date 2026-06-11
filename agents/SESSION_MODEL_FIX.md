@@ -115,11 +115,13 @@ This indicates first-run cold-start on the newly created AudioContext — a sepa
 
 ## Firefox macOS — AudioContext Initialization Order
 
-**Confirmed on Firefox macOS:** creating `AudioContext` *before* `getUserMedia` produces a different sample rate than creating it *after*. The old component demo called `#setupAudioContext()` first, then `#acquireMic()`, which caused the AudioContext to initialise at a different rate (likely 48000 Hz) than CoreAudio's mic path (typically 44100 Hz). The MLS buffer was then created at the wrong rate, giving audibly different spectral content.
+> **Historical — superseded 2026-06-10.** Current guidance: create `new AudioContext()` before `getUserMedia()`. See the superseded note at the end of this section.
 
-The fix in `index.js` follows the same order as the original `main` branch: `getUserMedia` first, `new AudioContext()` second. This incidentally resolved the sound difference on Firefox macOS as well as the stream lifetime instability.
+**Confirmed on Firefox macOS (historical):** creating `AudioContext` *before* `getUserMedia` produced a different sample rate than creating it *after*. The old component demo called `#setupAudioContext()` first, then `#acquireMic()`, which caused the AudioContext to initialise at a different rate (likely 48000 Hz) than CoreAudio's mic path (typically 44100 Hz). The MLS buffer was then created at the wrong rate, giving audibly different spectral content.
 
-**Do not swap this order.** Always call `getUserMedia` before creating the `AudioContext` in any demo or host app on this project.
+The fix at the time in `index.js` followed the same order as the original `main` branch: `getUserMedia` first, `new AudioContext()` second. This incidentally resolved the sound difference on Firefox macOS as well as the stream lifetime instability.
+
+**Superseded (2026-06-10):** The demos and experiments now create `new AudioContext()` before `getUserMedia()`. This ensures the AudioContext starts in running state in Firefox, making `outputLatency` available — which outweighs the sample rate concern that motivated the original order. The sample rate mismatch described above is no longer treated as a blocking issue.
 
 ---
 
