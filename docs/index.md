@@ -70,7 +70,6 @@ npm install @adasp/latency-test
 - Before calling `start()`, assign `element.inputStream` (a `MediaStream`) and `element.audioContext` (an `AudioContext`) — the component never creates audio resources itself. If your app already has an `AudioContext`, pass it directly to avoid creating a second one.
 - Use `recording-mode` to select the capture backend: `"mediarecorder"` (2-channel, v1 default — no start-timing bias), `"mediarecorder-1ch"` (1-channel fallback for browsers that downmix stereo to mono), or `"audioworklet"` (planned v2 default, sample-accurate raw PCM).
 - `signal-type` is `"mls"` in v1. `"chirp"` and `"golay"` are planned for v2.
-- `input-gain` is reserved for a future gain multiplier — it is not yet wired in the current version.
 
 ## Try it live
 

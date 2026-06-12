@@ -5,7 +5,7 @@ Some recording setups require amplifying the microphone signal before the compon
 ## When to use
 
 - Any scenario where the raw mic stream has insufficient level for a reliable cross-correlation result.
-- **Safari ≥ 16 with `echoCancellation: false`**: disabling echo cancellation on Safari can produce a very low input level. An empirical gain of 50× has been found effective. The `input-gain` attribute (planned for v2) will allow this to be set directly on the element without the extra stream round-trip described below.
+- **Safari ≥ 16 with `echoCancellation: false`**: disabling echo cancellation on Safari can produce a very low input level. An empirical gain of 50× has been found effective.
 
 ## Signal chain
 
@@ -74,4 +74,4 @@ gainNode.gain.value = 50  // update before or between test runs
 
 ## AudioWorklet mode
 
-The same pattern works with `recording-mode="audioworklet"`. The `dest.stream` is passed as `inputStream` and the component creates a `MediaStreamSource` from it internally. This introduces a second stream round-trip, so the pipeline differs from a direct AudioWorklet path. The `input-gain` attribute (v2) will apply gain inside the component's signal chain without this extra hop.
+The same pattern works with `recording-mode="audioworklet"`. The `dest.stream` is passed as `inputStream` and the component creates a `MediaStreamSource` from it internally. This introduces a second stream round-trip, so the pipeline differs from a direct AudioWorklet path — the accepted trade-off of host-controlled gain.

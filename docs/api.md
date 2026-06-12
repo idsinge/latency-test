@@ -28,7 +28,6 @@ Attributes can be set in HTML or via JavaScript property assignment. Setting an 
 | `number-of-tests` | `numberOfTests` | `number` | `1` | How many consecutive measurements to run. When > 1, a `latency-complete` event is fired after the last run with aggregate statistics. | implemented |
 | `recording-mode` | `recordingMode` | `string` | `"mediarecorder"` | Capture backend. `"mediarecorder"` — dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, mic and reference captured in one stereo stream sharing a timeline, no start-timing bias (default, implemented). Emits `latency-error` if the browser downmixes the stereo stream to mono — use `"mediarecorder-1ch"` as fallback in that case. `"mediarecorder-1ch"` — single-channel, mic stream used directly, start-timing bias present; use when `"mediarecorder"` fails due to mono downmix, or to measure the direct-mic capture pipeline (implemented). `"audioworklet"` — raw Float32 PCM, shared AudioContext clock, no codec round-trip, accuracy reference for the component's own minimal capture graph (implemented). Each mode measures the latency of its own pipeline — the differences between modes are intentional and informative. | implemented |
 | `signal-type` | `signalType` | `string` | `"mls"` | Test signal used for the round-trip measurement. Only `"mls"` is implemented. See signal types table below. | planned (v2) |
-| `input-gain` | `inputGain` | `number` | `0` | Gain multiplier applied to the input stream before capture. `0` means no gain applied. Attribute observed but gain node not yet wired. | planned (v2) |
 | `mls-bits` | `mlsBits` | `number` | `15` | Order of the MLS sequence. Sequence length = 2^n − 1. Valid range: 2–16. Only applies when `signal-type="mls"`. | implemented |
 | `max-lag-ms` | `maxLagMs` | `number` | `600` | Cross-correlation search window in milliseconds. Determines the maximum measurable round-trip latency. | implemented |
 | `buffer-size` | `bufferSize` | `number` | `0` | AudioWorklet accumulation buffer in samples. `0` accumulates everything and posts once on stop. Available for future intermediate flush behavior — the value is wired through to the processor. | implemented |
@@ -50,10 +49,8 @@ Three factors affect whether the result represents the host app's real latency: 
 <latency-test
   number-of-tests="5"
   recording-mode="mediarecorder"
-  signal-type="mls"
   mls-bits="15"
-  max-lag-ms="600"
-  input-gain="0">
+  max-lag-ms="600">
 </latency-test>
 ```
 
@@ -231,4 +228,4 @@ These values are fixed by the research methodology and are not configurable:
 - `AudioWorklet` — required only for `recording-mode="audioworklet"`; the `"mediarecorder"` and `"mediarecorder-1ch"` modes do not use it. Chrome 80+ is the practical minimum: earlier Chrome versions (66–79) may load the worklet without error but fail to deliver audio to multi-input `AudioWorkletNode` inputs, resulting in a `latency-error` event with an empty-capture message. Use `"mediarecorder"` as the fallback for older browsers.
 - Stereo `MediaRecorder` output — required for the default `recording-mode="mediarecorder"` (2-channel). If the browser downmixes to mono, the component emits `latency-error`; use `recording-mode="mediarecorder-1ch"` as fallback
 
-Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). The `input-gain` attribute is designed for this but is not yet wired to a GainNode — it is a v2 item. In the current version there is no gain adjustment available.
+Safari may require manual gain compensation on some devices (common with `echoCancellation` disabled on Safari > v16). Gain is a host responsibility: build a gain chain and pass the processed stream as `inputStream` — see the [host-gain example](./examples/host-gain.md).

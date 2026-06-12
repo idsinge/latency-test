@@ -27,9 +27,13 @@
 **Dev commands:**
 ```
 npm test                          # run unit tests (tests/mls.test.js + tests/worker.test.js)
+npm run typecheck                 # tsc --noEmit — validates src/index.d.ts and JS against the types
 npm run dev                       # static file server — serves src/ natively
+npm run demo                      # static file server — serves repo root (demo/ needs built dist/)
 npm run build:component           # produces dist/latency-test.esm.js + .iife.js
+npm run build:component:dev       # unminified build for debugging
 npm run build:component:legacy    # legacy build → dist/latency-test.legacy.{esm,iife}.js (Safari 14 / Chrome 78)
+npm run build:component:all       # modern + legacy builds (also run by prepublishOnly)
 npm run docs:dev                  # VitePress docs dev server (http://localhost:5173)
 npm run docs:build                # build VitePress docs
 npm run docs:preview              # preview built docs locally
@@ -186,7 +190,7 @@ demo/
 | MLS order (nbits) | 15 | Sequence length = 2^15 − 1 = 32767 samples |
 | maxLag | 0.600 × sampleRate | 600 ms search window for the correlation peak |
 | Reliability threshold | 18 dB | `10 × log10(peakPow / meanEnergy)` |
-| Safari gain boost | 50× | Was applied automatically when Safari > v16 and echoCancellation is disabled — now host-controlled via `input-gain` attribute; `getCorrectStreamForSafari()` removed in Phase 1 |
+| Safari gain boost | 50× | Was applied automatically when Safari > v16 and echoCancellation is disabled — now host-controlled via the host-gain pattern (see `docs/examples/host-gain.md`); `getCorrectStreamForSafari()` removed in Phase 1 |
 | AudioContext latencyHint | 0 | Requests minimum latency |
 | Mic constraints | echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 | Essential for accurate measurement |
 
@@ -213,7 +217,7 @@ Results are dispatched as `CustomEvent` from the element. The demo page renders 
 
 Phases 1–3b are complete. Previous design issues are resolved. Remaining known limitations:
 
-1. **`input-gain` not yet wired** — The attribute is observed and the property is settable, but no `GainNode` is created. Setting `input-gain` has no effect in the current code. Use the host-gain pattern instead (see `docs/examples/host-gain.md`). Deferred to v2.
+1. **`input-gain` removed** — The attribute and `inputGain` property were removed (they were never wired to a GainNode). Input gain is permanently a host responsibility: build a gain chain and pass the processed stream as `inputStream` — see `docs/examples/host-gain.md`. Do not reintroduce the attribute.
 
 2. **`signal-type` not yet wired** — Only `"mls"` is implemented. The attribute is observed but `signalType` is never read by `LatencyTestController`. Deferred to v2.
 
@@ -244,7 +248,6 @@ Phases 1–3b are complete. The `<latency-test>` Custom Element is implemented w
 |---|---|---|
 | `recording-mode` | `"mediarecorder"` \| `"mediarecorder-1ch"` \| `"audioworklet"` | Selects the capture backend. `"mediarecorder"`: dual-channel via `ChannelMergerNode` + `MediaStreamDestinationNode`, no start-timing bias, v1 default (implemented). `"mediarecorder-1ch"`: single-channel, direct mic stream, start-timing bias present; use as fallback when browser downmixes stereo to mono (implemented). `"audioworklet"`: raw Float32 PCM, v2 default (implemented). Each mode measures a different pipeline — see Decision #14 in agents/CLAUDE_REVIEW.md. |
 | `signal-type` | `"mls"` \| `"chirp"` \| `"golay"` | Selects the test signal. `"mls"` is default. `"chirp"` is a logarithmic sine sweep. `"golay"` uses Golay complementary sequence pairs for high-SNR impulse response measurement. |
-| `input-gain` | number \| `0` | Intended to apply a gain multiplier to the input stream before capture. **Not yet wired** — the attribute is observed and the property is settable, but no GainNode is created. Setting it has no effect in the current code. Deferred to v2. |
 | `debug` | boolean \| `false` | Enables `console.debug('[latency-test]', ...)` logging at key internal checkpoints. Development/debugging only — no effect on measurement output. Do not use during measurements you intend to record — `startPairSpanMs` is an upper-bound diagnostic span, not a pure inter-call gap, and DevTools being open can perturb scheduling generally. Implemented. |
 
 **External references used during design:**
@@ -259,7 +262,7 @@ Phases 1–3b are complete. The `<latency-test>` Custom Element is implemented w
 
 - Chrome/Chromium/Edge: Standard behavior, higher latency variability. First-run latency is often higher than subsequent runs — mitigated by a silent AudioBuffer started at the top of every `prepareAudioToPlayAndRecord()` call (cwilso keepalive technique).
 - Firefox: Most stable results (std dev often 0), higher absolute latency on Windows
-- Safari: Some devices have low microphone levels with `echoCancellation: false`. The `input-gain` attribute is intended to address this but is not yet wired (v2 item). Wired earpods force stereo input (only left channel used).
+- Safari: Some devices have low microphone levels with `echoCancellation: false`. Use the host-gain pattern to compensate (see `docs/examples/host-gain.md`). Wired earpods force stereo input (only left channel used).
 - iOS: Some devices exhibit aliasing above 12 kHz on audio input, degrading MLS quality. `signal-type="chirp"` (planned, bandlimited to 1500–8000 Hz) will address this — not yet implemented.
 - All browsers: require HTTPS (or localhost) for `getUserMedia`
 

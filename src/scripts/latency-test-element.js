@@ -15,7 +15,6 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     bufferSize = 0
     recordingMode = 'mediarecorder'
     signalType = 'mls'
-    inputGain = 0
 
     constructor() {
         super()
@@ -32,7 +31,7 @@ class LatencyTest extends (typeof HTMLElement !== 'undefined' ? HTMLElement : cl
     }
 
     static get observedAttributes() {
-        return ['mls-bits', 'max-lag-ms', 'input-gain', 'number-of-tests', 'recording-mode', 'signal-type', 'buffer-size']
+        return ['mls-bits', 'max-lag-ms', 'number-of-tests', 'recording-mode', 'signal-type', 'buffer-size']
     }
 
     attributeChangedCallback(name, oldValue, newValue) {

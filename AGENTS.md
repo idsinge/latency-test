@@ -213,7 +213,7 @@ Do not re-open these unless the user explicitly asks:
 - Lifecycle events emitted: `latency-start`, `latency-recording`, `latency-processing`,
   `latency-result`, `latency-error`, `latency-complete`.
   All events must set `bubbles: true` and `composed: true`.
-- Safari gain: host-controlled via `input-gain` attribute. No internal browser detection.
+- Safari gain: host-controlled via the host-gain pattern (gain chain built by the host, processed stream passed as `inputStream`). No internal browser detection, no gain attribute on the component.
 - Distribution: npm + CDN are both first-class targets. Validate both before publishing.
 - Measurement inherits the host's audio environment: the component does not create an
   idealized setup. The host's `AudioContext`, stream constraints, and capture backend

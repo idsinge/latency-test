@@ -2,6 +2,8 @@
 
 This file tracks open questions and the planned action plan for converting `weblatencytest` into a reusable Web Component with AudioWorklet-based recording. LLMs should read this file alongside CLAUDE.md before starting any work.
 
+> **Editor's note (2026-06-12):** the `input-gain` attribute / `inputGain` property was dropped entirely — it was never wired to a GainNode and will not be added in any future version. All `input-gain` mentions below (decisions, tables, checklists, d.ts samples) are superseded and kept only as historical record. Input gain is permanently a host responsibility via the host-gain pattern (`docs/examples/host-gain.md`). Current API surface: CLAUDE.md and `docs/api.md`.
+
 ---
 
 ## Decisions Made
@@ -117,6 +119,8 @@ Shadow DOM, open mode, with an empty shadow root attached in the constructor. No
 ### 5. Safari Gain Workaround
 
 **Resolved.**
+
+> **Superseded (2026-06-12):** `input-gain` / `inputGain` was removed entirely and will not return. Do not set `element.inputGain` — use the host-gain pattern (`docs/examples/host-gain.md`). The two paragraphs below are historical.
 
 The `input-gain` attribute is a general-purpose gain multiplier. **The GainNode is not yet wired** — the attribute is observed and the property is set, but no gain is applied in the current code. Wiring the GainNode is deferred to v2. No browser detection lives inside the component.
 
@@ -240,7 +244,7 @@ Below is the proposed sequence of migration tasks. **No file should be modified 
 - [x] Implement data-return strategy: MessagePort accumulation, single post on stop (plain arrays, no transferables — MLS-length captures are small enough; SharedArrayBuffer deferred — Q1 still open)
 - [x] Worker.js contract unchanged — both paths use `{ command: 'correlation', data1, data2, maxLag }`
 - [x] Wire the worklet into the latency test flow alongside the existing MediaRecorder path, selected via `recording-mode` attribute
-- [ ] `input-gain` GainNode deferred to v2
+- [x] `input-gain` dropped entirely (2026-06-12) — never wired; gain is permanently a host responsibility via the host-gain pattern (docs/examples/host-gain.md)
 - [ ] `signal-type="chirp"` bandlimit deferred
 - [x] Validate measurement stability across multiple runs (Chrome + Firefox — numbers match MediaRecorder path)
 
@@ -368,6 +372,7 @@ Before the first publish, verify the following fields are present in `package.js
   "files": [
     "dist/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "sideEffects": true,
@@ -385,7 +390,7 @@ Key points:
 - No CJS exports — Web Components are browser-only APIs. `require('@adasp/latency-test')` would have no meaningful use. The `main` field points to the ESM bundle and `module` mirrors it; `unpkg`/`jsdelivr` fields point to the IIFE for CDN consumers.
 - `types` / `exports["types"]` points to the TypeScript declaration file — consumers get full IntelliSense with no manual setup.
 - `unpkg` / `jsdelivr` fields point to the IIFE bundle — so `unpkg.com/@adasp/latency-test` serves the script-tag-compatible version.
-- `files` controls what gets included in the published package — only the built output, README, and LICENSE. Everything else (`src/`, `docs/`, `assets/`, config files) is excluded automatically.
+- `files` controls what gets included in the published package — only the built output, README, CHANGELOG, and LICENSE. Everything else (`src/`, `docs/`, `assets/`, config files) is excluded automatically. Note: npm does NOT auto-include `CHANGELOG*` — it must be listed explicitly (README and LICENSE are auto-included).
 - `sideEffects: true` prevents bundler tree-shaking from removing the `customElements.define()` side effect.
 - `prepublishOnly` ensures the build runs before every publish, preventing a stale `dist/` from being published.
 - `publishConfig.access: "public"` is **required** for scoped packages (`@scope/name`) — without it npm defaults to private and the publish will either fail or charge for a private package.
@@ -393,6 +398,8 @@ Key points:
 **3a. Create `src/index.d.ts` — TypeScript declaration file**
 
 This file ships with the package and gives consumers typed access to the element, its properties, methods, and event payloads with no manual setup:
+
+> **Superseded (2026-06-12):** the sample below is the original Phase 7 draft. The shipped `src/index.d.ts` differs: `inputGain` was removed entirely (never wired), and `signalType` is `'mls'` only in v1. Do not copy from this sample — `src/index.d.ts` is the canonical file.
 
 ```ts
 export interface LatencyResultDetail {
@@ -475,30 +482,21 @@ CLAUDE*.md
 CODEX_REVIEW.md
 ```
 
-#### Manual publishing (per release)
+#### Release checklist (per release — agreed 2026-06-12, supersedes the original manual-publishing steps)
 
-```bash
-# Log in to npm (only needed once per machine)
-npm login
+**Ordering matters:** `.github/workflows/docs.yml` deploys GitHub Pages on every push to `main`, so the CDN pin bump and changelog stamp must not reach `main` before `npm publish` — otherwise the live docs reference a CDN version that 404s until publish.
 
-# Build the component bundle
-npm run build:component
-
-# Dry run — inspect what will be published without actually publishing
-npm publish --dry-run
-
-# Publish (scoped packages require --access public on first publish)
-npm publish --access public
-```
-
-For subsequent releases, bump the version in `package.json` first:
-
-```bash
-npm version patch   # 1.0.0 → 1.0.1 (bug fix)
-npm version minor   # 1.0.0 → 1.1.0 (new feature, backwards compatible)
-npm version major   # 1.0.0 → 2.0.0 (breaking change — e.g. AudioWorklet default)
-npm publish
-```
+1. **On the working branch:** add CHANGELOG.md entries under `[Unreleased]`; run verification — `npm run typecheck`, `npm test`, `npm run build:component:all`, `npm run docs:build`, `npm pack --dry-run` (inspect package contents). Commit → PR → merge to `main`. Docs still pin the previous version at this point — harmless.
+2. **Locally on updated `main`:**
+   - Commit "release: prepare X.Y.Z docs" — stamp `[Unreleased]` → `[X.Y.Z]` with date in CHANGELOG.md and bump every CDN version pin (`docs/install.md`, `docs/index.md`, `docs/examples/vanilla-js.md`).
+   - `npm version patch|minor|major` — creates its own commit (package.json + package-lock.json) and the `vX.Y.Z` tag. There is no `version` lifecycle script in package.json, hence the separate prep commit.
+   - `npm publish` — `prepublishOnly` runs `build:component:all` automatically. **Do not push yet.** (`npm login` once per machine; `publishConfig.access: public` is already set.)
+   - `git push --follow-tags` — only after publish succeeds. This triggers the Pages deploy with now-valid pins.
+3. **Post-publish verification:**
+   - `npm view @adasp/latency-test@X.Y.Z version files types exports`
+   - Confirm the published `dist/index.d.ts` matches `src/index.d.ts` (inspect the tarball from the registry, not the local `dist/`)
+   - Fetch the jsDelivr/unpkg ESM and IIFE URLs once the CDN propagates
+   - Create a GitHub Release on the `vX.Y.Z` tag, copying the CHANGELOG entry
 
 #### Versioning plan
 
@@ -567,7 +565,7 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 - Read `CLAUDE.md` first for full architectural context before touching any file.
 - The cross-correlation algorithm in `worker.js` is correct and validated against published paper results — do not modify it without explicit instruction.
 - The 18 dB reliability threshold and 600 ms maxLag are research-derived constants — do not change them without asking.
-- The Safari-specific `getCorrectStreamForSafari()` method is **removed in Phase 1**. Gain compensation is now a general `input-gain` property set by the host — the component applies whatever value it receives and does no browser detection internally.
+- The Safari-specific `getCorrectStreamForSafari()` method is **removed in Phase 1**. Gain compensation is a host responsibility via the host-gain pattern — the host builds a gain chain (`ChannelSplitter` + `GainNode` → `MediaStreamDestination`) and passes the processed stream as `inputStream`; see `docs/examples/host-gain.md`. The component applies no gain and does no browser detection internally. (The former `input-gain` attribute was removed 2026-06-12 — it was never wired; do not reintroduce it.)
 - `helper.js` no longer exists — do not reference it or attempt to import from it.
 - **Docs homepage expectation management (resolved):** while the package was unpublished, `docs/index.md` was required to carry a visible draft/work-in-progress notice so readers would not assume the package existed. `@adasp/latency-test` is now live on npm and the notice has been removed — this requirement no longer applies.
 - **Phase 3 dual-channel capture is not optional:** A WAC 2025 peer reviewer identified that the current single-channel MediaRecorder approach has an uncontrolled timing offset between `mediaRecorder.start()` and `noiseSource.start()`. The AudioWorklet processor must use `numberOfInputs: 2` — mic on input 0, reference signal loopback on input 1 — and cross-correlate the two captures. The `naomiaro/recording-calibration` reference implements this correctly. Do not implement Phase 3 as a direct MediaRecorder-to-AudioWorklet port without adopting this two-channel architecture.
