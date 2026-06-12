@@ -1,5 +1,7 @@
 # @adasp/latency-test web component
 
+[![npm](https://img.shields.io/npm/v/@adasp/latency-test)](https://www.npmjs.com/package/@adasp/latency-test)
+
 A Web Component for measuring browser round-trip audio latency in Web Audio applications.
 
 ## What it does
