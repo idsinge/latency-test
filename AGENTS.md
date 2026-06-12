@@ -180,9 +180,8 @@ npm run docs:preview     # Preview built docs
 
 ## Working branch
 
-Active development: `webcomponent` branch.
-Stable base: `main`.
-Merge `webcomponent` → `main` only when a phase is complete and reviewed.
+Stable base: `main` (branch protection: PR + "ci" status check — work on a short-lived feature branch and open a PR).
+Current branch state is tracked in `agents/SESSION_HANDOFF.md`.
 
 ## Migration phases
 
