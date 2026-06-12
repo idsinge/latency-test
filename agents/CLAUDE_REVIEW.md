@@ -293,9 +293,9 @@ Cross-correlate ch0 against ch1 — worker contract unchanged: `{ command: 'corr
 ### Phase 4 — Demo page & integration
 - [x] Rewrite `src/index.html` as a minimal demo: a plain button that calls `element.start()` and a `<latency-test>` element
 - [x] Demo page listens for `latency-result` and `latency-error` and updates its own UI
-- [ ] Demo page optionally listens for `latency-complete` and renders a histogram (host-side) — aggregate stats (mean/std/min/max) are shown; histogram not yet implemented
-- [ ] Verify `worker.js` works correctly with Float32 PCM coming from the AudioWorklet path
-- [ ] Test `number-of-tests` > 1 loop driven by the component
+- ~~Demo page optionally listens for `latency-complete` and renders a histogram (host-side)~~ — moved to Phase 8 experimentation toolkit (2026-06-12); aggregate stats (mean/std/min/max) are shown on the demo page
+- [x] Verify `worker.js` works correctly with Float32 PCM coming from the AudioWorklet path — covered by the completed browser verification matrix (AudioWorklet mode verified across repeated runs; confirmed 2026-06-12)
+- [x] Test `number-of-tests` > 1 loop driven by the component — covered by the completed browser verification matrix (multi-run sequences verified in both modes; confirmed 2026-06-12)
 
 ### Phase 5 — Build & distribution
 
@@ -321,17 +321,15 @@ Cross-correlate ch0 against ch1 — worker contract unchanged: `{ command: 'corr
 - [x] The component bundle is a prerequisite for the live demo page (Phase 6).
 
 ### Phase 6 — Documentation & demo
-
-### Phase 6 — Documentation & demo
-- [ ] Update README.md to stay short and repo-oriented once the docs site is live (Decision #7)
-- [ ] Remove component API details from README — those belong in the VitePress docs
-- [ ] Document public API (attributes, properties, events, methods) in `docs/api.md` — mark planned items clearly
-- [ ] Document CSS custom properties for theming if Shadow DOM is open
-- [ ] Create `demo/index.html` — standalone showcase gallery (no framework, no build step) that pairs code snippets with live working component instances. Patterns to show: (1) minimal headless — `start()` + `latency-result` event; (2) AudioContext injection — host creates the context and passes it via `element.audioContext`; (3) input-gain usage — demonstrating Safari compensation; (4) all lifecycle events — showing `latency-start`, `latency-recording`, `latency-processing`, `latency-result`. Each pattern shows the code alongside a rendered, clickable `<latency-test>` element.
-- [ ] Deploy `demo/` alongside the VitePress build in the GitHub Actions workflow (update `.github/workflows/docs.yml` to copy `demo/` into the Pages output)
-- [ ] Link the live demo prominently from `docs/index.md` ("Try it live →" on the hero and install page)
-- [ ] Add a `docs/demo.md` page that embeds the live demo via a same-origin iframe (the demo is hosted on the same GitHub Pages deployment, not a third-party sandbox) and explains what to expect
-- [ ] **Pre-release gate:** before removing the `> **Draft.**` notice from any framework example page, verify a working end-to-end example in that framework against the actual installed published package — not against the local source. Draft labels stay until that verification is done.
+- [x] Update README.md to stay short and repo-oriented once the docs site is live (Decision #7) — done; README carries the npm badge and points to the docs site
+- [x] Remove component API details from README — done; API reference lives in `docs/api.md`
+- [x] Document public API (attributes, properties, events, methods) in `docs/api.md` — done; planned items marked
+- ~~Document CSS custom properties for theming~~ — dropped: the component is headless with an empty shadow root; there is no built-in UI to theme in v1
+- [x] Create `demo/index.html` — done: shipped as a 9-panel showcase gallery (minimal, multi-run, context share, mode toggle, AudioWorklet, MediaRecorder 1ch, lifecycle, debug, host gain). Note: the originally planned "input-gain usage" pattern was superseded by the host-gain pattern (`input-gain` was removed entirely — gain is host responsibility via a processed `inputStream`)
+- [x] Deploy `demo/` alongside the VitePress build in the GitHub Actions workflow — done: `.github/workflows/docs.yml` copies `demo/` into the Pages output
+- [x] Link the live demo prominently from `docs/index.md` — done: hero link + "Try it live" section pointing at the deployed `/demo/`
+- ~~Add a `docs/demo.md` page that embeds the live demo via a same-origin iframe~~ — superseded: the docs link directly to the live `/demo/` page instead of embedding it in an iframe page
+- [ ] **Verification gate (the only remaining Phase 6 item):** verify each of the six framework example pages (vanilla-js, React, Vue, Svelte, Angular, Next.js) end-to-end against the actual installed published package `@adasp/latency-test@1.2.0` — not against the local source. Draft labels were already removed; if an example is found wrong during verification, patch the docs. The host-gain pattern page is out of this gate's scope — it is exercised by the demo's Host Gain panel against the built bundle (decision 2026-06-12).
 
 ### Phase 7 — npm publishing
 
@@ -554,7 +552,7 @@ git push --follow-tags     # pushes tag → triggers the publish workflow
 - [ ] Create a standalone HTML page (or mini-app) that imports `@adasp/latency-test` and adds rich visualizations:
   - Autocorrelation graph: render the correlation array as a chart (canvas or SVG)
   - Audio waveform: display captured mic + reference signals as waveform graphs
-  - Latency histogram: aggregate results across multiple runs and render a distribution chart
+  - Latency histogram: aggregate results across multiple runs and render a distribution chart (absorbed from Phase 4 on 2026-06-12 — was previously a demo-page item)
   - Side-by-side comparison panel: run tests with different params and compare results visually
 - [ ] Config export: snapshot of all test parameters + results as downloadable JSON
 - [ ] Platform comparison: save/load result sets to compare across browsers, OS versions, or hardware

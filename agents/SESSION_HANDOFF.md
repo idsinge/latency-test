@@ -10,7 +10,7 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Current Repo State
 
-- Working branch: `main`. `webcomponent` fully merged via PRs #14–24. `main` has branch protection (PR + "ci" status check required) — work on a branch and open a PR.
+- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR). Current working branch: `docs/install-dedup-build-output` (PR #25 — docs cleanup, histogram move to Phase 8, and Codex consistency fixes; merge pending CI). `webcomponent` fully merged via PRs #14–24.
 - Phases 1–7 complete. **v1.2.0** is live on npm as `@adasp/latency-test` (released 2026-06-12).
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.legacy.iife.js`. Run with `npm run build:component:legacy && npm run demo`.
@@ -112,10 +112,10 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [x] `startMediaRecorder2chCapture()`, `#cleanup2chNodes()`, `displayAudioTagElem2ch()` implemented in `test.js`; TypeScript declarations and all docs updated.
 
 ### Phase 4 remainder
-- [ ] Host-side histogram — `latency-complete` fires with `{ results[], mean, std, min, max }`. Demo page should render a simple histogram from the results array.
+- Host-side histogram — moved to Phase 8 experimentation toolkit (2026-06-12). `latency-complete` already fires with `{ results[], mean, std, min, max }`; rendering a histogram from the results array is now a toolkit item, not a demo-page requirement. Nothing else remains in Phase 4.
 
 ### Phase 6 remainder
-- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package (not local source). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
+- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package `@adasp/latency-test@1.2.0` (not local source). Scope: the six framework pages (vanilla-js, React, Vue, Svelte, Angular, Next.js). `host-gain.md` is out of scope — it is a pattern page exercised by the demo's Host Gain panel against the built bundle (decision 2026-06-12). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
 
 ### Independent
 - [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.

@@ -195,8 +195,9 @@ Merge `webcomponent` → `main` only when a phase is complete and reviewed.
 | 5 | Build & distribution (esbuild, ESM + IIFE, worker/processor inlining, cross-browser test) | Complete |
 | 6 | Documentation & demo (+ `buffer-size` attribute for AudioWorklet) | In progress |
 | 7 | npm publishing (`@adasp/latency-test`) — see `agents/CLAUDE_REVIEW.md` Phase 7 checklist | Complete |
-| 8 | Signal types (chirp logarithmic sweep, Golay complementary sequences) | Pending |
-| 9 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons) | Pending |
+| 8 | Experimentation toolkit — optional visualization layer (graphs, waveforms, comparisons, host-side histogram — absorbed from Phase 4 on 2026-06-12) | Pending, optional |
+
+Signal types (chirp logarithmic sweep, Golay complementary sequences) are deferred to v2 scope and are no longer a numbered phase.
 
 TypeScript declaration file (`src/index.d.ts`, typed events) ships with the package as of v1.0.0.
 
@@ -209,7 +210,7 @@ Do not re-open these unless the user explicitly asks:
 - `inputStream`: host-required. Must be set via `element.inputStream = stream` before calling `start()`.
   The component never calls `getUserMedia()` or stops the stream. Emits `latency-error` if missing.
 - Shadow DOM: open mode, empty root by default. No built-in visible UI in v1 (headless-first).
-- `recording-mode` attribute: `"mediarecorder"` (v1 default) | `"audioworklet"` (v2 default).
+- `recording-mode` attribute: `"mediarecorder"` (v1 default, 2-channel) | `"mediarecorder-1ch"` (single-channel fallback) | `"audioworklet"` (v2 default).
 - Lifecycle events emitted: `latency-start`, `latency-recording`, `latency-processing`,
   `latency-result`, `latency-error`, `latency-complete`.
   All events must set `bubbles: true` and `composed: true`.
