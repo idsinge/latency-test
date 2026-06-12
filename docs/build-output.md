@@ -9,7 +9,7 @@
 | `index.d.ts` | TypeScript declarations — types for `LatencyTestElement`, events, and payloads |
 | `*.map` | Source maps — automatically loaded by browser devtools |
 
-`npm run build:component:legacy` produces a transpiled build for older browsers (Safari 14 / Chrome 78 — any browser with MediaRecorder support):
+`npm run build:component:legacy` produces a transpiled build for older browsers (Chrome 74–79, Firefox &lt; 72, Safari 14 — `recording-mode="mediarecorder"` only; see the Legacy IIFE note in [Installation & Setup](./install.md#cdn-no-build-step) for details):
 
 | File | Purpose |
 |------|---------|
@@ -18,7 +18,7 @@
 
 `npm run build:component:all` runs both builds in sequence and is used by CI and `prepublishOnly`.
 
-All files are **minified by default**. For development (unminified, easier debugging):
+The JS bundles are **minified by default**. For development (unminified, easier debugging):
 
 ```bash
 npm run build:component:dev

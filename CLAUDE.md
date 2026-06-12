@@ -78,6 +78,7 @@ docs/
   index.md                — VitePress home page (hero + features layout)
   api.md                  — Full API reference (attributes, methods, events, signal types)
   install.md              — Installation: npm, CDN, AudioContext sharing
+  build-output.md         — dist/ file reference per build command (linked from install.md CDN section, not in sidebar)
   examples/
     vanilla-js.md
     react.md
