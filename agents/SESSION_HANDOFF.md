@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — Current State Handoff
 
-Last updated: 2026-06-10
+Last updated: 2026-06-12
 
 LLMs reading this file: read `CLAUDE.md`, `AGENTS.md`, and `agents/CLAUDE_REVIEW.md` first. Do not modify files without explicit user approval.
 
@@ -19,6 +19,22 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`. `src/` is also copied to `dist/dev/` — dev and experiment pages accessible at `https://idsinge.github.io/latency-test/dev/`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
 - `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.1.0`.
+
+---
+
+## Recently Completed (2026-06-12)
+
+### input-gain removal + 1.2.0 release preparation (working tree — commit/PR pending at session end)
+
+**If you are reading this before v1.2.0 is on npm, the release is mid-flight: follow the "Release checklist (per release)" in `agents/CLAUDE_REVIEW.md` Phase 7.** In particular: the CHANGELOG `[Unreleased]` → `[1.2.0]` stamp and the CDN pin bump (`@1.1.0` → `@1.2.0`, 10 occurrences: `docs/install.md` ×8, `docs/index.md` ×1, `docs/examples/vanilla-js.md` ×1) happen in a separate commit on `main` and must NOT be pushed before `npm publish` — `docs.yml` deploys Pages on every push to `main` and the docs would reference a 404ing CDN version.
+
+- `input-gain` / `inputGain` removed entirely (decision: permanent drop, not deferred — gain is host responsibility via the host-gain pattern). Touched: `src/scripts/latency-test-element.js` (field + `observedAttributes`), `src/index.d.ts`, `docs/api.md`, `docs/index.md`, `docs/examples/{react,nextjs,host-gain}.md`, `CLAUDE.md`, `AGENTS.md`, this file, `agents/CLAUDE_REVIEW.md` (top supersession note + two inline "superseded" markers + closed checkbox). Historical review records (`CODEX_REVIEW.md`, `KNOWN_ISSUES.md`) intentionally untouched.
+- Version decision: next release is **1.2.0** (minor, pure removal). Policy: removal of documented-but-never-functional API treated as minor, called out explicitly in the changelog. 1.1.1 rejected (patch promises invisible fixes; semver §7 requires minor even for deprecation). 2.0.0 stays reserved for the audioworklet-default switch.
+- `CHANGELOG.md` created (Keep a Changelog): `[Unreleased]` removal entry (names both the property/attribute and the `observedAttributes` change) + backfilled 1.0.0 / 1.0.1 / 1.0.2 / 1.1.0 entries from git tags. Note: a `v1.0.2` tag exists — easy to miss. `"CHANGELOG.md"` added to `package.json` `files[]` — npm does NOT auto-include changelogs in tarballs.
+- `agents/CLAUDE_REVIEW.md` Phase 7: per-release checklist rewritten with the Codex-reviewed ordered release flow (prep commit on `main` → `npm version minor` → `npm publish` → `git push --follow-tags` → post-publish verification → GitHub Release copying the changelog entry).
+- `docs/api.md` example: `signal-type="mls"` removed (attribute is planned-v2, shouldn't appear in primary example).
+- `CLAUDE.md` dev-commands block completed: `typecheck`, `demo`, `build:component:dev`, `build:component:all` were missing.
+- Verification all green at session end: `npm run typecheck`, `npm test` (2/2), `npm run build:component:all`, `npm run docs:build`, `npm pack --dry-run` (12 files + CHANGELOG after the `files[]` fix), rebuilt `dist/index.d.ts` contains no `inputGain`.
 
 ---
 
@@ -97,7 +113,6 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.
 
 ### Deferred to v2
-- `input-gain` GainNode wiring (attribute is observed and typed; currently no-op — use host-gain pattern in the meantime)
 - `buffer-size` nonzero flush behavior (attribute is wired through; default `0` accumulates and posts once on stop; nonzero values have no effect in v1)
 - `signal-type="chirp"` and `"golay"` implementation
 - `recording-mode="audioworklet"` as the v2 default (breaking change — bump major)
@@ -114,20 +129,22 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - Three `recording-mode` values each measure a **different pipeline** — do not flatten them. The differences are research data.
 - `recording-mode` should match the host app's real capture pipeline. AudioWorklet mode measures a minimal direct graph and is a lower-bound estimate for hosts with more complex AudioWorklet graphs. See Decision #15 in `agents/CLAUDE_REVIEW.md`.
 - `signalType` is `'mls'` only in v1 — the attribute is observed but the controller never reads it. Do not implement chirp/Golay without updating the full algorithm path.
-- `input-gain` is observed and typed but intentionally has no effect in v1. Do not wire a GainNode without updating `src/index.d.ts` and the docs.
+- `input-gain` was removed entirely (attribute, property, types, docs) — it was never wired. Input gain is permanently a host responsibility via the host-gain pattern. Do not reintroduce it.
 - `buffer-size` is wired through but nonzero flush behavior is not implemented in v1. Do not add flush logic without updating `src/index.d.ts`, `docs/api.md`, and the agent docs.
 
 ---
 
 ## npm Release Procedure
 
+**Canonical checklist: "Release checklist (per release)" in `agents/CLAUDE_REVIEW.md` Phase 7 — follow it; ordering matters.** Short form, on updated `main`:
+
 ```bash
-# For a new patch/minor/major after code changes are committed:
-npm version patch   # or minor / major
-git push --follow-tags
-npm publish
+# 1. Prep commit: stamp CHANGELOG [Unreleased] → [X.Y.Z] + bump CDN pins in docs
+# 2. npm version patch|minor|major   # creates commit + vX.Y.Z tag
+# 3. npm publish                     # prepublishOnly runs build:component:all
+# 4. git push --follow-tags          # ONLY after publish succeeds
 ```
 
-`prepublishOnly` auto-runs `npm run build:component:all` before every publish.
+Never push the CDN pin bump to `main` before `npm publish` — `docs.yml` deploys Pages on every push to `main`, and the live docs would reference a CDN version that 404s.
 
 Version strategy: v1.x keeps `"mediarecorder"` as default; v2.0.0 switches default to `"audioworklet"` (breaking).

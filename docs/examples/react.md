@@ -146,7 +146,6 @@ declare namespace JSX {
       'max-lag-ms'?: number
       'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
       'signal-type'?: 'mls'
-      'input-gain'?: number
     }
   }
 }
