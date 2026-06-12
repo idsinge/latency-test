@@ -12,6 +12,7 @@ Each entry records the source, severity, current status, and what would be neede
 **Source:** `agents/CLAUDE_REVIEW.md` Phase 6 gate · **Severity:** Low  
 **Detail:** The six framework example pages (`docs/examples/*.md`: vanilla-js, React, Vue, Svelte, Angular, Next.js) were updated based on the local source but have not been verified end-to-end against the actual installed npm package. (The seventh page, `host-gain.md`, is a pattern page outside this gate — it is exercised by the demo's Host Gain panel against the built bundle.) Draft notices were removed trusting the code to be correct — if an example has a subtle error it would only surface during a consumer's actual use.  
 **Fix:** For each framework: install `@adasp/latency-test` in a fresh project, follow the example page instructions exactly, confirm the component registers and emits events correctly. Only then is the example considered fully verified.
+**Status (2026-06-12):** verification prepared, not yet started — execution model recorded; the dedicated examples repo https://github.com/idsinge/latency-test-examples is seeded (methodology in that repo's `CLAUDE.md`; execution model in `agents/SESSION_HANDOFF.md`). All matrix rows pending.
 
 ---
 

@@ -10,7 +10,7 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Current Repo State
 
-- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR). Current working branch: `docs/install-dedup-build-output` (PR #25 — docs cleanup, histogram move to Phase 8, and Codex consistency fixes; merge pending CI). `webcomponent` fully merged via PRs #14–24.
+- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR). All cleanup PRs merged: #25 (histogram→Phase 8 + consistency fixes), #26 (install.md demo instructions, stale-text cleanup, review-prompt.md deleted), #27 (AGENTS.md fixes stranded by a merge race). No active working branch — Phase 6 verification runs in the external examples repo (see "Phase 6 execution model" below). `webcomponent` fully merged via PRs #14–24.
 - Phases 1–7 complete. **v1.2.0** is live on npm as `@adasp/latency-test` (released 2026-06-12).
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.legacy.iife.js`. Run with `npm run build:component:legacy && npm run demo`.
@@ -116,6 +116,16 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ### Phase 6 remainder
 - [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package `@adasp/latency-test@1.2.0` (not local source). Scope: the six framework pages (vanilla-js, React, Vue, Svelte, Angular, Next.js). `host-gain.md` is out of scope — it is a pattern page exercised by the demo's Host Gain panel against the built bundle (decision 2026-06-12). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
+
+#### Phase 6 execution model (2026-06-12)
+
+Verification happens in a dedicated external repo: **https://github.com/idsinge/latency-test-examples** (local: `~/Desktop/latency-test-examples`). Rationale: structurally guarantees published-package consumption (no `file:`/workspace links possible), keeps this research repo lean, isolates dependency noise. That repo's `CLAUDE.md` is the single source of truth for the verification methodology — do not duplicate its rules here. Key facts only:
+
+- Two tiers: `examples/` = the six framework apps (this Phase 6 gate; exact pin `1.2.0`, apps mirror the docs pages literally, README matrix with per-check legend = the verification record incl. docs-commit SHA and environment); `demos/` = latency-compensation R&D (waveform-playlist React, `@dawcore/*`), **hard-quarantined until Tier 1 signoff**.
+- Pass criteria were tightened through two Codex review rounds — five success-path events + no `latency-error`, deliberate negative-path test, registry-consumption proof, dev AND production build with clean console, CDN variant for vanilla-js, environment recorded.
+- A separate Claude instance works there, bootstrapped by `agents/KICKOFF_PROMPT.md` in that repo. Status at handoff: seed files review-hardened (two Codex rounds) and committed (examples repo initial commit `0804b8f`); verification work itself not yet started — all matrix rows pending.
+- Forced deviations from a docs page are findings → relayed back to THIS repo as docs patches (branch + PR, as usual).
+- **Phase 6 signoff happens here** when the matrix is complete: run `npm run build:component:all`, `npm run docs:build`, `npm pack --dry-run`; close the KNOWN_ISSUES open item; update this file; link the verified examples repo from the docs.
 
 ### Independent
 - [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.
