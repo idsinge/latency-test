@@ -37,7 +37,7 @@ npm install @adasp/latency-test
 ```
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.1.0/dist/latency-test.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
 
 <latency-test id="lt"></latency-test>
 <button id="btn">Test</button>
