@@ -1,5 +1,7 @@
 # Claude Code + Codex Workflow
 
+> **Historical document (banner added 2026-06-12).** These are the original workflow design notes, preserved as a record. Some sections reference repository state that no longer exists — the `webcomponent` working branch (fully merged via PRs #14–24) and a root `npm run build` script (the build commands are `npm run build:component*` and `npm run docs:build`). For the current workflow see `AGENTS.md`; for current status see `agents/SESSION_HANDOFF.md`.
+
 Date: 2026-05-04
 Repo: https://github.com/idsinge/latency-test
 Working branch: `webcomponent`

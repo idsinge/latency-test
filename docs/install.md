@@ -136,10 +136,18 @@ There is no reliable cross-browser API to force both devices to share the same s
 
 ## Running the demo locally
 
+The demo page loads the built legacy IIFE bundle, so build it first:
+
 ```bash
 git clone https://github.com/idsinge/latency-test.git
 cd latency-test
 npm install
-npm run dev
-# open http://localhost:3000
+npm run build:component:legacy
+npm run demo
+# open http://localhost:3000/demo/
 ```
+
+Other local servers, for reference:
+
+- `npm run dev` — internal dev/test pages, served natively from `src/` (no build step needed)
+- `npm run docs:dev` — this documentation site

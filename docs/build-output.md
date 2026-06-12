@@ -1,5 +1,7 @@
 # Build Output
 
+`dist/` is generated output: it is gitignored and never committed, but it is exactly what npm ships — the package's `files` whitelist contains `dist/`, so `npm pack` and the published tarball include it (rebuilt automatically by `prepublishOnly`).
+
 `npm run build:component` produces the modern build in `dist/`:
 
 | File | Purpose |
