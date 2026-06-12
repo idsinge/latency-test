@@ -100,7 +100,7 @@ Manual reviews keep the learning loop intentional. Enable only when explicitly d
 4. User approves or redirects.
 5. User types the code themselves, unless they explicitly approve Claude to make
    a concrete file change.
-6. Run local checks (`npm run build`, `npm run docs:build`, `git diff`).
+6. Run local checks (`npm run build:component:all`, `npm run docs:build`, `git diff`).
 7. Codex reviews the current diff/uncommitted changes.
 8. Claude classifies findings and proposes the smallest safe patch.
 9. User decides what to accept.
