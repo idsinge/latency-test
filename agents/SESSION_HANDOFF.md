@@ -10,23 +10,31 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Current Repo State
 
-- Working branch: `webcomponent`. All PRs merged — branch is ahead of `main` with active development.
-- Phases 1–7 complete. **v1.1.0** is live on npm as `@adasp/latency-test`.
+- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR). Current working branch: `docs/install-dedup-build-output` (PR #25 — docs cleanup, histogram move to Phase 8, and Codex consistency fixes; merge pending CI). `webcomponent` fully merged via PRs #14–24.
+- Phases 1–7 complete. **v1.2.0** is live on npm as `@adasp/latency-test` (released 2026-06-12).
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.legacy.iife.js`. Run with `npm run build:component:legacy && npm run demo`.
 - `src/dev-test/` contains development test pages served by `npm run dev` (no build needed), also published to GitHub Pages under `/dev/`.
 - `src/experiments/` contains research-only experiment pages (not part of the component test suite), also published to GitHub Pages under `/dev/`.
 - GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`. `src/` is also copied to `dist/dev/` — dev and experiment pages accessible at `https://idsinge.github.io/latency-test/dev/`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
-- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md` are pinned to `@1.1.0`.
+- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md`, `docs/index.md`, and `docs/examples/vanilla-js.md` are pinned to `@1.2.0`.
 
 ---
 
 ## Recently Completed (2026-06-12)
 
-### input-gain removal + 1.2.0 release preparation (working tree — commit/PR pending at session end)
+### Docs cleanup + npm badge (post-release, same day)
 
-**If you are reading this before v1.2.0 is on npm, the release is mid-flight: follow the "Release checklist (per release)" in `agents/CLAUDE_REVIEW.md` Phase 7.** In particular: the CHANGELOG `[Unreleased]` → `[1.2.0]` stamp and the CDN pin bump (`@1.1.0` → `@1.2.0`, 10 occurrences: `docs/install.md` ×8, `docs/index.md` ×1, `docs/examples/vanilla-js.md` ×1) happen in a separate commit on `main` and must NOT be pushed before `npm publish` — `docs.yml` deploys Pages on every push to `main` and the docs would reference a 404ing CDN version.
+- `README.md`: npm version badge added (commit `c666ccf`). Decision: npmjs-only — no GitHub Packages dual-publish; the repo About link already points at the docs site.
+- `docs/install.md`: "Providing AudioContext and stream" deduplicated — the code block duplicating Basic usage removed, replaced with an anchor pointer to `#basic-usage`; the AC-before-`getUserMedia` ordering rule promoted from code comment to prose; the existing-AudioContext/DAW snippet kept. Codex-reviewed.
+- `docs/build-output.md` de-orphaned (it was the docs site's only orphan page — all 11 pages verified): linked from the install.md CDN section; kept out of the sidebar per Codex review (sidebar stays integration-focused). Accuracy fixes: legacy-browser claim aligned with install.md's Legacy IIFE scoping (Chrome 74–79, Firefox < 72, Safari 14, `recording-mode="mediarecorder"` only — it previously contradicted it); "All files are minified" corrected to the JS bundles only.
+- `CLAUDE.md` file map: `docs/build-output.md` entry added (its omission is why the orphan went unnoticed).
+- `npm run docs:build` green (validates internal links).
+
+### input-gain removal + 1.2.0 release — shipped ✅
+
+**v1.2.0 released 2026-06-12 — release fully complete.** PR #24 merged (`f36c636`), prep commit `8975f31` (CHANGELOG stamp + CDN pin bump ×10), version commit `6747646` + tag `v1.2.0`, `npm publish`, `git push --follow-tags`, GitHub Release created. All post-publish checks passed: npm shows 1.2.0 (13 files), published `dist/index.d.ts` clean of `inputGain`, CHANGELOG ships in the tarball, all 4 CDN URLs return 200, Pages deploy green. The Phase 7 checklist in `agents/CLAUDE_REVIEW.md` worked end-to-end — reuse it verbatim for future releases.
 
 - `input-gain` / `inputGain` removed entirely (decision: permanent drop, not deferred — gain is host responsibility via the host-gain pattern). Touched: `src/scripts/latency-test-element.js` (field + `observedAttributes`), `src/index.d.ts`, `docs/api.md`, `docs/index.md`, `docs/examples/{react,nextjs,host-gain}.md`, `CLAUDE.md`, `AGENTS.md`, this file, `agents/CLAUDE_REVIEW.md` (top supersession note + two inline "superseded" markers + closed checkbox). Historical review records (`CODEX_REVIEW.md`, `KNOWN_ISSUES.md`) intentionally untouched.
 - Version decision: next release is **1.2.0** (minor, pure removal). Policy: removal of documented-but-never-functional API treated as minor, called out explicitly in the changelog. 1.1.1 rejected (patch promises invisible fixes; semver §7 requires minor even for deprecation). 2.0.0 stays reserved for the audioworklet-default switch.
@@ -104,10 +112,10 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 - [x] `startMediaRecorder2chCapture()`, `#cleanup2chNodes()`, `displayAudioTagElem2ch()` implemented in `test.js`; TypeScript declarations and all docs updated.
 
 ### Phase 4 remainder
-- [ ] Host-side histogram — `latency-complete` fires with `{ results[], mean, std, min, max }`. Demo page should render a simple histogram from the results array.
+- Host-side histogram — moved to Phase 8 experimentation toolkit (2026-06-12). `latency-complete` already fires with `{ results[], mean, std, min, max }`; rendering a histogram from the results array is now a toolkit item, not a demo-page requirement. Nothing else remains in Phase 4.
 
 ### Phase 6 remainder
-- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package (not local source). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
+- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package `@adasp/latency-test@1.2.0` (not local source). Scope: the six framework pages (vanilla-js, React, Vue, Svelte, Angular, Next.js). `host-gain.md` is out of scope — it is a pattern page exercised by the demo's Host Gain panel against the built bundle (decision 2026-06-12). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
 
 ### Independent
 - [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.

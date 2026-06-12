@@ -1,5 +1,7 @@
 # CODEX_REVIEW.md
 
+> **Historical document (banner added 2026-06-12).** This file is the original Codex review log, preserved as a record of the migration planning. Statements below describe the repository as it was at review time and several are now superseded — notably: `input-gain` was later removed entirely (gain is host responsibility via the host-gain pattern); Draft labels on framework examples were removed after publication, with verification against the installed package tracked as the Phase 6 gate; a `node:test` suite now exists (`tests/`); and the package is published as `@adasp/latency-test` (v1.2.0). For current status, read `agents/CLAUDE_REVIEW.md` and `agents/SESSION_HANDOFF.md`.
+
 ## Purpose
 
 This document captures the current repository assessment from Codex, plus the main migration actions and open questions for converting this proof-of-concept app into a reusable Web Component with AudioWorklet-based recording.
@@ -308,7 +310,7 @@ The following points were clarified in discussion and should be treated as curre
 7. The component uses **open Shadow DOM with an empty shadow root by default**. No built-in visible UI is required in v1.
 8. v1 should emit lifecycle + result events: `latency-start`, `latency-recording`, `latency-processing`, `latency-result`, `latency-error`, and `latency-complete`.
 9. `inputStream` ownership: **host-required**. Must be set via `element.inputStream = stream` before `start()`. The component never calls `getUserMedia` or stops tracks — emits `latency-error` if missing.
-10. Safari-specific automatic browser detection should be removed from the component. Gain compensation becomes a host-controlled/general `input-gain` behavior instead of an internal Safari-only workaround.
+10. Safari-specific automatic browser detection should be removed from the component. Gain compensation becomes a host-controlled/general `input-gain` behavior instead of an internal Safari-only workaround. *(Superseded 2026-06-12: `input-gain` was removed entirely and never wired — gain compensation is host responsibility via a processed `inputStream`; see `docs/examples/host-gain.md`.)*
 
 ## Ongoing Review Notes
 

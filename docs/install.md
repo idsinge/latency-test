@@ -59,6 +59,8 @@ Choose the approach that fits your project:
 
 All three register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
 
+For the full list of files in `dist/` and which build command produces each, see [Build Output](./build-output.md).
+
 ---
 
 ## Basic usage
@@ -105,32 +107,9 @@ All three register the `<latency-test>` element globally. Place either in the `<
 
 Before calling `start()`, both `audioContext` and `inputStream` must be assigned. The component never creates audio resources itself — it emits `latency-error` if either is missing.
 
-Both must come from a user gesture (browsers require it for microphone access and AudioContext creation):
+Both must come from a user gesture (browsers require it for microphone access and AudioContext creation). Create the `AudioContext` synchronously inside the gesture handler, **before** `await getUserMedia()` — an `AudioContext` created after an `await` starts in `suspended` state in Firefox.
 
-```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
-
-<latency-test id="el"></latency-test>
-<button id="startBtn">Test Latency</button>
-
-<script type="module">
-const el = document.getElementById('el')
-
-el.addEventListener('latency-result', (e) => {
-  console.log(e.detail.latency, 'ms')
-})
-
-document.getElementById('startBtn').addEventListener('click', async () => {
-  if (!el.audioContext) {
-    el.audioContext = new AudioContext({ latencyHint: 0 })
-    el.inputStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-    })
-  }
-  el.start()
-})
-</script>
-```
+For a complete runnable page — including the click handler that assigns both properties and calls `start()` — see [Basic usage](#basic-usage) above.
 
 If your application already has an `AudioContext` (e.g. a DAW), pass it directly — no need to create a second one:
 

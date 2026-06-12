@@ -78,6 +78,7 @@ docs/
   index.md                — VitePress home page (hero + features layout)
   api.md                  — Full API reference (attributes, methods, events, signal types)
   install.md              — Installation: npm, CDN, AudioContext sharing
+  build-output.md         — dist/ file reference per build command (linked from install.md CDN section, not in sidebar)
   examples/
     vanilla-js.md
     react.md
@@ -223,7 +224,7 @@ Phases 1–3b are complete. Previous design issues are resolved. Remaining known
 
 3. **`recording-mode="mediarecorder"` is now 2-channel (Phase 3b complete)** — Default mode uses `ChannelMergerNode` + `MediaStreamDestinationNode` to capture mic and reference in one stereo stream, removing start-timing bias. Emits `latency-error` if the browser downmixes to mono. **`recording-mode="mediarecorder-1ch"`** is the single-channel fallback (direct mic stream, start-timing bias present) — use when the default fails due to mono downmix, or to deliberately measure the direct-mic pipeline. `"mediarecorder-2ch"` as an attribute value no longer exists.
 
-4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is a Phase 4 item.
+4. **No histogram** — `latency-complete` fires with aggregate stats (mean/std/min/max). Host-side histogram rendering is part of the Phase 8 experimentation toolkit (moved from Phase 4).
 
 5. **`buffer-size` flush not yet implemented** — The attribute is wired through to `recorder-processor.js` and the value reaches the processor, but nonzero values do not trigger intermediate flushes. Only the final stop flush is implemented. Deferred to v2.
 
@@ -240,7 +241,7 @@ Phases 1–3b are complete. The `<latency-test>` Custom Element is implemented w
 - `worker.js` cross-correlates two buffers: in the audioworklet path these are `{ mic, ref }` Float32 PCM; in the mediarecorder (2ch) path these are `ch0` (mic) and `ch1` (reference) from the decoded stereo recording; in the mediarecorder-1ch path these are the decoded mono recording vs the pre-generated MLS AudioBuffer
 
 **Still in progress:**
-- Phase 4: histogram, browser verification matrix across all three modes
+- Phase 6: framework example end-to-end verification against the published `@adasp/latency-test@1.2.0` package — the only remaining v1 item. (Phase 4 is complete: browser verification matrix done across all three modes; host-side histogram moved to the Phase 8 experimentation toolkit.)
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 
