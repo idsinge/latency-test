@@ -100,7 +100,7 @@ Manual reviews keep the learning loop intentional. Enable only when explicitly d
 4. User approves or redirects.
 5. User types the code themselves, unless they explicitly approve Claude to make
    a concrete file change.
-6. Run local checks (`npm run build`, `npm run docs:build`, `git diff`).
+6. Run local checks (`npm run build:component:all`, `npm run docs:build`, `git diff`).
 7. Codex reviews the current diff/uncommitted changes.
 8. Claude classifies findings and proposes the smallest safe patch.
 9. User decides what to accept.
@@ -180,9 +180,8 @@ npm run docs:preview     # Preview built docs
 
 ## Working branch
 
-Active development: `webcomponent` branch.
-Stable base: `main`.
-Merge `webcomponent` → `main` only when a phase is complete and reviewed.
+Stable base: `main` (branch protection: PR + "ci" status check — work on a short-lived feature branch and open a PR).
+Current branch state is tracked in `agents/SESSION_HANDOFF.md`.
 
 ## Migration phases
 
