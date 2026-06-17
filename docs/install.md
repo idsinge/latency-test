@@ -24,6 +24,12 @@ import '@adasp/latency-test'
 
 This registers the `<latency-test>` custom element globally. After the import, use the element anywhere in your HTML or component templates.
 
+For older browsers (Chrome 74–79, Firefox &lt; 72, Safari 14 — `recording-mode="mediarecorder"` only; see [Legacy IIFE](#cdn-no-build-step) below for details), import the legacy build via the `./legacy` subpath instead:
+
+```js
+import '@adasp/latency-test/legacy'
+```
+
 ---
 
 ## CDN (no build step)
@@ -88,11 +94,18 @@ For the full list of files in `dist/` and which build command produces each, see
 
     // audioContext and inputStream must be assigned before start() — create them from a user gesture
     document.getElementById('start').addEventListener('click', async () => {
-      if (!el.audioContext) {
-        el.audioContext = new AudioContext({ latencyHint: 0 })
-        el.inputStream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-        })
+      if (!el.inputStream) {
+        const ac = new AudioContext({ latencyHint: 0 })
+        try {
+          el.inputStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+          })
+          el.audioContext = ac
+        } catch (e) {
+          await ac.close()
+          console.error('Could not access mic:', e.message)
+          return
+        }
       }
       el.start()
     })

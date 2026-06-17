@@ -92,6 +92,7 @@ export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
   }
 
   async connect() {
+    this.error = null
     try {
       this.audioCtx = new AudioContext({ latencyHint: 0 })
       this.micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
@@ -101,6 +102,8 @@ export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
     } catch (e: any) {
       this.micStream?.getTracks().forEach(t => t.stop())
       this.micStream = null
+      await this.audioCtx?.close()
+      this.audioCtx = null
       this.error = `Could not access mic: ${e.message}`
     }
   }
@@ -111,6 +114,62 @@ export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
 ```
 
 > **Real-world use:** In an application that already manages a mic stream and `AudioContext` (e.g. a Web Audio DAW), pass both directly — no Connect Audio step needed. See [Sharing audio resources from a host app](#sharing-audio-resources-from-a-host-app).
+
+---
+
+## Zoneless apps (Angular CLI 22+ default)
+
+Angular CLI 22 scaffolds a fully zoneless app by default — zone.js is not included. The `connect()` example above relies on change detection running after `await getUserMedia()` resolves and inside the CustomEvent listeners (`onResult`, `onComplete`, `onError`). Without zone.js, these updates won't reliably reach the template.
+
+Install zone.js and re-enable it explicitly:
+
+```bash
+npm install zone.js --save
+```
+
+Load the polyfill before bootstrap — `provideZoneChangeDetection` has nothing to patch until zone.js itself is loaded. Add it to `main.ts`, before the `bootstrapApplication` call:
+
+```ts
+// main.ts
+import 'zone.js'
+import { bootstrapApplication } from '@angular/platform-browser'
+```
+
+(Equivalent: add `"polyfills": ["zone.js"]` to the `build` target options in `angular.json` instead of the manual import.)
+
+```ts
+// app.config.ts
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core'
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    // ...other providers
+  ]
+}
+```
+
+Even with zone.js re-enabled, call `ChangeDetectorRef.markForCheck()` explicitly after `await getUserMedia()` and inside the CustomEvent callbacks — zone.js does not reliably trigger change detection for these paths on its own:
+
+```ts
+import { ChangeDetectorRef, inject } from '@angular/core'
+
+export class LatencyTesterComponent implements AfterViewInit, OnDestroy {
+  private cdr = inject(ChangeDetectorRef)
+
+  async connect() {
+    try {
+      // ...
+      this.isConnected = true
+      this.cdr.markForCheck()
+    } catch (e: any) {
+      // ...
+      this.error = `Could not access mic: ${e.message}`
+      this.cdr.markForCheck()
+    }
+  }
+}
+```
 
 ---
 

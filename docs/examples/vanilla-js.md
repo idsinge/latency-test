@@ -16,7 +16,13 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
+  <title>Latency Test Demo</title>
+  <script
+    type="module"
+    src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"
+    integrity="sha384-9dXVEFJFXcDEQz2sxPKrgnGNF+GTVBkoD5sxQF49woQKjJ7fb6xrhZ5cTb+Hk4e+"
+    crossorigin="anonymous"
+  ></script>
 </head>
 <body>
   <button id="connect-btn">Connect Audio</button>
@@ -29,7 +35,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
 
   <latency-test id="lt" number-of-tests="5"></latency-test>
 
-  <script>
+  <script type="module">
     const lt = document.getElementById('lt')
     const connectBtn = document.getElementById('connect-btn')
     const testUi = document.getElementById('test-ui')
@@ -46,6 +52,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
 
     connectBtn.addEventListener('click', async () => {
       connectBtn.disabled = true
+      result.textContent = ''
       try {
         audioCtx = new AudioContext({ latencyHint: 0 })
         micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
@@ -56,6 +63,8 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
       } catch (e) {
         micStream?.getTracks().forEach(t => t.stop())
         micStream = null
+        await audioCtx?.close()
+        audioCtx = null
         connectBtn.disabled = false
         result.textContent = `Could not access mic: ${e.message}`
       }

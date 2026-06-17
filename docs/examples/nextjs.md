@@ -59,6 +59,7 @@ export function LatencyTester({ numberOfTests = 5 }: { numberOfTests?: number })
   useLatencyTest(onReady)
 
   async function connect() {
+    setError(null)
     try {
       const ac = new AudioContext({ latencyHint: 0 })
       audioCtxRef.current = ac
@@ -70,6 +71,8 @@ export function LatencyTester({ numberOfTests = 5 }: { numberOfTests?: number })
     } catch (e: any) {
       micStreamRef.current?.getTracks().forEach(t => t.stop())
       micStreamRef.current = null
+      await audioCtxRef.current?.close()
+      audioCtxRef.current = null
       setError(`Could not access mic: ${e.message}`)
     }
   }
@@ -209,21 +212,23 @@ el?.start()
 el?.audioContext  // ✅ typed
 ```
 
-**React 19+** — `<latency-test>` in JSX picks up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
-
-**React < 19** (most current Next.js projects) — add a JSX namespace declaration:
+A JSX namespace declaration is required regardless of React version — verified against Next.js 16 + `@types/react` 19.2.17, where `<latency-test>` in JSX does **not** automatically pick up types from `HTMLElementTagNameMap`. Declare it under `declare module 'react'` (a bare `declare namespace JSX { ... }` targets the wrong namespace in React 19 and has no effect):
 
 ```ts
 // types/custom-elements.d.ts
-declare namespace JSX {
-  interface IntrinsicElements {
-    'latency-test': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-      'number-of-tests'?: number
-      'mls-bits'?: number
-      'max-lag-ms'?: number
-      'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
-      'signal-type'?: 'mls'
-      'buffer-size'?: number
+import type {} from 'react'
+
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'latency-test': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        'number-of-tests'?: number
+        'mls-bits'?: number
+        'max-lag-ms'?: number
+        'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
+        'signal-type'?: 'mls'
+        'buffer-size'?: number
+      }
     }
   }
 }
