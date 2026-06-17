@@ -5,6 +5,14 @@ export default defineConfig({
   description: 'Web Component for measuring browser round-trip audio latency using an MLS signal.',
   base: '/latency-test/',
 
+  // vite/esbuild are overridden past vitepress's declared range to clear esbuild/vite
+  // CVEs (see package.json "overrides"); es2020 sidesteps an esbuild 0.28.x regression
+  // that can't downlevel destructuring for the older browser targets vite computes by default.
+  vite: {
+    build: { target: 'es2020' },
+    optimizeDeps: { esbuildOptions: { target: 'es2020' } }
+  },
+
   head: [
     ['link', { rel: 'icon', href: '/latency-test/favicon.ico' }]
   ],
