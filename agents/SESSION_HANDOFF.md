@@ -1,6 +1,6 @@
 # SESSION_HANDOFF.md — Current State Handoff
 
-Last updated: 2026-06-12
+Last updated: 2026-06-17
 
 LLMs reading this file: read `CLAUDE.md`, `AGENTS.md`, and `agents/CLAUDE_REVIEW.md` first. Do not modify files without explicit user approval.
 
@@ -10,17 +10,32 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 
 ## Current Repo State
 
-- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR). All cleanup PRs merged: #25 (histogram→Phase 8 + consistency fixes), #26 (install.md demo instructions, stale-text cleanup, review-prompt.md deleted), #27 (AGENTS.md fixes stranded by a merge race). No active working branch — Phase 6 verification runs in the external examples repo (see "Phase 6 execution model" below). `webcomponent` fully merged via PRs #14–24.
-- Phases 1–7 complete. **v1.2.0** is live on npm as `@adasp/latency-test` (released 2026-06-12).
+- Stable base: `main` (branch protection: PR + "ci" status check required — work on a branch and open a PR; release commits are the documented exception, see "npm Release Procedure" below). All cleanup PRs merged: #25 (histogram→Phase 8 + consistency fixes), #26 (install.md demo instructions, stale-text cleanup, review-prompt.md deleted), #27 (AGENTS.md fixes stranded by a merge race), #28 (Phase 6 execution model record), #31 (`./legacy` exports subpath — issue #29; Phase 6 docs findings — issue #30; esbuild/vite CVE fix). No active working branch. `webcomponent` fully merged via PRs #14–24.
+- Phases 1–7 complete, **Phase 6 verification gate closed** (issue #30, see "Recently Completed (2026-06-17)" below). **v1.2.1** is live on npm as `@adasp/latency-test` (released 2026-06-17).
 - `dist/` remains gitignored — generated with `npm run build:component`.
 - `demo/` validates the built IIFE bundle via `../dist/latency-test.legacy.iife.js`. Run with `npm run build:component:legacy && npm run demo`.
 - `src/dev-test/` contains development test pages served by `npm run dev` (no build needed), also published to GitHub Pages under `/dev/`.
 - `src/experiments/` contains research-only experiment pages (not part of the component test suite), also published to GitHub Pages under `/dev/`.
 - GitHub Pages deploys the VitePress docs site from `docs/.vitepress/dist/` via `.github/workflows/docs.yml`. `src/` is also copied to `dist/dev/` — dev and experiment pages accessible at `https://idsinge.github.io/latency-test/dev/`.
 - VitePress base is `/latency-test/` → site at `https://idsinge.github.io/latency-test/`.
-- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md`, `docs/index.md`, and `docs/examples/vanilla-js.md` are pinned to `@1.2.0`.
+- `.nvmrc` pins Node 22. `docs.yml` CI uses Node 24. CDN URLs in `docs/install.md`, `docs/index.md`, and `docs/examples/vanilla-js.md` are pinned to `@1.2.1`.
 
 ---
+
+## Recently Completed (2026-06-17)
+
+### Phase 6 sign-off + `./legacy` exports subpath — v1.2.1 shipped ✅
+
+PR #31 merged (`ce39a49`), closing issue #29 (`./legacy` exports subpath) and issue #30 (Phase 6 docs findings from the `latency-test-examples` repo's Tier 1 verification against `@1.2.0`).
+
+- **Issue #29:** `package.json` `exports` gained a `"./legacy"` entry pointing at `dist/latency-test.legacy.esm.js`, so bundler consumers can `import "@adasp/latency-test/legacy"` instead of reaching into `node_modules` directly. Documented in `docs/install.md` (new subsection) and `docs/build-output.md`.
+- **Issue #30 docs findings**, all patched: `docs/examples/svelte.md` (self-closing `<latency-test />` → explicit close tag, Svelte 5 warning), `docs/examples/angular.md` (new "Zoneless apps" subsection: zone.js install + load + `provideZoneChangeDetection` + `markForCheck()`), `docs/examples/{react,nextjs}.md` (the "React 19+ auto-detects JSX types" claim was false — replaced with `declare module 'react'` + a required `import type {} from 'react'`, verified in an isolated TS sandbox against `@types/react@19.2.17`), `docs/examples/vanilla-js.md` (CDN snippet: added `<title>`, SRI hash + `crossorigin`, `type="module"` on the inline script to remove an upgrade race).
+- **`connect()` `AudioContext` leak**, fixed identically across all 7 implementations (`vanilla-js`, `react`, `vue`, `svelte` ×2, `angular`, `nextjs`) plus the same pattern in `docs/index.md`, `docs/install.md`, and `docs/examples/host-gain.md`: stale error state wasn't cleared on retry, and the `AudioContext` created before a failing `getUserMedia()` call was never closed.
+- **esbuild/vite CVEs** (GHSA-67mh/gv7w/g7r4 for esbuild, GHSA-4w7w/v6wh/fx2h for vite, transitive through `vitepress@1.6.4`): real fix, not just a CI scope workaround. `package.json` `overrides` force `vite` to `6.4.3` and its nested `esbuild` to `^0.28.1`; `docs/.vitepress/config.mjs` sets `vite.build.target` / `vite.optimizeDeps.esbuildOptions.target` to `es2020` to sidestep an esbuild 0.28.x regression (can't downlevel destructuring for vite's default legacy browser target list). `npm audit` is genuinely 0 vulnerabilities now — verified independently by two external review passes (Codex + another agent), including a from-scratch reproduction of the `docs:build` failure without the `es2020` target override. Only affects the docs build pipeline, not the published component (which has its own separate legacy build).
+- Multiple review passes caught real bugs before merge: a missing `ApplicationConfig` import in the new Angular zoneless snippet, the missing `import type {} from 'react'` for the JSX augmentation (only caught on a second external review round — verify claims like this directly rather than trusting semver/range reasoning), and the AudioContext-leak pattern in `docs/index.md`/`install.md`/`host-gain.md` that the first review pass missed.
+- **Release:** prep commit `06e273a` (CHANGELOG `[1.2.1]` stamp + CDN pin bump ×10), version commit `28eecab` + tag `v1.2.1`, `npm publish`, `git push --follow-tags` (bypassed branch protection as the documented release-flow exception). Post-publish: npm shows 1.2.1 (13 files), published `dist/index.d.ts` byte-matches `src/index.d.ts` at the tag, all 4 CDN URLs return 200, [GitHub Release](https://github.com/idsinge/latency-test/releases/tag/v1.2.1) created.
+- **Open semver nuance, not acted on:** an external review argued the `./legacy` subpath is a new public entry point and arguably warrants a *minor* bump (cf. `1.1.0`, which went minor for the comparable `recording-mode="mediarecorder-1ch"` addition) rather than the patch bump used here. Not worth unwinding the already-published `1.2.1` over; use minor for any future new-capability/new-entry-point additions to stay consistent with that precedent.
+- **Phase 6 is now closed end-to-end** — see "Phase 6 execution model" below for the final status update.
 
 ## Recently Completed (2026-06-12)
 
@@ -114,18 +129,18 @@ See `agents/KNOWN_ISSUES.md` for open findings from code reviews (Codex, DeepSee
 ### Phase 4 remainder
 - Host-side histogram — moved to Phase 8 experimentation toolkit (2026-06-12). `latency-complete` already fires with `{ results[], mean, std, min, max }`; rendering a histogram from the results array is now a toolkit item, not a demo-page requirement. Nothing else remains in Phase 4.
 
-### Phase 6 remainder
-- [ ] Framework example end-to-end verification — before treating any framework example as verified, test it against the installed published package `@adasp/latency-test@1.2.0` (not local source). Scope: the six framework pages (vanilla-js, React, Vue, Svelte, Angular, Next.js). `host-gain.md` is out of scope — it is a pattern page exercised by the demo's Host Gain panel against the built bundle (decision 2026-06-12). All Draft labels are already removed; if examples are found wrong during verification, a patch is needed.
+### Phase 6 — complete ✅
+- [x] Framework example end-to-end verification — Tier 1 verification ran in the external examples repo against the published `@adasp/latency-test@1.2.0`. Findings filed as issue #30, patched in PR #31, shipped in `v1.2.1` (2026-06-17). Issue #30 closed. See "Recently Completed (2026-06-17)" above for the full list of fixes.
 
-#### Phase 6 execution model (2026-06-12)
+#### Phase 6 execution model (2026-06-12, closed 2026-06-17)
 
-Verification happens in a dedicated external repo: **https://github.com/idsinge/latency-test-examples** (local: `~/Desktop/latency-test-examples`). Rationale: structurally guarantees published-package consumption (no `file:`/workspace links possible), keeps this research repo lean, isolates dependency noise. That repo's `CLAUDE.md` is the single source of truth for the verification methodology — do not duplicate its rules here. Key facts only:
+Verification happened in a dedicated external repo: **https://github.com/idsinge/latency-test-examples** (local: `~/Desktop/latency-test-examples`). Rationale: structurally guarantees published-package consumption (no `file:`/workspace links possible), keeps this research repo lean, isolates dependency noise. That repo's `CLAUDE.md` is the single source of truth for the verification methodology — do not duplicate its rules here. Key facts only:
 
-- Two tiers: `examples/` = the six framework apps (this Phase 6 gate; exact pin `1.2.0`, apps mirror the docs pages literally, README matrix with per-check legend = the verification record incl. docs-commit SHA and environment); `demos/` = latency-compensation R&D (waveform-playlist React, `@dawcore/*`), **hard-quarantined until Tier 1 signoff**.
+- Two tiers: `examples/` = the six framework apps (this Phase 6 gate; was pinned to `1.2.0` for Tier 1, apps mirror the docs pages literally, README matrix with per-check legend = the verification record incl. docs-commit SHA and environment); `demos/` = latency-compensation R&D (waveform-playlist React, `@dawcore/*`), was hard-quarantined until Tier 1 signoff.
 - Pass criteria were tightened through two Codex review rounds — five success-path events + no `latency-error`, deliberate negative-path test, registry-consumption proof, dev AND production build with clean console, CDN variant for vanilla-js, environment recorded.
-- A separate Claude instance works there, bootstrapped by `agents/KICKOFF_PROMPT.md` in that repo. Status at handoff: seed files review-hardened (two Codex rounds) and committed (examples repo initial commit `0804b8f`); verification work itself not yet started — all matrix rows pending.
-- Forced deviations from a docs page are findings → relayed back to THIS repo as docs patches (branch + PR, as usual).
-- **Phase 6 signoff happens here** when the matrix is complete: run `npm run build:component:all`, `npm run docs:build`, `npm pack --dry-run`; close the KNOWN_ISSUES open item; update this file; link the verified examples repo from the docs.
+- A separate Claude instance worked there, bootstrapped by `agents/KICKOFF_PROMPT.md` in that repo.
+- Forced deviations from a docs page were findings → relayed back to THIS repo as docs patches: filed as issue #30, fixed in PR #31.
+- **Phase 6 signoff landed here 2026-06-17**: issue #30 closed, `v1.2.1` published with all the docs fixes. Tier 2 work in the examples repo (pinned to the new `1.2.1`) is now unblocked — not yet started as of this handoff.
 
 ### Independent
 - [x] **CI Node version divergence** — Intentional and closed. `.nvmrc=22` (local dev), `ci.yml=20` (test/build job), `docs.yml=24` (Pages build/deploy workflow). All satisfy `engines: >=18`. See `agents/KNOWN_ISSUES.md`.

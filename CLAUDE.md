@@ -240,8 +240,7 @@ Phases 1–3b are complete. The `<latency-test>` Custom Element is implemented w
 - `recording-mode="mediarecorder"` (default, 2-channel), `recording-mode="mediarecorder-1ch"` (1-channel fallback), and `recording-mode="audioworklet"` all working
 - `worker.js` cross-correlates two buffers: in the audioworklet path these are `{ mic, ref }` Float32 PCM; in the mediarecorder (2ch) path these are `ch0` (mic) and `ch1` (reference) from the decoded stereo recording; in the mediarecorder-1ch path these are the decoded mono recording vs the pre-generated MLS AudioBuffer
 
-**Still in progress:**
-- Phase 6: framework example end-to-end verification against the published `@adasp/latency-test@1.2.0` package — the only remaining v1 item. Verification host apps live in the dedicated repo https://github.com/idsinge/latency-test-examples (published-package-only; methodology in that repo's CLAUDE.md). (Phase 4 is complete: browser verification matrix done across all three modes; host-side histogram moved to the Phase 8 experimentation toolkit.)
+**v1 is feature-complete.** Phase 6 (framework example end-to-end verification against the published package) is done: verification ran against `@adasp/latency-test@1.2.0` in the dedicated repo https://github.com/idsinge/latency-test-examples (methodology in that repo's CLAUDE.md), surfaced as issue #30, and the resulting docs fixes shipped in `v1.2.1` (2026-06-17). Tier 2 work in the examples repo is now unblocked. (Phase 4 is complete: browser verification matrix done across all three modes; host-side histogram moved to the Phase 8 experimentation toolkit.)
 
 **Planned configurable attributes (beyond `number-of-tests`, `mls-bits`, `max-lag-ms`):**
 
