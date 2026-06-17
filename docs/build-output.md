@@ -15,7 +15,7 @@
 
 | File | Purpose |
 |------|---------|
-| `latency-test.legacy.esm.js` | Legacy ESM — private fields, optional chaining, and nullish coalescing lowered |
+| `latency-test.legacy.esm.js` | Legacy ESM — private fields, optional chaining, and nullish coalescing lowered; reachable via `import '@adasp/latency-test/legacy'` |
 | `latency-test.legacy.iife.js` | Legacy IIFE — same lowering; used by the demo page |
 
 `npm run build:component:all` runs both builds in sequence and is used by CI and `prepublishOnly`.

@@ -38,6 +38,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
   let error = null
 
   async function connect() {
+    error = null
     try {
       audioCtx = new AudioContext({ latencyHint: 0 })
       micStream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
@@ -47,6 +48,8 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
     } catch (e) {
       micStream?.getTracks().forEach(t => t.stop())
       micStream = null
+      await audioCtx?.close()
+      audioCtx = null
       error = `Could not access mic: ${e.message}`
     }
   }
@@ -70,7 +73,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
   })
 </script>
 
-<latency-test bind:this={lt} number-of-tests="5" />
+<latency-test bind:this={lt} number-of-tests="5"></latency-test>
 
 {#if !isConnected}
   <button on:click={connect}>Connect Audio</button>
@@ -121,7 +124,7 @@ When your application already owns a mic stream and `AudioContext`, pass both to
   $: if (lt && inputStream) lt.inputStream = inputStream
 </script>
 
-<latency-test bind:this={lt} />
+<latency-test bind:this={lt}></latency-test>
 ```
 
 ---
@@ -168,13 +171,15 @@ SvelteKit runs components on the server during SSR. Custom elements that access 
     } catch (e) {
       micStream?.getTracks().forEach(t => t.stop())
       micStream = null
+      await audioCtx?.close()
+      audioCtx = null
       console.error('Could not access mic:', e.message)
     }
   }
 </script>
 
 {#if browser && isReady}
-  <latency-test bind:this={lt} />
+  <latency-test bind:this={lt}></latency-test>
   {#if !isConnected}
     <button on:click={connect}>Connect Audio</button>
   {:else}
@@ -193,7 +198,7 @@ Types ship with the package. Import `LatencyTestElement` directly:
 import type { LatencyTestElement } from '@adasp/latency-test'
 
 let lt: LatencyTestElement
-// <latency-test bind:this={lt} />
+// <latency-test bind:this={lt}></latency-test>
 
 lt?.start()
 lt?.audioContext  // ✅ typed

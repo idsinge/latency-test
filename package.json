@@ -23,6 +23,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/latency-test.esm.js",
       "default": "./dist/latency-test.esm.js"
+    },
+    "./legacy": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/latency-test.legacy.esm.js",
+      "default": "./dist/latency-test.legacy.esm.js"
     }
   },
   "module": "./dist/latency-test.esm.js",

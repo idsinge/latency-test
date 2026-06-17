@@ -41,6 +41,7 @@ export function LatencyTester({ numberOfTests = 5 }) {
   const [error, setError] = useState(null)
 
   async function connect() {
+    setError(null)
     try {
       const ac = new AudioContext({ latencyHint: 0 })
       audioCtxRef.current = ac
@@ -52,6 +53,8 @@ export function LatencyTester({ numberOfTests = 5 }) {
     } catch (e) {
       micStreamRef.current?.getTracks().forEach(t => t.stop())
       micStreamRef.current = null
+      await audioCtxRef.current?.close()
+      audioCtxRef.current = null
       setError(`Could not access mic: ${e.message}`)
     }
   }
@@ -132,20 +135,22 @@ el?.start()
 el?.audioContext  // ✅ typed
 ```
 
-**React 19+** — `<latency-test>` in JSX picks up types from `HTMLElementTagNameMap` automatically. No manual declarations needed.
-
-**React < 19** — add a JSX namespace declaration to avoid template type errors:
+A JSX namespace declaration is required regardless of React version — `<latency-test>` in JSX does **not** automatically pick up types from `HTMLElementTagNameMap`. Declare it under `declare module 'react'` (a bare `declare namespace JSX { ... }` targets the wrong namespace in React 19 and has no effect):
 
 ```ts
 // src/custom-elements.d.ts
-declare namespace JSX {
-  interface IntrinsicElements {
-    'latency-test': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-      'number-of-tests'?: number
-      'mls-bits'?: number
-      'max-lag-ms'?: number
-      'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
-      'signal-type'?: 'mls'
+import type {} from 'react'
+
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      'latency-test': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        'number-of-tests'?: number
+        'mls-bits'?: number
+        'max-lag-ms'?: number
+        'recording-mode'?: 'mediarecorder' | 'mediarecorder-1ch' | 'audioworklet'
+        'signal-type'?: 'mls'
+      }
     }
   }
 }

@@ -60,6 +60,7 @@ const stats = ref(null)
 const error = ref(null)
 
 async function connect() {
+  error.value = null
   try {
     audioCtx.value = new AudioContext({ latencyHint: 0 })
     micStream.value = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS)
@@ -69,6 +70,8 @@ async function connect() {
   } catch (e) {
     micStream.value?.getTracks().forEach(t => t.stop())
     micStream.value = null
+    await audioCtx.value?.close()
+    audioCtx.value = null
     error.value = `Could not access mic: ${e.message}`
   }
 }

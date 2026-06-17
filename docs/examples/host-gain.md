@@ -29,14 +29,20 @@ This pattern introduces an extra browser-managed Web Audio / MediaStream bridge.
 
 ```js
 const ac = new AudioContext({ latencyHint: 0 })
-const stream = await navigator.mediaDevices.getUserMedia({
-  audio: {
-    echoCancellation: false,
-    noiseSuppression: false,
-    autoGainControl: false,
-    channelCount: 1
-  }
-})
+let stream
+try {
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      channelCount: 1
+    }
+  })
+} catch (e) {
+  await ac.close()
+  throw e
+}
 
 // Build the gain chain.
 // Adjust gainValue as needed — 50 is a starting point for Safari >= 16
