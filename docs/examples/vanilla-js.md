@@ -19,7 +19,7 @@ The recommended pattern is a two-step flow: connect audio first, then run tests.
   <title>Latency Test Demo</title>
   <script
     type="module"
-    src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"
+    src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.1/dist/latency-test.esm.js"
     integrity="sha384-9dXVEFJFXcDEQz2sxPKrgnGNF+GTVBkoD5sxQF49woQKjJ7fb6xrhZ5cTb+Hk4e+"
     crossorigin="anonymous"
   ></script>

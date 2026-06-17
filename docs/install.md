@@ -39,28 +39,28 @@ Choose the approach that fits your project:
 **ESM (modern browsers — recommended):**
 ```html
 <!-- jsDelivr -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.1/dist/latency-test.esm.js"></script>
 
 <!-- unpkg -->
-<script type="module" src="https://unpkg.com/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
+<script type="module" src="https://unpkg.com/@adasp/latency-test@1.2.1/dist/latency-test.esm.js"></script>
 ```
 
 **IIFE (modern browsers, no module support required):**
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.1/dist/latency-test.iife.js"></script>
 
 <!-- unpkg -->
-<script src="https://unpkg.com/@adasp/latency-test@1.2.0/dist/latency-test.iife.js"></script>
+<script src="https://unpkg.com/@adasp/latency-test@1.2.1/dist/latency-test.iife.js"></script>
 ```
 
 **Legacy IIFE (older MediaRecorder-capable browsers — Chrome 74–79, Firefox &lt; 72, Safari 14 — `recording-mode="mediarecorder"` only; `"audioworklet"` emits `latency-error` on Chrome 74–79):**
 ```html
 <!-- jsDelivr -->
-<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.legacy.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.1/dist/latency-test.legacy.iife.js"></script>
 
 <!-- unpkg -->
-<script src="https://unpkg.com/@adasp/latency-test@1.2.0/dist/latency-test.legacy.iife.js"></script>
+<script src="https://unpkg.com/@adasp/latency-test@1.2.1/dist/latency-test.legacy.iife.js"></script>
 ```
 
 All three register the `<latency-test>` element globally. Place either in the `<head>` of your HTML file.
@@ -75,7 +75,7 @@ For the full list of files in `dist/` and which build command produces each, see
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.0/dist/latency-test.esm.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@adasp/latency-test@1.2.1/dist/latency-test.esm.js"></script>
 </head>
 <body>
   <latency-test id="el"></latency-test>

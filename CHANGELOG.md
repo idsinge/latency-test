@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-17
+
+### Added
+
+- `./legacy` package export subpath — `import '@adasp/latency-test/legacy'` now resolves to the legacy ESM build (`dist/latency-test.legacy.esm.js`) without reaching into `node_modules` directly.
+
+### Fixed
+
+- Phase 6 documentation findings from end-to-end framework verification: Svelte self-closing tag compiler warning, Angular zoneless change-detection setup, an incorrect "React 19 auto-detects JSX types" claim, CDN snippet hardening (SRI hash, module-script upgrade race), and an `AudioContext` leak on failed `getUserMedia()` retries across all framework integration guides, the Quick Start, and the host-gain example.
+- CI dependency audit (`esbuild`/`vite`, transitive through `vitepress`) now passes without a scoped workaround — both bumped past their known CVEs via `overrides`, with the VitePress docs build target raised to `es2020` to avoid an esbuild 0.28.x regression in downleveling destructuring syntax for legacy browser targets.
+
 ## [1.2.0] - 2026-06-12
 
 ### Removed
