@@ -28,6 +28,12 @@ features:
     details: Exposes start() / stop() methods and fires CustomEvents. No built-in UI — drop it into any host application or DAW without styling conflicts.
   - title: Framework Ready
     details: Works with Vanilla JS, React, Vue, Svelte, Angular, and Next.js. Zero dependencies at runtime.
+  - title: Proven in Real Apps
+    details: Verified end-to-end in six deployed framework example apps, plus R&D demos compensating a real recording in third-party multitrack editors.
+    link: https://github.com/idsinge/latency-test-examples
+    linkText: View examples repo
+    target: _blank
+    rel: noreferrer
 ---
 
 ## Quick start

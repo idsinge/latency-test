@@ -79,6 +79,7 @@ Full integration docs are published via VitePress (see `docs/`):
 - **Installation** — npm, CDN, AudioContext sharing: `docs/install.md`
 - **Live demo:** https://idsinge.github.io/latency-test/demo/
 - **Dev & research pages:** https://idsinge.github.io/latency-test/dev/ (test pages and experiments, including the MediaRecorder 2ch and 1ch experiments)
+- **Integration examples & compensation demos:** https://github.com/idsinge/latency-test-examples — proves this package works end-to-end in deployed apps, and hosts R&D demos/records showing measured latency compensating a real recording in third-party multitrack editors
 
 ## Local development
 
